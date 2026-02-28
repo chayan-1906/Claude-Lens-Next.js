@@ -1,0 +1,95 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+package-lock.json
+
+# Testing
+/coverage
+*.lcov
+/src/__tests__/
+
+# Next.js build output
+/.next/
+/out/
+
+# Production build
+/build
+/dist
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# Environment variables
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example           # Allow .env.example to be tracked
+
+# IDE and editor files
+.vscode/            # Visual Studio Code
+*.swp               # Vim swap files
+*.swo               # Vim swap files
+*~                  # Emacs backup files
+.project            # Eclipse project files
+.classpath          # Eclipse classpath
+*.sublime-*         # Sublime Text
+.idea/
+
+# OS generated files
+.DS_Store           # macOS
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db         # Windows
+Thumbs.db           # Windows
+Desktop.ini         # Windows
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Deployment platforms
+.vercel
+.netlify
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Storybook build outputs
+storybook-static
+
+# Local development
+.vscode/settings.json
+
+# Sentry Config File
+.env.sentry-build-plugin
+
+.gemini/
+gha-creds-*.json
