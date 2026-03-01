@@ -1,5 +1,6 @@
 import type {IMessage} from "@/types/message";
 import {MessageBubble} from "@/components/MessageBubble";
+import {ScrollToBottom} from "@/components/ScrollToBottom";
 import type {IConversationViewProps} from "@/types/components";
 
 function ConversationView({conversation, messages}: IConversationViewProps) {
@@ -27,6 +28,7 @@ function ConversationView({conversation, messages}: IConversationViewProps) {
                     {messages.map((message: IMessage) => (
                         <MessageBubble key={message.uuid} message={message}/>
                     ))}
+                    <ScrollToBottom/>
                 </div>
             </div>
         </div>

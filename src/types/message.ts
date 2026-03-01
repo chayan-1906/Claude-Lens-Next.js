@@ -31,6 +31,19 @@ export enum EMessageRole {
     ASSISTANT = 'assistant',
 }
 
+export enum EUserMessageType {
+    PLAIN = 'plain',
+    SLASH_COMMAND = 'slash_command',
+    COMMAND_OUTPUT = 'command_output',
+    SYSTEM_CAVEAT = 'system_caveat',
+}
+
+export type ParsedUserMessage =
+    | { type: EUserMessageType.PLAIN; text: string }
+    | { type: EUserMessageType.SLASH_COMMAND; command: string; args: string; remainingText: string }
+    | { type: EUserMessageType.COMMAND_OUTPUT; output: string }
+    | { type: EUserMessageType.SYSTEM_CAVEAT }
+
 
 /** ------------- API response types ------------- */
 

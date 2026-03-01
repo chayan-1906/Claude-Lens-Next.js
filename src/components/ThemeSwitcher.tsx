@@ -53,7 +53,7 @@ function ThemeSwitcher() {
 
             {/* Popover panel */}
             {isOpen && (
-                <div className={'absolute bottom-full left-0 mb-2 rounded-xl border border-border bg-surface shadow-lg p-4 z-50'}>
+                <div className={'absolute top-full right-0 mt-2 rounded-xl border border-border bg-surface shadow-lg p-4 z-50'}>
                     {/* Scheme rows — 5 colors per scheme */}
                     <p className={'text-xs font-medium text-text-muted mb-3'}>{'Color Scheme'}</p>
                     <div className={'flex flex-col gap-1 mb-4'}>
