@@ -1,26 +1,424 @@
 @import "tailwindcss";
 
+/* ========================================
+   Theme System: 5 schemes x 2 modes
+   Driven by <html data-scheme="..." data-mode="...">
+   ======================================== */
+
+/* --- Carbon (default fallback) — Light --- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+	--color-primary: #18181B;
+	--color-light-primary: #A1A1AA;
+	--color-dark-primary: #09090B;
+	--color-secondary: #71717A;
+	--color-light-secondary: #D4D4D8;
+	--color-dark-secondary: #52525B;
+	--color-accent: #F97316;
+	--color-text: #09090B;
+	--color-text-muted: #71717A;
+	--color-background: #FAFAFA;
+	--color-surface: #FFFFFF;
+	--color-border: #E4E4E7;
+	--color-user-bubble: #F4F4F5;
+	--color-assistant-bubble: #FFFFFF;
+	--color-code-bg: #F4F4F5;
+	--color-code-border: #E4E4E7;
+	--color-success: #22C55E;
+	--color-warning: #F97316;
+	--color-error: #EF4444;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* --- Carbon — Light (explicit) + System default --- */
+[data-scheme="carbon"][data-mode="light"],
+[data-scheme="carbon"][data-mode="system"] {
+	--color-primary: #18181B;
+	--color-light-primary: #A1A1AA;
+	--color-dark-primary: #09090B;
+	--color-secondary: #71717A;
+	--color-light-secondary: #D4D4D8;
+	--color-dark-secondary: #52525B;
+	--color-accent: #F97316;
+	--color-text: #09090B;
+	--color-text-muted: #71717A;
+	--color-background: #FAFAFA;
+	--color-surface: #FFFFFF;
+	--color-border: #E4E4E7;
+	--color-user-bubble: #F4F4F5;
+	--color-assistant-bubble: #FFFFFF;
+	--color-code-bg: #F4F4F5;
+	--color-code-border: #E4E4E7;
+	--color-success: #22C55E;
+	--color-warning: #F97316;
+	--color-error: #EF4444;
+}
+
+/* --- Carbon — Dark --- */
+[data-scheme="carbon"][data-mode="dark"] {
+	--color-primary: #FAFAFA;
+	--color-light-primary: #D4D4D8;
+	--color-dark-primary: #FFFFFF;
+	--color-secondary: #A1A1AA;
+	--color-light-secondary: #71717A;
+	--color-dark-secondary: #D4D4D8;
+	--color-accent: #FB923C;
+	--color-text: #FAFAFA;
+	--color-text-muted: #A1A1AA;
+	--color-background: #09090B;
+	--color-surface: #18181B;
+	--color-border: #27272A;
+	--color-user-bubble: #1E1E21;
+	--color-assistant-bubble: #18181B;
+	--color-code-bg: #0F0F12;
+	--color-code-border: #27272A;
+	--color-success: #4ADE80;
+	--color-warning: #FB923C;
+	--color-error: #F87171;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+	[data-scheme="carbon"][data-mode="system"] {
+		--color-primary: #FAFAFA;
+		--color-light-primary: #D4D4D8;
+		--color-dark-primary: #FFFFFF;
+		--color-secondary: #A1A1AA;
+		--color-light-secondary: #71717A;
+		--color-dark-secondary: #D4D4D8;
+		--color-accent: #FB923C;
+		--color-text: #FAFAFA;
+		--color-text-muted: #A1A1AA;
+		--color-background: #09090B;
+		--color-surface: #18181B;
+		--color-border: #27272A;
+		--color-user-bubble: #1E1E21;
+		--color-assistant-bubble: #18181B;
+		--color-code-bg: #0F0F12;
+		--color-code-border: #27272A;
+		--color-success: #4ADE80;
+		--color-warning: #FB923C;
+		--color-error: #F87171;
+	}
 }
 
+
+/* --- Arctic Steel — Light + System default --- */
+[data-scheme="arctic-steel"][data-mode="light"],
+[data-scheme="arctic-steel"][data-mode="system"] {
+	--color-primary: #2563EB;
+	--color-light-primary: #93C5FD;
+	--color-dark-primary: #1D4ED8;
+	--color-secondary: #64748B;
+	--color-light-secondary: #CBD5E1;
+	--color-dark-secondary: #475569;
+	--color-accent: #0EA5E9;
+	--color-text: #0F172A;
+	--color-text-muted: #64748B;
+	--color-background: #F8FAFC;
+	--color-surface: #FFFFFF;
+	--color-border: #E2E8F0;
+	--color-user-bubble: #EFF6FF;
+	--color-assistant-bubble: #FFFFFF;
+	--color-code-bg: #F1F5F9;
+	--color-code-border: #E2E8F0;
+	--color-success: #10B981;
+	--color-warning: #F59E0B;
+	--color-error: #EF4444;
+}
+
+/* --- Arctic Steel — Dark --- */
+[data-scheme="arctic-steel"][data-mode="dark"] {
+	--color-primary: #3B82F6;
+	--color-light-primary: #60A5FA;
+	--color-dark-primary: #2563EB;
+	--color-secondary: #94A3B8;
+	--color-light-secondary: #64748B;
+	--color-dark-secondary: #CBD5E1;
+	--color-accent: #38BDF8;
+	--color-text: #F1F5F9;
+	--color-text-muted: #94A3B8;
+	--color-background: #0B1120;
+	--color-surface: #151E31;
+	--color-border: #1E293B;
+	--color-user-bubble: #172554;
+	--color-assistant-bubble: #151E31;
+	--color-code-bg: #0D1321;
+	--color-code-border: #1E293B;
+	--color-success: #34D399;
+	--color-warning: #FBBF24;
+	--color-error: #F87171;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-scheme="arctic-steel"][data-mode="system"] {
+		--color-primary: #3B82F6;
+		--color-light-primary: #60A5FA;
+		--color-dark-primary: #2563EB;
+		--color-secondary: #94A3B8;
+		--color-light-secondary: #64748B;
+		--color-dark-secondary: #CBD5E1;
+		--color-accent: #38BDF8;
+		--color-text: #F1F5F9;
+		--color-text-muted: #94A3B8;
+		--color-background: #0B1120;
+		--color-surface: #151E31;
+		--color-border: #1E293B;
+		--color-user-bubble: #172554;
+		--color-assistant-bubble: #151E31;
+		--color-code-bg: #0D1321;
+		--color-code-border: #1E293B;
+		--color-success: #34D399;
+		--color-warning: #FBBF24;
+		--color-error: #F87171;
+	}
+}
+
+
+/* --- Warm Stone — Light + System default --- */
+[data-scheme="warm-stone"][data-mode="light"],
+[data-scheme="warm-stone"][data-mode="system"] {
+	--color-primary: #B45309;
+	--color-light-primary: #FDE68A;
+	--color-dark-primary: #92400E;
+	--color-secondary: #78716C;
+	--color-light-secondary: #D6D3D1;
+	--color-dark-secondary: #57534E;
+	--color-accent: #D97706;
+	--color-text: #1C1917;
+	--color-text-muted: #78716C;
+	--color-background: #FAF9F6;
+	--color-surface: #FFFFFF;
+	--color-border: #E7E5E4;
+	--color-user-bubble: #FEF3C7;
+	--color-assistant-bubble: #FFFFFF;
+	--color-code-bg: #F5F5F4;
+	--color-code-border: #E7E5E4;
+	--color-success: #059669;
+	--color-warning: #D97706;
+	--color-error: #DC2626;
+}
+
+/* --- Warm Stone — Dark --- */
+[data-scheme="warm-stone"][data-mode="dark"] {
+	--color-primary: #F59E0B;
+	--color-light-primary: #FBBF24;
+	--color-dark-primary: #D97706;
+	--color-secondary: #A8A29E;
+	--color-light-secondary: #78716C;
+	--color-dark-secondary: #D6D3D1;
+	--color-accent: #FBBF24;
+	--color-text: #FAFAF9;
+	--color-text-muted: #A8A29E;
+	--color-background: #171412;
+	--color-surface: #231F1C;
+	--color-border: #302B27;
+	--color-user-bubble: #3D2E10;
+	--color-assistant-bubble: #231F1C;
+	--color-code-bg: #1A1614;
+	--color-code-border: #302B27;
+	--color-success: #34D399;
+	--color-warning: #FBBF24;
+	--color-error: #FB7185;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-scheme="warm-stone"][data-mode="system"] {
+		--color-primary: #F59E0B;
+		--color-light-primary: #FBBF24;
+		--color-dark-primary: #D97706;
+		--color-secondary: #A8A29E;
+		--color-light-secondary: #78716C;
+		--color-dark-secondary: #D6D3D1;
+		--color-accent: #FBBF24;
+		--color-text: #FAFAF9;
+		--color-text-muted: #A8A29E;
+		--color-background: #171412;
+		--color-surface: #231F1C;
+		--color-border: #302B27;
+		--color-user-bubble: #3D2E10;
+		--color-assistant-bubble: #231F1C;
+		--color-code-bg: #1A1614;
+		--color-code-border: #302B27;
+		--color-success: #34D399;
+		--color-warning: #FBBF24;
+		--color-error: #FB7185;
+	}
+}
+
+
+/* --- Evergreen — Light + System default --- */
+[data-scheme="evergreen"][data-mode="light"],
+[data-scheme="evergreen"][data-mode="system"] {
+	--color-primary: #0D7377;
+	--color-light-primary: #99F6E4;
+	--color-dark-primary: #0F5E61;
+	--color-secondary: #6B7F7A;
+	--color-light-secondary: #C2D4CF;
+	--color-dark-secondary: #4A5E59;
+	--color-accent: #0D9488;
+	--color-text: #0C1B19;
+	--color-text-muted: #6B7F7A;
+	--color-background: #F6FAF9;
+	--color-surface: #FFFFFF;
+	--color-border: #D5E5E1;
+	--color-user-bubble: #CCFBF1;
+	--color-assistant-bubble: #FFFFFF;
+	--color-code-bg: #F0F7F5;
+	--color-code-border: #D5E5E1;
+	--color-success: #059669;
+	--color-warning: #D97706;
+	--color-error: #E11D48;
+}
+
+/* --- Evergreen — Dark --- */
+[data-scheme="evergreen"][data-mode="dark"] {
+	--color-primary: #14B8A6;
+	--color-light-primary: #2DD4BF;
+	--color-dark-primary: #0D9488;
+	--color-secondary: #94A3B8;
+	--color-light-secondary: #64748B;
+	--color-dark-secondary: #CBD5E1;
+	--color-accent: #2DD4BF;
+	--color-text: #ECFDF5;
+	--color-text-muted: #94A3B8;
+	--color-background: #0A1514;
+	--color-surface: #11201E;
+	--color-border: #1A2F2C;
+	--color-user-bubble: #0D3330;
+	--color-assistant-bubble: #11201E;
+	--color-code-bg: #0B1917;
+	--color-code-border: #1A2F2C;
+	--color-success: #34D399;
+	--color-warning: #FBBF24;
+	--color-error: #FB7185;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-scheme="evergreen"][data-mode="system"] {
+		--color-primary: #14B8A6;
+		--color-light-primary: #2DD4BF;
+		--color-dark-primary: #0D9488;
+		--color-secondary: #94A3B8;
+		--color-light-secondary: #64748B;
+		--color-dark-secondary: #CBD5E1;
+		--color-accent: #2DD4BF;
+		--color-text: #ECFDF5;
+		--color-text-muted: #94A3B8;
+		--color-background: #0A1514;
+		--color-surface: #11201E;
+		--color-border: #1A2F2C;
+		--color-user-bubble: #0D3330;
+		--color-assistant-bubble: #11201E;
+		--color-code-bg: #0B1917;
+		--color-code-border: #1A2F2C;
+		--color-success: #34D399;
+		--color-warning: #FBBF24;
+		--color-error: #FB7185;
+	}
+}
+
+
+/* --- Dusk — Light + System default --- */
+[data-scheme="dusk"][data-mode="light"],
+[data-scheme="dusk"][data-mode="system"] {
+	--color-primary: #6D28D9;
+	--color-light-primary: #C4B5FD;
+	--color-dark-primary: #5B21B6;
+	--color-secondary: #6B7280;
+	--color-light-secondary: #D1D5DB;
+	--color-dark-secondary: #4B5563;
+	--color-accent: #E11D48;
+	--color-text: #111827;
+	--color-text-muted: #6B7280;
+	--color-background: #FAF9FC;
+	--color-surface: #FFFFFF;
+	--color-border: #E5E1EE;
+	--color-user-bubble: #EDE9FE;
+	--color-assistant-bubble: #FFFFFF;
+	--color-code-bg: #F5F3FF;
+	--color-code-border: #E5E1EE;
+	--color-success: #059669;
+	--color-warning: #D97706;
+	--color-error: #E11D48;
+}
+
+/* --- Dusk — Dark --- */
+[data-scheme="dusk"][data-mode="dark"] {
+	--color-primary: #8B5CF6;
+	--color-light-primary: #A78BFA;
+	--color-dark-primary: #7C3AED;
+	--color-secondary: #9CA3AF;
+	--color-light-secondary: #6B7280;
+	--color-dark-secondary: #D1D5DB;
+	--color-accent: #FB7185;
+	--color-text: #F5F3FF;
+	--color-text-muted: #9CA3AF;
+	--color-background: #0E0B1A;
+	--color-surface: #1A1528;
+	--color-border: #2A2240;
+	--color-user-bubble: #2E1065;
+	--color-assistant-bubble: #1A1528;
+	--color-code-bg: #120E20;
+	--color-code-border: #2A2240;
+	--color-success: #34D399;
+	--color-warning: #FBBF24;
+	--color-error: #FB7185;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-scheme="dusk"][data-mode="system"] {
+		--color-primary: #8B5CF6;
+		--color-light-primary: #A78BFA;
+		--color-dark-primary: #7C3AED;
+		--color-secondary: #9CA3AF;
+		--color-light-secondary: #6B7280;
+		--color-dark-secondary: #D1D5DB;
+		--color-accent: #FB7185;
+		--color-text: #F5F3FF;
+		--color-text-muted: #9CA3AF;
+		--color-background: #0E0B1A;
+		--color-surface: #1A1528;
+		--color-border: #2A2240;
+		--color-user-bubble: #2E1065;
+		--color-assistant-bubble: #1A1528;
+		--color-code-bg: #120E20;
+		--color-code-border: #2A2240;
+		--color-success: #34D399;
+		--color-warning: #FBBF24;
+		--color-error: #FB7185;
+	}
+}
+
+
+/* ========================================
+   Bridge CSS variables into Tailwind 4 theme
+   ======================================== */
+@theme inline {
+	--color-primary: var(--color-primary);
+	--color-light-primary: var(--color-light-primary);
+	--color-dark-primary: var(--color-dark-primary);
+	--color-secondary: var(--color-secondary);
+	--color-light-secondary: var(--color-light-secondary);
+	--color-dark-secondary: var(--color-dark-secondary);
+	--color-accent: var(--color-accent);
+	--color-text: var(--color-text);
+	--color-text-muted: var(--color-text-muted);
+	--color-background: var(--color-background);
+	--color-surface: var(--color-surface);
+	--color-border: var(--color-border);
+	--color-user-bubble: var(--color-user-bubble);
+	--color-assistant-bubble: var(--color-assistant-bubble);
+	--color-code-bg: var(--color-code-bg);
+	--color-code-border: var(--color-code-border);
+	--color-success: var(--color-success);
+	--color-warning: var(--color-warning);
+	--color-error: var(--color-error);
+	--font-sans: var(--font-inter);
+}
+
+/* ========================================
+   Base styles
+   ======================================== */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+	background-color: var(--color-background);
+	color: var(--color-text);
+	font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
