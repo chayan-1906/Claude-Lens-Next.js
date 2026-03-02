@@ -7,14 +7,14 @@ import {HiOutlineChevronRight, HiOutlineFolder} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
-import type {IConversation} from "@/types/conversation";
+import type {ISession} from "@/types/session";
+import {getAllSessions} from "@/actions/sessionss.actions";
 import type {ISidebarClientProps} from "@/types/components";
-import {getAllConversations} from "@/actions/conversations.actions";
 
 function SidebarClient({projects}: ISidebarClientProps) {
     const pathname: string = usePathname();
     const [expandedProjects, setExpandedProjects] = React.useState<Set<string>>(new Set());
-    const [sessionsMap, setSessionsMap] = React.useState<Record<string, IConversation[]>>({});
+    const [sessionsMap, setSessionsMap] = React.useState<Record<string, ISession[]>>({});
     const [loadingProject, setLoadingProject] = React.useState<string | null>(null);
 
     const handleToggleProject = React.useCallback(async (projectDir: string): Promise<void> => {
@@ -31,11 +31,11 @@ function SidebarClient({projects}: ISidebarClientProps) {
         if (sessionsMap[projectDir]) return;
 
         setLoadingProject(projectDir);
-        const {success, conversations} = await getAllConversations({projectDir, limit: 50});
+        const {success, sessions} = await getAllSessions({projectDir, limit: 50});
         setLoadingProject(null);
 
-        if (success) {
-            setSessionsMap((prev) => ({...prev, [projectDir]: conversations}));
+        if (success && sessions && sessions.length !== 0) {
+            setSessionsMap((prev) => ({...prev, [projectDir]: sessions}));
         }
     }, [sessionsMap]);
 
@@ -50,7 +50,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
             {projects.map((projectDir: string) => {
                 const projectName: string = projectDir.split('/').filter(Boolean).pop() || projectDir;
                 const isExpanded: boolean = expandedProjects.has(projectDir);
-                const sessions: IConversation[] = sessionsMap[projectDir] ?? [];
+                const sessions: ISession[] = sessionsMap[projectDir] ?? [];
                 const isLoading: boolean = loadingProject === projectDir;
 
                 return (
@@ -71,23 +71,20 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                 {!isLoading && sessions.length === 0 && (
                                     <p className={'text-xs text-text-muted px-3 py-1.5'}>{'No sessions'}</p>
                                 )}
-                                {sessions.map((conversation: IConversation) => {
-                                    const href: string = routes.sessionPath(conversation.sessionId);
+                                {sessions.map((session: ISession) => {
+                                    const href: string = routes.sessionPath(session.sessionId);
                                     const isActive: boolean = pathname === href;
 
                                     return (
-                                        <Link
-                                            key={conversation.sessionId}
-                                            href={href}
-                                            className={cn(
-                                                'block px-3 py-1.5 rounded-md text-xs transition-colors truncate',
-                                                isActive
-                                                    ? 'bg-primary/10 text-primary font-medium'
-                                                    : 'text-text-muted hover:bg-surface-hover hover:text-text',
-                                            )}
-                                            title={conversation.title}
+                                        <Link key={session.sessionId} href={href} title={session.title}
+                                              className={cn(
+                                                  'block px-3 py-1.5 rounded-md text-xs transition-colors truncate',
+                                                  isActive
+                                                      ? 'bg-primary/10 text-primary font-medium'
+                                                      : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                              )}
                                         >
-                                            {conversation.title}
+                                            {session.title}
                                         </Link>
                                     );
                                 })}

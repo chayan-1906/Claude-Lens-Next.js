@@ -1,5 +1,5 @@
 import React from "react";
-import type {IConversation} from "@/types/conversation";
+import type {ISession} from "@/types/session";
 import type {ContentBlock, IMessage} from "@/types/message";
 
 /** ------------- Constants and Type Aliases ------------- */
@@ -44,8 +44,8 @@ export interface ISessionPageProps {
     params: Promise<{ sessionId: string }>;
 }
 
-export interface IConversationViewProps {
-    conversation: IConversation;
+export interface ISessionViewProps {
+    session: ISession;
     messages: IMessage[];
 }
 

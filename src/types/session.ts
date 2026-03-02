@@ -2,20 +2,20 @@ import type {IMessage} from "./message";
 
 /** ------------- Constants and Type Aliases ------------- */
 
-export enum EConversationSource {
+export enum ESessionSource {
     TERMINAL = 'terminal',
     WEBUI = 'webui',
 }
 
-export interface IConversation {
-    conversationId: string;
+export interface ISession {
+    sessionInternalId: string;
     sessionId: string;
     title: string;
     aiModel?: string;
     projectDir: string;
     gitBranch?: string;
     slug?: string;
-    source: EConversationSource;
+    source: ESessionSource;
     createdAt: string;
     updatedAt: string;
 }
@@ -36,13 +36,13 @@ export interface IApiResponse {
 
 /** ------------- API response types ------------- */
 
-export interface IGetAllConversationsResponse extends IApiResponse {
-    conversations: IConversation[];
-    pagination: IPagination;
+export interface IGetAllSessionsResponse extends IApiResponse {
+    sessions?: ISession[];
+    pagination?: IPagination;
 }
 
 export interface IGetSessionResponse extends IApiResponse {
-    conversation?: IConversation;
+    session?: ISession;
     messages?: IMessage[];
 }
 
@@ -53,7 +53,7 @@ export interface IGetProjectsResponse extends IApiResponse {
 
 /** ------------- function params ------------- */
 
-export interface IGetAllConversationsParams {
+export interface IGetAllSessionsParams {
     title?: string;
     source?: string;
     projectDir?: string;

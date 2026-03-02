@@ -14,7 +14,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
     title: 'Claude Lens',
-    description: 'Browse Claude Code conversation sessions from any device',
+    description: 'Browse Claude Code sessions from any device',
 };
 
 async function RootLayout({children}: Readonly<{ children: React.ReactNode; }>) {

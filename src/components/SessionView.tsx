@@ -1,23 +1,23 @@
 import type {IMessage} from "@/types/message";
 import {MessageBubble} from "@/components/MessageBubble";
+import type {ISessionViewProps} from "@/types/components";
 import {ScrollToBottom} from "@/components/ScrollToBottom";
-import type {IConversationViewProps} from "@/types/components";
 
-function ConversationView({conversation, messages}: IConversationViewProps) {
+function SessionView({session, messages}: ISessionViewProps) {
     return (
         <div className={'flex flex-col h-full'}>
-            {/* Conversation header */}
+            {/* session header */}
             <div className={'px-6 py-3 border-b border-border shrink-0'}>
-                <h1 className={'text-sm font-semibold truncate'}>{conversation.title}</h1>
+                <h1 className={'text-sm font-semibold truncate'}>{session.title}</h1>
                 <p className={'text-xs text-text-muted mt-0.5'}>
-                    {conversation.aiModel && (
-                        <span>{conversation.aiModel}</span>
+                    {session.aiModel && (
+                        <span>{session.aiModel}</span>
                     )}
-                    {(conversation.aiModel && conversation.gitBranch) && (
+                    {(session.aiModel && session.gitBranch) && (
                         <span>{' · '}</span>
                     )}
-                    {conversation.gitBranch && (
-                        <span>{conversation.gitBranch}</span>
+                    {session.gitBranch && (
+                        <span>{session.gitBranch}</span>
                     )}
                 </p>
             </div>
@@ -35,4 +35,4 @@ function ConversationView({conversation, messages}: IConversationViewProps) {
     );
 }
 
-export {ConversationView};
+export {SessionView};

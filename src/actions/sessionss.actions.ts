@@ -3,9 +3,9 @@
 import {apis} from "@/utils/apis";
 import {IMessage} from "@/types/message";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IConversation, IGetAllConversationsParams, IGetAllConversationsResponse, IGetProjectsResponse, IGetSessionParams, IGetSessionResponse, IPagination} from "@/types/conversation";
+import {IGetAllSessionsParams, IGetAllSessionsResponse, IGetProjectsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
 
-async function getAllConversations(params: IGetAllConversationsParams = {}): Promise<IGetAllConversationsResponse> {
+async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetAllSessionsResponse> {
     try {
         const searchParams: URLSearchParams = new URLSearchParams();
 
@@ -16,37 +16,33 @@ async function getAllConversations(params: IGetAllConversationsParams = {}): Pro
         if (params.limit) searchParams.set('limit', String(params.limit));
 
         const queryString: string = searchParams.toString();
-        const url: string = `${apis.getAllConversationsApi}${queryString ? `?${queryString}` : ''}`;
+        const url: string = `${apis.getAllSessionssApi}${queryString ? `?${queryString}` : ''}`;
 
         const response: Response = await fetch(url);
         const data: ApiResponseClass = await parseApiResponse(response);
 
         if (!response.ok || !data.success) {
             const errorCode: string | number = data.error?.code || '';
-            const errorMessage: string = 'Failed to fetch conversations!';
-            console.error('Getting all conversations failed:', {code: errorCode, message: data.error?.message});
+            const errorMessage: string = 'Failed to fetch sessions!';
+            console.error('Getting all sessions failed:', {code: errorCode, message: data.error?.message});
 
             return {
                 success: false,
                 error: errorMessage,
-                conversations: [],
-                pagination: {page: 1, limit: 20, total: 0, totalPages: 0},
             };
         }
 
         return {
             success: true,
             message: data.message,
-            conversations: data.conversations as IConversation[],
+            sessions: data.sessions as ISession[],
             pagination: data.pagination as IPagination,
         };
     } catch (error: unknown) {
-        console.error('Get all conversations error:', error);
+        console.error('Get all sessions error:', error);
         return {
             success: false,
             error: 'Something went wrong. Please try again!',
-            conversations: [],
-            pagination: {page: 1, limit: 20, total: 0, totalPages: 0},
         };
     }
 }
@@ -76,7 +72,7 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
         return {
             success: true,
             message: data.message,
-            conversation: data.conversation as IConversation,
+            session: data.session as ISession,
             messages: data.messages as IMessage[],
         };
     } catch (error: unknown) {
@@ -118,4 +114,4 @@ async function getProjects(): Promise<IGetProjectsResponse> {
     }
 }
 
-export {getAllConversations, getSession, getProjects};
+export {getAllSessions, getSession, getProjects};

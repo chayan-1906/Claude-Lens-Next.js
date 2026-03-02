@@ -7,7 +7,7 @@ import {Button} from "@/components/ui/Button";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type {IAppLayoutProps} from "@/types/components";
 
-function AppLayout({children, sidebar, sidebarTitle = 'Conversations'}: IAppLayoutProps) {
+function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = React.useState<boolean>(true);
     const [isMobile, setIsMobile] = React.useState<boolean>(false);
 

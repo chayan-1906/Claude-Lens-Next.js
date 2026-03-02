@@ -2,7 +2,7 @@
 const routes = {
     homePath: '/',
 
-    // Conversation routes
+    // session routes
     sessionPath: (sessionId: string) => `/c/${sessionId}`,
 };
 
