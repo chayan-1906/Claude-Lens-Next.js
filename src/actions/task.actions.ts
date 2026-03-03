@@ -3,7 +3,7 @@
 import {apis} from "@/utils/apis";
 import {IPagination} from "@/types/session";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IGetAllTasksParams, IGetAllTasksResponse, ITask} from "@/types/task";
+import {IGetAllTasksParams, IGetAllTasksResponse, IGetTaskParams, IGetTaskResponse, ITask} from "@/types/task";
 
 async function getAllTasks(params: IGetAllTasksParams = {}): Promise<IGetAllTasksResponse> {
     try {
@@ -45,4 +45,42 @@ async function getAllTasks(params: IGetAllTasksParams = {}): Promise<IGetAllTask
     }
 }
 
-export {getAllTasks};
+async function getTask({sessionId, taskId}: IGetTaskParams): Promise<IGetTaskResponse> {
+    try {
+        const response: Response = await fetch(apis.getTaskApi(sessionId, taskId));
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to fetch task!';
+            console.error('Getting task failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'INVALID_SESSIONID') {
+                errorMessage = `Invalid sessionId: ${sessionId}`;
+            } else if (errorCode === 'INVALID_TASKID') {
+                errorMessage = `Invalid taskId: ${taskId}`;
+            } else if (errorCode === 'TASK_NOT_FOUND') {
+                errorMessage = `No task found with taskId: ${taskId}`;
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            task: data.task as ITask,
+        };
+    } catch (error: unknown) {
+        console.error('Get task error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+export {getAllTasks, getTask};

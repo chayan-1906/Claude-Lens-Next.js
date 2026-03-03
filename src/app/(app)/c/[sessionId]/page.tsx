@@ -1,6 +1,6 @@
 import {notFound} from "next/navigation";
 import {SessionView} from "@/components/SessionView";
-import {getSession} from "@/actions/sessionss.actions";
+import {getSession} from "@/actions/sessions.actions";
 import type {IGetSessionResponse} from "@/types/session";
 import type {ISessionPageProps} from "@/types/components";
 

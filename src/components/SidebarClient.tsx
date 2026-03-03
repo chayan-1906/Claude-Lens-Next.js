@@ -3,22 +3,36 @@
 import React from "react";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
-import {HiOutlineChevronRight, HiOutlineDocumentText, HiOutlineFolder} from "react-icons/hi";
+import {HiOutlineChatAlt2, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineDocumentText, HiOutlineFolder} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
+import type {ITask} from "@/types/task";
 import type {IMemory} from "@/types/memory";
 import {Button} from "@/components/ui/Button";
 import type {ISession} from "@/types/session";
+import {getAllTasks} from "@/actions/task.actions";
 import {getAllMemories} from "@/actions/memory.actions";
-import {getAllSessions} from "@/actions/sessionss.actions";
+import {getAllSessions} from "@/actions/sessions.actions";
 import type {ISidebarClientProps} from "@/types/components";
+
+/** Task status indicator */
+const TASK_STATUS_ICON: Record<string, { label: string; className: string }> = {
+    completed: {label: '\u2713', className: 'text-success'},
+    in_progress: {label: '\u25C9', className: 'text-warning'},
+    pending: {label: '\u25CB', className: 'text-text-muted'},
+    deleted: {label: '\u00D7', className: 'text-error'},
+};
 
 function SidebarClient({projects}: ISidebarClientProps) {
     const pathname: string = usePathname();
     const [expandedProjects, setExpandedProjects] = React.useState<Set<string>>(new Set());
+    const [expandedSessions, setExpandedSessions] = React.useState<Set<string>>(new Set());
+    const [expandedSessionTasks, setExpandedSessionTasks] = React.useState<Set<string>>(new Set());
     const [sessionsMap, setSessionsMap] = React.useState<Record<string, ISession[]>>({});
+    const [tasksMap, setTasksMap] = React.useState<Record<string, ITask[]>>({});
     const [memoriesMap, setMemoriesMap] = React.useState<Record<string, IMemory[]>>({});
     const [loadingProject, setLoadingProject] = React.useState<string | null>(null);
+    const [loadingTasks, setLoadingTasks] = React.useState<string | null>(null);
 
     const handleToggleProject = React.useCallback(async (projectDir: string): Promise<void> => {
         setExpandedProjects((prev: Set<string>) => {
@@ -48,6 +62,40 @@ function SidebarClient({projects}: ISidebarClientProps) {
         }
     }, [sessionsMap, memoriesMap]);
 
+    const handleToggleSession = React.useCallback((sessionId: string): void => {
+        setExpandedSessions((prev: Set<string>) => {
+            const next: Set<string> = new Set(prev);
+            if (next.has(sessionId)) {
+                next.delete(sessionId);
+            } else {
+                next.add(sessionId);
+            }
+            return next;
+        });
+    }, []);
+
+    const handleToggleSessionTasks = React.useCallback(async (sessionId: string): Promise<void> => {
+        setExpandedSessionTasks((prev: Set<string>) => {
+            const next: Set<string> = new Set(prev);
+            if (next.has(sessionId)) {
+                next.delete(sessionId);
+            } else {
+                next.add(sessionId);
+            }
+            return next;
+        });
+
+        if (tasksMap[sessionId]) return;
+
+        setLoadingTasks(sessionId);
+        const {success, tasks} = await getAllTasks({sessionId, limit: 50});
+        setLoadingTasks(null);
+
+        if (success && tasks && tasks.length !== 0) {
+            setTasksMap((prev) => ({...prev, [sessionId]: tasks}));
+        }
+    }, [tasksMap]);
+
     if (projects.length === 0) {
         return (
             <p className={'text-xs text-text-muted text-center py-4'}>{'No projects yet'}</p>
@@ -72,7 +120,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                             <span className={'truncate font-medium'} title={projectDir}>{projectName}</span>
                         </Button>
 
-                        {/* Sessions & memories list */}
+                        {/* Project contents */}
                         {isExpanded && (
                             <div className={'ml-5 flex flex-col gap-0.5 mt-0.5'}>
                                 {isLoading && (
@@ -81,23 +129,86 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                 {(!isLoading && sessions.length === 0 && memories.length === 0) && (
                                     <p className={'text-xs text-text-muted px-3 py-1.5'}>{'No sessions & memories'}</p>
                                 )}
-                                
+
                                 {/** Sessions */}
                                 {sessions.map((session: ISession) => {
-                                    const href: string = routes.sessionPath(session.sessionId);
-                                    const isActive: boolean = pathname === href;
+                                    const isSessionExpanded: boolean = expandedSessions.has(session.sessionId);
+                                    const chatHref: string = routes.sessionPath(session.sessionId);
+                                    const isChatActive: boolean = pathname === chatHref;
+                                    const tasks: ITask[] = tasksMap[session.sessionId] ?? [];
+                                    const isTasksExpanded: boolean = expandedSessionTasks.has(session.sessionId);
+                                    const isTasksLoading: boolean = loadingTasks === session.sessionId;
 
                                     return (
-                                        <Link key={session.sessionId} href={href} title={session.title}
-                                              className={cn(
-                                                  'block px-3 py-1.5 rounded-md text-xs transition-colors truncate',
-                                                  isActive
-                                                      ? 'bg-primary/10 text-primary font-medium'
-                                                      : 'text-text-muted hover:bg-surface-hover hover:text-text',
-                                              )}
-                                        >
-                                            {session.title}
-                                        </Link>
+                                        <div key={session.sessionId}>
+                                            {/* Session header */}
+                                            <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSession(session.sessionId)} title={session.title}
+                                                    className={cn(
+                                                        'flex items-center justify-start gap-1.5 w-full px-3 py-1.5 rounded-md text-xs transition-colors truncate',
+                                                        isChatActive
+                                                            ? 'bg-primary/10 text-primary font-medium'
+                                                            : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                                    )}
+                                            >
+                                                <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform', isSessionExpanded && 'rotate-90')}/>
+                                                <span className={'truncate'}>{session.title}</span>
+                                            </Button>
+
+                                            {/* Session sub-items */}
+                                            {isSessionExpanded && (
+                                                <div className={'ml-4 flex flex-col gap-0.5 mt-0.5'}>
+                                                    {/* Chat link */}
+                                                    <Link href={chatHref} title={'Chat'}
+                                                          className={cn(
+                                                              'flex items-center gap-1.5 px-3 py-1 rounded-md text-xs transition-colors',
+                                                              isChatActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                                          )}
+                                                    >
+                                                        <HiOutlineChatAlt2 className={'size-3.5 shrink-0'}/>
+                                                        <span>{'Chat'}</span>
+                                                    </Link>
+
+                                                    {/* Tasks toggle */}
+                                                    <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSessionTasks(session.sessionId)}
+                                                            className={'flex items-center justify-start gap-1.5 w-full px-3 py-1 rounded-md text-xs text-text-muted hover:bg-surface-hover hover:text-text transition-colors'}>
+                                                        <HiOutlineClipboardList className={'size-3.5 shrink-0'}/>
+                                                        <span>{'Tasks'}</span>
+                                                        <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform ml-auto', isTasksExpanded && 'rotate-90')}/>
+                                                    </Button>
+
+                                                    {/* Tasks list */}
+                                                    {isTasksExpanded && (
+                                                        <div className={'ml-4 flex flex-col gap-0.5'}>
+                                                            {isTasksLoading && (
+                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>{'Loading...'}</p>
+                                                            )}
+                                                            {(!isTasksLoading && tasks.length === 0) && (
+                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>{'No tasks'}</p>
+                                                            )}
+                                                            {tasks.map((task: ITask) => {
+                                                                const statusInfo = TASK_STATUS_ICON[task.status] ?? TASK_STATUS_ICON.pending;
+                                                                const taskHref: string = routes.taskPath(task.sessionId, task.taskId);
+                                                                const isTaskActive: boolean = pathname === taskHref;
+
+                                                                return (
+                                                                    <Link key={task.taskId} href={taskHref} title={task.description}
+                                                                        className={cn(
+                                                                            'flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] transition-colors truncate',
+                                                                            isTaskActive
+                                                                                ? 'bg-primary/10 text-primary font-medium'
+                                                                                : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                                                        )}
+                                                                    >
+                                                                        <span className={cn('shrink-0 text-xs', isTaskActive ? '' : statusInfo.className)}>{statusInfo.label}</span>
+                                                                        <span className={'truncate'}>{task.subject}</span>
+                                                                    </Link>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     );
                                 })}
 

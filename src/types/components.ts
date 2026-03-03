@@ -1,4 +1,5 @@
 import React from "react";
+import type {ITask} from "@/types/task";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
 import type {ContentBlock, IMessage} from "@/types/message";
@@ -74,6 +75,14 @@ export interface ICodeBlockProps {
 
 export interface ICopyMessageButtonProps {
     text: string;
+}
+
+export interface ITaskPageProps {
+    params: Promise<{ sessionId: string; taskId: string }>;
+}
+
+export interface ITaskViewProps {
+    task: ITask;
 }
 
 export interface IMemoryPageProps {

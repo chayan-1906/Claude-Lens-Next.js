@@ -19,6 +19,7 @@ const apis = {
     getAllProjectsApi: `${baseSessionApiUrl}/projects`,
     
     getAllTasksApi: baseTaskApiUrl,
+    getTaskApi: (sessionId: string, taskId: string) => `${baseTaskApiUrl}/${sessionId}/${taskId}`,
     
     getAllMemoriesApi: baseMemoryApiUrl,
     getMemory: (projectDir: string)=> `${baseMemoryApiUrl}/${projectDir}`,

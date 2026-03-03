@@ -10,9 +10,9 @@ export enum ETaskStatus {
 }
 
 export interface ITask {
-    taskId: string;
+    taskInternalId: string;
     sessionId: string;
-    id: string;
+    taskId: string;
     subject: string;
     description: string;
     activeForm?: string;
@@ -31,6 +31,10 @@ export interface IGetAllTasksResponse extends IApiResponse {
     pagination?: IPagination;
 }
 
+export interface IGetTaskResponse extends IApiResponse {
+    task?: ITask;
+}
+
 
 /** ------------- function params ------------- */
 
@@ -38,4 +42,9 @@ export interface IGetAllTasksParams {
     sessionId?: string;
     page?: number;
     limit?: number;
+}
+
+export interface IGetTaskParams {
+    sessionId: string;
+    taskId: string;
 }
