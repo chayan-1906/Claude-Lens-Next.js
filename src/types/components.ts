@@ -1,4 +1,5 @@
 import React from "react";
+import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
 import type {ContentBlock, IMessage} from "@/types/message";
 
@@ -69,4 +70,16 @@ export interface IToolCallBlockProps {
 export interface ICodeBlockProps {
     code: string;
     language?: string;
+}
+
+export interface ICopyMessageButtonProps {
+    text: string;
+}
+
+export interface IMemoryPageProps {
+    params: Promise<{ projectDir: string }>;
+}
+
+export interface IMemoryViewProps {
+    memory: IMemory;
 }

@@ -6,11 +6,22 @@ const baseApiUrl: string = `${BACKEND_URL}/api/v1`;
 /** Base URL for session endpoints */
 const baseSessionApiUrl: string = `${baseApiUrl}/sessions`;
 
+/** Base URL for task endpoints */
+const baseTaskApiUrl: string = `${baseApiUrl}/tasks`;
+
+/** Base URL for memory endpoints */
+const baseMemoryApiUrl: string = `${baseApiUrl}/memories`;
+
 /** Backend API endpoint URLs */
 const apis = {
     getAllSessionssApi: baseSessionApiUrl,
     getSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
-    getProjectsApi: `${baseSessionApiUrl}/projects`,
+    getAllProjectsApi: `${baseSessionApiUrl}/projects`,
+    
+    getAllTasksApi: baseTaskApiUrl,
+    
+    getAllMemoriesApi: baseMemoryApiUrl,
+    getMemory: (projectDir: string)=> `${baseMemoryApiUrl}/${projectDir}`,
 };
 
 export {apis};

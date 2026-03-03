@@ -32,11 +32,8 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
     return (
         <div className={'flex h-dvh bg-background text-text'}>
             {/* Mobile overlay */}
-            {sidebarOpen && isMobile && (
-                <div
-                    className={'fixed inset-0 bg-black/50 z-40'}
-                    onClick={() => setSidebarOpen(false)}
-                />
+            {(sidebarOpen && isMobile) && (
+                <div className={'fixed inset-0 bg-black/50 z-40'} onClick={() => setSidebarOpen(false)}/>
             )}
 
             {/* Sidebar */}

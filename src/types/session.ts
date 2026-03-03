@@ -46,7 +46,7 @@ export interface IGetSessionResponse extends IApiResponse {
     messages?: IMessage[];
 }
 
-export interface IGetProjectsResponse extends IApiResponse {
+export interface IGetAllProjectsResponse extends IApiResponse {
     projects?: string[];
 }
 

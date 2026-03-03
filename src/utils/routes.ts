@@ -4,6 +4,9 @@ const routes = {
 
     // session routes
     sessionPath: (sessionId: string) => `/c/${sessionId}`,
+
+    // memory routes
+    memoryPath: (projectDir: string) => `/m/${projectDir}`,
 };
 
 export {routes};

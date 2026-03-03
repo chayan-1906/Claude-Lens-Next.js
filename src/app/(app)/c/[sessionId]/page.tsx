@@ -1,8 +1,8 @@
 import {notFound} from "next/navigation";
-import type {ISessionPageProps} from "@/types/components";
+import {SessionView} from "@/components/SessionView";
 import {getSession} from "@/actions/sessionss.actions";
 import type {IGetSessionResponse} from "@/types/session";
-import {SessionView} from "@/components/SessionView";
+import type {ISessionPageProps} from "@/types/components";
 
 async function SessionPage({params}: ISessionPageProps) {
     const {sessionId} = await params;

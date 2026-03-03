@@ -1,9 +1,9 @@
 import {SidebarClient} from "@/components/SidebarClient";
-import {getProjects} from "@/actions/sessionss.actions";
-import type {IGetProjectsResponse} from "@/types/session";
+import {getAllProjects} from "@/actions/sessionss.actions";
+import type {IGetAllProjectsResponse} from "@/types/session";
 
 async function Sidebar() {
-    const {success, projects, error}: IGetProjectsResponse = await getProjects();
+    const {success, projects, error}: IGetAllProjectsResponse = await getAllProjects();
 
     if (!success) {
         return (

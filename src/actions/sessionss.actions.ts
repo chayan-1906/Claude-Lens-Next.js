@@ -3,7 +3,7 @@
 import {apis} from "@/utils/apis";
 import {IMessage} from "@/types/message";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IGetAllSessionsParams, IGetAllSessionsResponse, IGetProjectsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
+import {IGetAllSessionsParams, IGetAllSessionsResponse, IGetAllProjectsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
 
 async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetAllSessionsResponse> {
     try {
@@ -84,9 +84,9 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
     }
 }
 
-async function getProjects(): Promise<IGetProjectsResponse> {
+async function getAllProjects(): Promise<IGetAllProjectsResponse> {
     try {
-        const response: Response = await fetch(apis.getProjectsApi);
+        const response: Response = await fetch(apis.getAllProjectsApi);
         const data: ApiResponseClass = await parseApiResponse(response);
 
         if (!response.ok || !data.success) {
@@ -114,4 +114,4 @@ async function getProjects(): Promise<IGetProjectsResponse> {
     }
 }
 
-export {getAllSessions, getSession, getProjects};
+export {getAllSessions, getSession, getAllProjects};

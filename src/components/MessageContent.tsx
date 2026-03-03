@@ -2,8 +2,8 @@ import React from "react";
 import remarkGfm from "remark-gfm";
 import Markdown from "react-markdown";
 import {CodeBlock} from "@/components/CodeBlock";
-import {EUserMessageType} from "@/types/message";
 import type {ContentBlock} from "@/types/message";
+import {EUserMessageType} from "@/types/message";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {ThinkingBlock} from "@/components/ThinkingBlock";
 import {ToolCallBlock} from "@/components/ToolCallBlock";
@@ -13,7 +13,7 @@ import type {IMessageContentProps} from "@/types/components";
 function MessageContent({content}: IMessageContentProps) {
     if (typeof content === 'string') {
         return (
-            renderStringContent(content)  
+            renderStringContent(content)
         );
     }
 
@@ -29,9 +29,11 @@ function MessageContent({content}: IMessageContentProps) {
                         const cleaned: string = stripSystemTags(block.text);
                         if (!cleaned) return null;
                         return (
-                            <Markdown key={index} remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
-                                {cleaned}
-                            </Markdown>
+                            <div key={index} className={'markdown-content'}>
+                                <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
+                                    {cleaned}
+                                </Markdown>
+                            </div>
                         );
                     }
                     case 'tool_use':
@@ -63,9 +65,11 @@ function renderStringContent(text: string): React.ReactNode {
                         {'⚡'}{label}
                     </span>
                     {parsed.remainingText && (
-                        <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
-                            {parsed.remainingText}
-                        </Markdown>
+                        <div className={'markdown-content'}>
+                            <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
+                                {parsed.remainingText}
+                            </Markdown>
+                        </div>
                     )}
                 </div>
             );
@@ -86,9 +90,11 @@ function renderStringContent(text: string): React.ReactNode {
             const cleaned: string = stripSystemTags(parsed.text);
             if (!cleaned) return null;
             return (
-                <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
-                    {cleaned}
-                </Markdown>
+                <div className={'markdown-content'}>
+                    <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
+                        {cleaned}
+                    </Markdown>
+                </div>
             );
         }
     }
