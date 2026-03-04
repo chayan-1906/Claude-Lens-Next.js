@@ -1,10 +1,10 @@
 "use server";
 
+import {cacheTag, updateTag} from "next/cache";
 import {apis} from "@/utils/apis";
 import {IMessage} from "@/types/message";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IDeleteSessionParams, IDeleteSessionResponse, IGetAllSessionsParams, IGetAllSessionsResponse, IGetAllProjectsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
-import {cacheTag, updateTag} from "next/cache";
+import {IDeleteProjectParams, IDeleteProjectResponse, IDeleteSessionParams, IDeleteSessionResponse, IGetAllSessionsParams, IGetAllSessionsResponse, IGetAllProjectsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
 
 async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetAllSessionsResponse> {
     "use cache";
@@ -165,4 +165,46 @@ async function deleteSession({sessionId}: IDeleteSessionParams): Promise<IDelete
     }
 }
 
-export {getAllSessions, getSession, getAllProjects, deleteSession};
+async function deleteProject({projectDir}: IDeleteProjectParams): Promise<IDeleteProjectResponse> {
+    try {
+        const response: Response = await fetch(apis.deleteProjectApi(projectDir), {
+            method: 'DELETE',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to delete project!';
+            console.error('Deleting project failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'PROJECTDIR_MISSING') {
+                errorMessage = 'projectDir is required!';
+            } else if (errorCode === 'PROJECT_NOT_FOUND') {
+                errorMessage = `No data found for project: ${projectDir}!`;
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        updateTag('projects');
+        return {
+            success: true,
+            message: data.message,
+            deletedSessions: data.deletedSessions as number,
+            deletedMessages: data.deletedMessages as number,
+            deletedTasks: data.deletedTasks as number,
+            deletedMemories: data.deletedMemories as number,
+        };
+    } catch (error: unknown) {
+        console.error('Delete project error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+export {getAllSessions, getSession, getAllProjects, deleteSession, deleteProject};

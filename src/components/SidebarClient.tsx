@@ -14,6 +14,7 @@ import {getAllTasks} from "@/actions/task.actions";
 import {getAllMemories} from "@/actions/memory.actions";
 import {getAllSessions} from "@/actions/sessions.actions";
 import type {ISidebarClientProps} from "@/types/components";
+import {DeleteProjectButton} from "@/components/DeleteProjectButton";
 
 /** Task status indicator */
 const TASK_STATUS_ICON: Record<string, { label: string; className: string }> = {
@@ -95,6 +96,40 @@ function SidebarClient({projects}: ISidebarClientProps) {
             setTasksMap((prev) => ({...prev, [sessionId]: tasks}));
         }
     }, [tasksMap]);
+
+    /** Clear all caches for a project when it is deleted via DeleteProjectButton */
+    React.useEffect(() => {
+        const handler = (e: Event): void => {
+            const {projectDir} = (e as CustomEvent<{ projectDir: string }>).detail;
+            console.log('[SidebarClient] received project-deleted event:', {projectDir});
+            const sessionIds: string[] = (sessionsMap[projectDir] ?? []).map((s: ISession) => s.sessionId);
+            setSessionsMap((prev: Record<string, ISession[]>) => {
+                const next: Record<string, ISession[]> = {...prev};
+                delete next[projectDir];
+                return next;
+            });
+            setMemoriesMap((prev: Record<string, IMemory[]>) => {
+                const next: Record<string, IMemory[]> = {...prev};
+                delete next[projectDir];
+                return next;
+            });
+            setTasksMap((prev: Record<string, ITask[]>) => {
+                const next: Record<string, ITask[]> = {...prev};
+                for (const id of sessionIds) {
+                    delete next[id];
+                }
+                return next;
+            });
+            setExpandedProjects((prev: Set<string>) => {
+                const next: Set<string> = new Set(prev);
+                next.delete(projectDir);
+                return next;
+            });
+        };
+
+        window.addEventListener('project-deleted', handler);
+        return () => window.removeEventListener('project-deleted', handler);
+    }, [sessionsMap]);
 
     /** Clear sessionsMap entry when a session is deleted via DeleteSessionButton */
     React.useEffect(() => {
@@ -180,11 +215,16 @@ function SidebarClient({projects}: ISidebarClientProps) {
                 return (
                     <div key={projectDir}>
                         {/* Project header */}
-                        <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleProject(projectDir)} className={'flex items-center justify-start gap-2 w-full px-3 py-2 text-sm text-text'}>
-                            <HiOutlineChevronRight className={cn('size-3 shrink-0 transition-transform', isExpanded && 'rotate-90')}/>
-                            <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
-                            <span className={'truncate font-medium'} title={projectDir}>{projectName}</span>
-                        </Button>
+                        <div className={'flex items-center'}>
+                            <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleProject(projectDir)} className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text'}>
+                                <HiOutlineChevronRight className={cn('size-3 shrink-0 transition-transform', isExpanded && 'rotate-90')}/>
+                                <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
+                                <span className={'truncate font-medium'} title={projectDir}>{projectName}</span>
+                            </Button>
+                            <div className={'shrink-0 pr-1'}>
+                                <DeleteProjectButton projectDir={projectDir} projectName={projectName}/>
+                            </div>
+                        </div>
 
                         {/* Project contents */}
                         {isExpanded && (

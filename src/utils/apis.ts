@@ -18,6 +18,7 @@ const apis = {
     getSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     getAllProjectsApi: `${baseSessionApiUrl}/projects`,
     deleteSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
+    deleteProjectApi: (projectDir: string) => `${baseSessionApiUrl}/projects/${encodeURIComponent(projectDir)}`,
 
     getAllTasksApi: baseTaskApiUrl,
     getTaskApi: (sessionId: string, taskId: string) => `${baseTaskApiUrl}/${sessionId}/${taskId}`,

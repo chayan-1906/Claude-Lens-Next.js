@@ -56,6 +56,13 @@ export interface IDeleteSessionResponse extends IApiResponse {
     deletedTasks?: number;
 }
 
+export interface IDeleteProjectResponse extends IApiResponse {
+    deletedSessions?: number;
+    deletedMessages?: number;
+    deletedTasks?: number;
+    deletedMemories?: number;
+}
+
 
 /** ------------- function params ------------- */
 
@@ -69,6 +76,10 @@ export interface IGetAllSessionsParams {
 
 export interface IGetSessionParams {
     sessionId: string;
+}
+
+export interface IDeleteProjectParams {
+    projectDir: string;
 }
 
 export interface IDeleteSessionParams {
