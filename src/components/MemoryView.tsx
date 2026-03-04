@@ -3,6 +3,7 @@ import remarkGfm from "remark-gfm";
 import Markdown from "react-markdown";
 import {CodeBlock} from "@/components/CodeBlock";
 import type {IMemoryViewProps} from "@/types/components";
+import {DeleteMemoryButton} from "@/components/DeleteMemoryButton";
 
 function MemoryView({memory}: IMemoryViewProps) {
     const fileName: string = memory.filePath.split('/').pop() || memory.filePath;
@@ -11,7 +12,12 @@ function MemoryView({memory}: IMemoryViewProps) {
         <div className={'flex flex-col h-full'}>
             {/* Memory header */}
             <div className={'px-6 py-3 border-b border-border shrink-0'}>
-                <h1 className={'text-sm font-semibold truncate'}>{fileName}</h1>
+                <div className={'flex items-center gap-1'}>
+                    <h1 className={'text-sm font-semibold truncate'}>{fileName}</h1>
+                    <div className={'ml-auto shrink-0'}>
+                        <DeleteMemoryButton projectDir={memory.projectDir} fileName={fileName}/>
+                    </div>
+                </div>
                 <p className={'text-xs text-text-muted mt-0.5'}>
                     <span>{memory.projectDir}</span>
                 </p>

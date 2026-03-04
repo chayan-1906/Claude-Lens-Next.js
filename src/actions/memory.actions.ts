@@ -1,11 +1,15 @@
 "use server";
 
+import {cacheTag, updateTag} from "next/cache";
 import {apis} from "@/utils/apis";
 import {IPagination} from "@/types/session";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IGetAllMemoriesParams, IGetAllMemoriesResponse, IGetMemoryParams, IGetMemoryResponse, IMemory} from "@/types/memory";
+import {IDeleteMemoryParams, IDeleteMemoryResponse, IGetAllMemoriesParams, IGetAllMemoriesResponse, IGetMemoryParams, IGetMemoryResponse, IMemory} from "@/types/memory";
 
 async function getAllMemories(params: IGetAllMemoriesParams = {}): Promise<IGetAllMemoriesResponse> {
+    "use cache";
+    cacheTag("memories");
+    
     try {
         const searchParams: URLSearchParams = new URLSearchParams();
 
@@ -46,6 +50,9 @@ async function getAllMemories(params: IGetAllMemoriesParams = {}): Promise<IGetA
 }
 
 async function getMemory({projectDir}: IGetMemoryParams): Promise<IGetMemoryResponse> {
+    "use cache";
+    cacheTag("memories");
+    
     try {
         const response: Response = await fetch(apis.getMemory(projectDir));
         const data: ApiResponseClass = await parseApiResponse(response);
@@ -81,4 +88,43 @@ async function getMemory({projectDir}: IGetMemoryParams): Promise<IGetMemoryResp
     }
 }
 
-export {getAllMemories, getMemory};
+async function deleteMemory({projectDir}: IDeleteMemoryParams): Promise<IDeleteMemoryResponse> {
+    try {
+        const response: Response = await fetch(apis.deleteMemoryApi(projectDir), {
+            method: 'DELETE',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to delete memory!';
+            console.error('Deleting memory failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'PROJECTDIR_MISSING') {
+                errorMessage = `projectDir is required!`;
+            } else if (errorCode === 'MEMORY_NOT_FOUND') {
+                errorMessage = `No memory found for project: ${projectDir}!`;
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        updateTag("memories");
+        return {
+            success: true,
+            message: data.message,
+            deletedMemories: data.deletedMemories as number,
+        };
+    } catch (error: unknown) {
+        console.error('Delete memory error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+export {getAllMemories, getMemory, deleteMemory};

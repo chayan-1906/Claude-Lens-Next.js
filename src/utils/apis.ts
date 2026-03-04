@@ -25,7 +25,7 @@ const apis = {
 
     getAllMemoriesApi: baseMemoryApiUrl,
     getMemory: (projectDir: string) => `${baseMemoryApiUrl}/${projectDir}`,
-    deleteMemory: (projectDir: string) => `${baseMemoryApiUrl}/${projectDir}`,
+    deleteMemoryApi: (projectDir: string) => `${baseMemoryApiUrl}/${encodeURIComponent(projectDir)}`,
 };
 
 export {apis};

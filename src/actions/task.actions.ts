@@ -1,11 +1,15 @@
 "use server";
 
+import {cacheTag, updateTag} from "next/cache";
 import {apis} from "@/utils/apis";
 import {IPagination} from "@/types/session";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IGetAllTasksParams, IGetAllTasksResponse, IGetTaskParams, IGetTaskResponse, ITask} from "@/types/task";
+import {IDeleteTasksParams, IDeleteTasksResponse, IGetAllTasksParams, IGetAllTasksResponse, IGetTaskParams, IGetTaskResponse, ITask} from "@/types/task";
 
-async function getAllTasks(params: IGetAllTasksParams = {}): Promise<IGetAllTasksResponse> {
+async function getAllTasks(params: IGetAllTasksParams): Promise<IGetAllTasksResponse> {
+    "use cache";
+    cacheTag('tasks');
+
     try {
         const searchParams: URLSearchParams = new URLSearchParams();
 
@@ -46,6 +50,9 @@ async function getAllTasks(params: IGetAllTasksParams = {}): Promise<IGetAllTask
 }
 
 async function getTask({sessionId, taskId}: IGetTaskParams): Promise<IGetTaskResponse> {
+    "use cache";
+    cacheTag('tasks');
+
     try {
         const response: Response = await fetch(apis.getTaskApi(sessionId, taskId));
         const data: ApiResponseClass = await parseApiResponse(response);
@@ -83,4 +90,43 @@ async function getTask({sessionId, taskId}: IGetTaskParams): Promise<IGetTaskRes
     }
 }
 
-export {getAllTasks, getTask};
+async function deleteTasks({sessionId}: IDeleteTasksParams): Promise<IDeleteTasksResponse> {
+    try {
+        const response: Response = await fetch(apis.deleteTasksApi(sessionId), {
+            method: 'DELETE',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to delete tasks!';
+            console.error('Deleting tasks failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'INVALID_SESSIONID') {
+                errorMessage = `Invalid sessionId: ${sessionId}!`;
+            } else if (errorCode === 'TASKS_NOT_FOUND') {
+                errorMessage = `No tasks found for sessionId: ${sessionId}!`;
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        updateTag('tasks');
+        return {
+            success: true,
+            message: data.message,
+            deletedTasks: data.deletedTasks as number,
+        };
+    } catch (error: unknown) {
+        console.error('Delete tasks error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+export {getAllTasks, getTask, deleteTasks};

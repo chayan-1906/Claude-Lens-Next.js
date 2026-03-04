@@ -23,6 +23,10 @@ export interface IGetMemoryResponse extends IApiResponse {
     memory?: IMemory;
 }
 
+export interface IDeleteMemoryResponse extends IApiResponse {
+    deletedMemories?: number;
+}
+
 
 /** ------------- function params ------------- */
 
@@ -33,5 +37,9 @@ export interface IGetAllMemoriesParams {
 }
 
 export interface IGetMemoryParams {
+    projectDir: string;
+}
+
+export interface IDeleteMemoryParams {
     projectDir: string;
 }

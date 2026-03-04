@@ -5,6 +5,7 @@ import {routes} from "@/utils/routes";
 import {ETaskStatus} from "@/types/task";
 import type {ITaskViewProps} from "@/types/components";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
+import {DeleteTasksButton} from "@/components/DeleteTasksButton";
 
 const STATUS_CONFIG: Record<ETaskStatus, { label: string; className: string }> = {
     [ETaskStatus.PENDING]: {label: 'Pending', className: 'bg-surface text-text-muted border border-border'},
@@ -47,7 +48,10 @@ function TaskView({task}: ITaskViewProps) {
                             {statusConfig.label}
                         </span>
                     </div>
-                    <CopyMessageButton text={copyText}/>
+                    <div className={'flex items-center gap-1'}>
+                        <CopyMessageButton text={copyText}/>
+                        <DeleteTasksButton sessionId={task.sessionId}/>
+                    </div>
                 </div>
                 <h1 className={'text-sm font-semibold mt-1'}>{task.subject}</h1>
                 <Link href={routes.sessionPath(task.sessionId)} className={'text-xs text-text-muted hover:text-primary transition-colors mt-0.5 block truncate'}>

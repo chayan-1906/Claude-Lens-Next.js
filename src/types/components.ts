@@ -93,7 +93,16 @@ export interface IMemoryViewProps {
     memory: IMemory;
 }
 
+export interface IDeleteMemoryButtonProps {
+    projectDir: string;
+    fileName: string;
+}
+
 export interface IDeleteSessionButtonProps {
     sessionId: string;
     sessionTitle: string;
+}
+
+export interface IDeleteTasksButtonProps {
+    sessionId: string;
 }

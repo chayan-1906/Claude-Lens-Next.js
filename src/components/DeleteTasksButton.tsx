@@ -2,14 +2,14 @@
 
 import React from "react";
 import {useRouter} from "next/navigation";
-import {routes} from "@/utils/routes";
 import {HiOutlineTrash} from "react-icons/hi";
+import {routes} from "@/utils/routes";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
-import {deleteSession} from "@/actions/sessions.actions";
-import type {IDeleteSessionButtonProps} from "@/types/components";
+import {deleteTasks} from "@/actions/task.actions";
+import type {IDeleteTasksButtonProps} from "@/types/components";
 
-function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProps) {
+function DeleteTasksButton({sessionId}: IDeleteTasksButtonProps) {
     const router = useRouter();
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
     const [isDeleting, setIsDeleting] = React.useState<boolean>(false);
@@ -19,33 +19,31 @@ function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProp
         setIsDeleting(true);
         setError(null);
 
-        const {success, error} = await deleteSession({sessionId});
+        const {success, error} = await deleteTasks({sessionId});
 
         if (!success) {
-            setError(error || 'Failed to delete session!');
+            setError(error || 'Failed to delete tasks!');
             setIsDeleting(false);
             return;
         }
 
         setIsModalOpen(false);
         setIsDeleting(false);
-        router.push(routes.homePath);
+        router.push(routes.sessionPath(sessionId));
     }, [sessionId, router]);
 
     return (
         <>
-            <Button variant={'ghost'} size={'sm'} onClick={() => setIsModalOpen(true)} className={'p-1.5 rounded-md text-text-muted hover:text-error'} aria-label={'Delete session'}
-                    title={'Delete session'}>
+            <Button variant={'ghost'} size={'sm'} onClick={() => setIsModalOpen(true)} className={'p-1.5 rounded-md text-text-muted hover:text-error'} aria-label={'Delete tasks'}
+                    title={'Delete all tasks for this session'}>
                 <HiOutlineTrash className={'size-4'}/>
             </Button>
 
             <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
                 <div className={'p-6'}>
-                    <h2 className={'text-base font-semibold text-text'}>{'Delete Session'}</h2>
+                    <h2 className={'text-base font-semibold text-text'}>{'Delete Tasks'}</h2>
                     <p className={'text-sm text-text-muted mt-2'}>
-                        {'Are you sure you want to delete '}
-                        <span className={'font-medium text-text'}>{sessionTitle}</span>
-                        {'? This will permanently remove the session, its messages, and associated tasks'}
+                        {'Are you sure you want to delete all tasks for this session? This action cannot be undone.'}
                     </p>
 
                     {error && (
@@ -66,4 +64,4 @@ function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProp
     );
 }
 
-export {DeleteSessionButton};
+export {DeleteTasksButton};

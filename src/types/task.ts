@@ -35,6 +35,10 @@ export interface IGetTaskResponse extends IApiResponse {
     task?: ITask;
 }
 
+export interface IDeleteTasksResponse extends IApiResponse {
+    deletedTasks?: number;
+}
+
 
 /** ------------- function params ------------- */
 
@@ -47,4 +51,8 @@ export interface IGetAllTasksParams {
 export interface IGetTaskParams {
     sessionId: string;
     taskId: string;
+}
+
+export interface IDeleteTasksParams {
+    sessionId: string;
 }

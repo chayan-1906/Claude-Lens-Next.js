@@ -52,6 +52,9 @@ async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetA
 }
 
 async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionResponse> {
+    "use cache";
+    cacheTag('sessions');
+
     try {
         const response: Response = await fetch(apis.getSessionApi(sessionId));
         const data: ApiResponseClass = await parseApiResponse(response);
