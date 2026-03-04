@@ -96,6 +96,72 @@ function SidebarClient({projects}: ISidebarClientProps) {
         }
     }, [tasksMap]);
 
+    /** Clear sessionsMap entry when a session is deleted via DeleteSessionButton */
+    React.useEffect(() => {
+        const handler = (e: Event): void => {
+            const {sessionId} = (e as CustomEvent<{ sessionId: string }>).detail;
+            console.log('[SidebarClient] received session-deleted event:', {sessionId});
+            setSessionsMap((prev: Record<string, ISession[]>) => {
+                const next: Record<string, ISession[]> = {...prev};
+                for (const key of Object.keys(next)) {
+                    const filtered: ISession[] = next[key].filter((session: ISession) => session.sessionId !== sessionId);
+                    if (filtered.length !== next[key].length) {
+                        if (filtered.length === 0) {
+                            delete next[key];
+                        } else {
+                            next[key] = filtered;
+                        }
+                        break;
+                    }
+                }
+                return next;
+            });
+            setTasksMap((prev: Record<string, ITask[]>) => {
+                const next: Record<string, ITask[]> = {...prev};
+                delete next[sessionId];
+                return next;
+            });
+        };
+
+        window.addEventListener('session-deleted', handler);
+        return () => window.removeEventListener('session-deleted', handler);
+    }, []);
+
+    /** Clear tasksMap entry when tasks are deleted via DeleteTasksButton */
+    React.useEffect(() => {
+        const handler = (e: Event): void => {
+            const {sessionId} = (e as CustomEvent<{ sessionId: string }>).detail;
+            console.log('[SidebarClient] received tasks-deleted event:', {sessionId});
+            setTasksMap((prev: Record<string, ITask[]>) => {
+                const next: Record<string, ITask[]> = {...prev};
+                delete next[sessionId];
+                return next;
+            });
+        };
+
+        window.addEventListener('tasks-deleted', handler);
+        return () => window.removeEventListener('tasks-deleted', handler);
+    }, []);
+
+    /** Clear memoriesMap entry when a memory is deleted via DeleteMemoryButton */
+    React.useEffect(() => {
+        const handler = (e: Event): void => {
+            const {projectDir} = (e as CustomEvent<{ projectDir: string }>).detail;
+            console.log('[SidebarClient] received memory-deleted event:', {projectDir});
+            setMemoriesMap((prev: Record<string, IMemory[]>) => {
+                const next: Record<string, IMemory[]> = {...prev};
+                const matchingKey: string | undefined = Object.keys(next).find((key: string) =>
+                    next[key].some((memory: IMemory) => memory.projectDir === projectDir),
+                );
+                if (matchingKey) delete next[matchingKey];
+                return next;
+            });
+        };
+
+        window.addEventListener('memory-deleted', handler);
+        return () => window.removeEventListener('memory-deleted', handler);
+    }, []);
+
     if (projects.length === 0) {
         return (
             <p className={'text-xs text-text-muted text-center py-4'}>{'No projects yet'}</p>

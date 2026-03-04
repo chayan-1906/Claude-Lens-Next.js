@@ -27,6 +27,8 @@ function DeleteMemoryButton({projectDir, fileName}: IDeleteMemoryButtonProps) {
             return;
         }
 
+        console.log('[DeleteMemoryButton] dispatching memory-deleted event:', {projectDir});
+        window.dispatchEvent(new CustomEvent('memory-deleted', {detail: {projectDir}}));
         setIsModalOpen(false);
         setIsDeleting(false);
         router.push(routes.homePath);

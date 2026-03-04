@@ -112,7 +112,7 @@ async function deleteMemory({projectDir}: IDeleteMemoryParams): Promise<IDeleteM
             };
         }
 
-        updateTag("memories");
+        updateTag("projects");
         return {
             success: true,
             message: data.message,

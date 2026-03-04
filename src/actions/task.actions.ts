@@ -114,7 +114,7 @@ async function deleteTasks({sessionId}: IDeleteTasksParams): Promise<IDeleteTask
             };
         }
 
-        updateTag('tasks');
+        updateTag("projects");
         return {
             success: true,
             message: data.message,

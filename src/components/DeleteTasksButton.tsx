@@ -27,6 +27,8 @@ function DeleteTasksButton({sessionId}: IDeleteTasksButtonProps) {
             return;
         }
 
+        console.log('[DeleteTasksButton] dispatching tasks-deleted event:', {sessionId});
+        window.dispatchEvent(new CustomEvent('tasks-deleted', {detail: {sessionId}}));
         setIsModalOpen(false);
         setIsDeleting(false);
         router.push(routes.sessionPath(sessionId));

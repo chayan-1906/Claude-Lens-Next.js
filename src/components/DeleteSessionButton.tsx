@@ -27,6 +27,8 @@ function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProp
             return;
         }
 
+        console.log('[DeleteSessionButton] dispatching session-deleted event:', {sessionId});
+        window.dispatchEvent(new CustomEvent('session-deleted', {detail: {sessionId}}));
         setIsModalOpen(false);
         setIsDeleting(false);
         router.push(routes.homePath);
