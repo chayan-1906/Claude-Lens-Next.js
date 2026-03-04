@@ -11,9 +11,7 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
     const [sidebarOpen, setSidebarOpen] = React.useState<boolean>(true);
     const [isMobile, setIsMobile] = React.useState<boolean>(false);
 
-    const toggleSidebar = (): void => {
-        setSidebarOpen((prev) => !prev);
-    };
+    const toggleSidebar = (): void => setSidebarOpen((prev: boolean) => !prev);
 
     React.useEffect(() => {
         function handleResize(): void {
@@ -38,11 +36,7 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
 
             {/* Sidebar */}
             <aside
-                className={cn(
-                    'fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col transition-transform duration-200 z-50',
-                    isMobile && !sidebarOpen && '-translate-x-full',
-                )}
-            >
+                className={cn('fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col transition-transform duration-200 z-50', isMobile && !sidebarOpen && '-translate-x-full')}>
                 {/* Sidebar Header */}
                 <div className={'flex items-center justify-between gap-3 px-4 py-4 border-b border-border shrink-0'}>
                     <h2 className={'text-sm font-semibold text-text-secondary'}>{sidebarTitle}</h2>

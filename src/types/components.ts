@@ -92,3 +92,8 @@ export interface IMemoryPageProps {
 export interface IMemoryViewProps {
     memory: IMemory;
 }
+
+export interface IDeleteSessionButtonProps {
+    sessionId: string;
+    sessionTitle: string;
+}

@@ -1,10 +1,8 @@
 import React from "react";
 import type {Metadata} from "next";
-import {cookies} from "next/headers";
 import {Inter} from "next/font/google";
 import "./globals.css";
-import {ThemeProvider} from "@/components/ThemeProvider";
-import type {EThemeScheme, EThemeMode} from "@/types/theme";
+import {ThemeResolver} from "@/components/ThemeResolver";
 import {DEFAULT_THEME_MODE, DEFAULT_THEME_SCHEME, THEME_MODE_COOKIE, THEME_SCHEME_COOKIE} from "@/types/theme";
 
 const inter = Inter({
@@ -17,17 +15,19 @@ export const metadata: Metadata = {
     description: 'Browse Claude Code sessions from any device',
 };
 
-async function RootLayout({children}: Readonly<{ children: React.ReactNode; }>) {
-    const cookieStore = await cookies();
-    const scheme: EThemeScheme = (cookieStore.get(THEME_SCHEME_COOKIE)?.value as EThemeScheme) || DEFAULT_THEME_SCHEME;
-    const mode: EThemeMode = (cookieStore.get(THEME_MODE_COOKIE)?.value as EThemeMode) || DEFAULT_THEME_MODE;
+/** Inline script to set theme data attributes synchronously before paint (prevents FOUC) */
+const themeInitScript: string = `(function(){function g(n){var m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));return m?m[2]:null}document.documentElement.dataset.scheme=g('${THEME_SCHEME_COOKIE}')||'${DEFAULT_THEME_SCHEME}';document.documentElement.dataset.mode=g('${THEME_MODE_COOKIE}')||'${DEFAULT_THEME_MODE}'})()`;
 
+function RootLayout({children}: Readonly<{ children: React.ReactNode; }>) {
     return (
-        <html lang={'en'} data-scheme={scheme} data-mode={mode}>
+        <html lang={'en'} suppressHydrationWarning>
+        <head>
+            <script dangerouslySetInnerHTML={{__html: themeInitScript}}/>
+        </head>
         <body className={`${inter.variable} antialiased bg-background text-text`}>
-        <ThemeProvider initialScheme={scheme} initialMode={mode}>
-            {children}
-        </ThemeProvider>
+        <React.Suspense>
+            <ThemeResolver>{children}</ThemeResolver>
+        </React.Suspense>
         </body>
         </html>
     );

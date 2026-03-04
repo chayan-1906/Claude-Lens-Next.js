@@ -1,8 +1,17 @@
 import {SidebarClient} from "@/components/SidebarClient";
 import {getAllProjects} from "@/actions/sessions.actions";
 import type {IGetAllProjectsResponse} from "@/types/session";
+import {Suspense} from "react";
 
 async function Sidebar() {
+    return (
+        <Suspense fallback={'Loading projects...'}>
+            <SidebarWrapper/>
+        </Suspense>
+    );
+}
+
+async function SidebarWrapper() {
     const {success, projects, error}: IGetAllProjectsResponse = await getAllProjects();
 
     if (!success) {

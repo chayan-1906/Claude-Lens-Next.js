@@ -3,9 +3,13 @@
 import {apis} from "@/utils/apis";
 import {IMessage} from "@/types/message";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IGetAllSessionsParams, IGetAllSessionsResponse, IGetAllProjectsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
+import {IDeleteSessionParams, IDeleteSessionResponse, IGetAllSessionsParams, IGetAllSessionsResponse, IGetAllProjectsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
+import {cacheTag, updateTag} from "next/cache";
 
 async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetAllSessionsResponse> {
+    "use cache";
+    cacheTag('sessions');
+
     try {
         const searchParams: URLSearchParams = new URLSearchParams();
 
@@ -85,6 +89,9 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
 }
 
 async function getAllProjects(): Promise<IGetAllProjectsResponse> {
+    "use cache";
+    cacheTag('projects');
+
     try {
         const response: Response = await fetch(apis.getAllProjectsApi);
         const data: ApiResponseClass = await parseApiResponse(response);
@@ -114,4 +121,45 @@ async function getAllProjects(): Promise<IGetAllProjectsResponse> {
     }
 }
 
-export {getAllSessions, getSession, getAllProjects};
+async function deleteSession({sessionId}: IDeleteSessionParams): Promise<IDeleteSessionResponse> {
+    try {
+        const response: Response = await fetch(apis.deleteSessionApi(sessionId), {
+            method: 'DELETE',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to delete session!';
+            console.error('Deleting session failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'INVALID_SESSIONID') {
+                errorMessage = `Invalid sessionId: ${sessionId}!`;
+            } else if (errorCode === 'SESSION_NOT_FOUND') {
+                errorMessage = `No session found with sessionId: ${sessionId}!`;
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        updateTag('sessions');
+        return {
+            success: true,
+            message: data.message,
+            deletedSessions: data.deletedSessions as number,
+            deletedMessages: data.deletedMessages as number,
+            deletedTasks: data.deletedTasks as number,
+        };
+    } catch (error: unknown) {
+        console.error('Delete session error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+export {getAllSessions, getSession, getAllProjects, deleteSession};

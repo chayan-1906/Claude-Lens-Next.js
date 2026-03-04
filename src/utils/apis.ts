@@ -17,12 +17,15 @@ const apis = {
     getAllSessionssApi: baseSessionApiUrl,
     getSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     getAllProjectsApi: `${baseSessionApiUrl}/projects`,
-    
+    deleteSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
+
     getAllTasksApi: baseTaskApiUrl,
     getTaskApi: (sessionId: string, taskId: string) => `${baseTaskApiUrl}/${sessionId}/${taskId}`,
-    
+    deleteTasksApi: (sessionId: string) => `${baseTaskApiUrl}/${sessionId}`,
+
     getAllMemoriesApi: baseMemoryApiUrl,
-    getMemory: (projectDir: string)=> `${baseMemoryApiUrl}/${projectDir}`,
+    getMemory: (projectDir: string) => `${baseMemoryApiUrl}/${projectDir}`,
+    deleteMemory: (projectDir: string) => `${baseMemoryApiUrl}/${projectDir}`,
 };
 
 export {apis};
