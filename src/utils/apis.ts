@@ -4,6 +4,9 @@ import {BACKEND_URL} from "../../config/config";
 const baseApiUrl: string = `${BACKEND_URL}/api/v1`;
 
 /** Base URL for session endpoints */
+const baseSyncApiUrl: string = `${baseApiUrl}/sync`;
+
+/** Base URL for session endpoints */
 const baseSessionApiUrl: string = `${baseApiUrl}/sessions`;
 
 /** Base URL for task endpoints */
@@ -14,6 +17,9 @@ const baseMemoryApiUrl: string = `${baseApiUrl}/memories`;
 
 /** Backend API endpoint URLs */
 const apis = {
+    getLocalProjectsApi: `${baseSyncApiUrl}/projects`,
+    syncApi: baseSyncApiUrl,
+
     getAllSessionssApi: baseSessionApiUrl,
     getSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     getAllProjectsApi: `${baseSessionApiUrl}/projects`,

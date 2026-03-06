@@ -4,6 +4,7 @@ import React from "react";
 import {HiOutlineMenuAlt2, HiOutlineX} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {Button} from "@/components/ui/Button";
+import {SyncButton} from "@/components/SyncButton";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type {IAppLayoutProps} from "@/types/components";
 
@@ -62,6 +63,7 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
 
                     <div className={'flex-1'}/>
 
+                    <SyncButton/>
                     <ThemeSwitcher/>
                 </header>
 
