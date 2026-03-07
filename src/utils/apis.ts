@@ -3,7 +3,10 @@ import {BACKEND_URL} from "../../config/config";
 /** Base URL for all API endpoints */
 const baseApiUrl: string = `${BACKEND_URL}/api/v1`;
 
-/** Base URL for session endpoints */
+/** Base URL for setup endpoints */
+const baseSetupApiUrl: string = `${baseApiUrl}/setup`;
+
+/** Base URL for sync endpoints */
 const baseSyncApiUrl: string = `${baseApiUrl}/sync`;
 
 /** Base URL for session endpoints */
@@ -17,6 +20,9 @@ const baseMemoryApiUrl: string = `${baseApiUrl}/memories`;
 
 /** Backend API endpoint URLs */
 const apis = {
+    getSetupStatusApi: `${baseSetupApiUrl}/status`,
+    setupApi: baseSetupApiUrl,
+
     getLocalProjectsApi: `${baseSyncApiUrl}/projects`,
     syncApi: baseSyncApiUrl,
 

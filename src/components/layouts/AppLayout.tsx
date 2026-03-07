@@ -1,8 +1,10 @@
 "use client";
 
 import React from "react";
-import {HiOutlineMenuAlt2, HiOutlineX} from "react-icons/hi";
+import Link from "next/link";
+import {HiOutlineCog, HiOutlineMenuAlt2, HiOutlineX} from "react-icons/hi";
 import {cn} from "@/utils/cn";
+import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
 import {SyncButton} from "@/components/SyncButton";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
@@ -64,6 +66,9 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
                     <div className={'flex-1'}/>
 
                     <SyncButton/>
+                    <Link href={routes.setupPath} title={'Settings'} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-all duration-150'}>
+                        <HiOutlineCog className={'size-4'}/>
+                    </Link>
                     <ThemeSwitcher/>
                 </header>
 

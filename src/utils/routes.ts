@@ -1,6 +1,7 @@
 /** Frontend route paths for navigation */
 const routes = {
     homePath: '/',
+    setupPath: '/setup',
 
     // session routes
     sessionPath: (sessionId: string) => `/c/${sessionId}`,
