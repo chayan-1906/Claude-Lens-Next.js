@@ -2,8 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import {usePathname} from "next/navigation";
-import {HiOutlineChatAlt2, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineDocumentText, HiOutlineFolder} from "react-icons/hi";
+import {usePathname, useRouter} from "next/navigation";
+import {HiOutlineChatAlt2, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineDocumentText, HiOutlineFolder, HiOutlineRefresh} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import type {ITask} from "@/types/task";
@@ -12,9 +12,9 @@ import {Button} from "@/components/ui/Button";
 import type {ISession} from "@/types/session";
 import {getAllTasks} from "@/actions/task.actions";
 import {getAllMemories} from "@/actions/memory.actions";
-import {getAllSessions} from "@/actions/sessions.actions";
 import type {ISidebarClientProps} from "@/types/components";
 import {DeleteProjectButton} from "@/components/DeleteProjectButton";
+import {getAllSessions, refreshSidebar} from "@/actions/sessions.actions";
 
 /** Task status indicator */
 const TASK_STATUS_ICON: Record<string, { label: string; className: string }> = {
@@ -25,6 +25,7 @@ const TASK_STATUS_ICON: Record<string, { label: string; className: string }> = {
 };
 
 function SidebarClient({projects}: ISidebarClientProps) {
+    const router = useRouter();
     const pathname: string = usePathname();
     const [expandedProjects, setExpandedProjects] = React.useState<Set<string>>(new Set());
     const [expandedSessions, setExpandedSessions] = React.useState<Set<string>>(new Set());
@@ -34,6 +35,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
     const [memoriesMap, setMemoriesMap] = React.useState<Record<string, IMemory[]>>({});
     const [loadingProject, setLoadingProject] = React.useState<string | null>(null);
     const [loadingTasks, setLoadingTasks] = React.useState<string | null>(null);
+    const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
 
     const handleToggleProject = React.useCallback(async (projectDir: string): Promise<void> => {
         setExpandedProjects((prev: Set<string>) => {
@@ -96,6 +98,62 @@ function SidebarClient({projects}: ISidebarClientProps) {
             setTasksMap((prev) => ({...prev, [sessionId]: tasks}));
         }
     }, [tasksMap]);
+
+    const handleRefresh = React.useCallback(async (): Promise<void> => {
+        setIsRefreshing(true);
+
+        // Invalidate server-side caches
+        await refreshSidebar();
+
+        // Re-fetch data for all expanded projects
+        const expandedProjectDirs: string[] = Array.from(expandedProjects);
+        const projectFetches = expandedProjectDirs.map(async (projectDir: string) => {
+            const [sessionsResult, memoriesResult] = await Promise.all([
+                getAllSessions({projectDir, limit: 50}),
+                getAllMemories({projectDir, limit: 50}),
+            ]);
+            return {projectDir, sessionsResult, memoriesResult};
+        });
+
+        // Re-fetch tasks for all expanded session tasks
+        const expandedTaskSessionIds: string[] = Array.from(expandedSessionTasks);
+        const taskFetches = expandedTaskSessionIds.map(async (sessionId: string) => {
+            const result = await getAllTasks({sessionId, limit: 50});
+            return {sessionId, result};
+        });
+
+        const [projectResults, taskResults] = await Promise.all([
+            Promise.all(projectFetches),
+            Promise.all(taskFetches),
+        ]);
+
+        // Update sessions + memories maps
+        const newSessionsMap: Record<string, ISession[]> = {};
+        const newMemoriesMap: Record<string, IMemory[]> = {};
+        for (const {projectDir, sessionsResult, memoriesResult} of projectResults) {
+            if (sessionsResult.success && sessionsResult.sessions && sessionsResult.sessions.length !== 0) {
+                newSessionsMap[projectDir] = sessionsResult.sessions;
+            }
+            if (memoriesResult.success && memoriesResult.memories && memoriesResult.memories.length !== 0) {
+                newMemoriesMap[projectDir] = memoriesResult.memories;
+            }
+        }
+        setSessionsMap(newSessionsMap);
+        setMemoriesMap(newMemoriesMap);
+
+        // Update tasks map
+        const newTasksMap: Record<string, ITask[]> = {};
+        for (const {sessionId, result} of taskResults) {
+            if (result.success && result.tasks && result.tasks.length !== 0) {
+                newTasksMap[sessionId] = result.tasks;
+            }
+        }
+        setTasksMap(newTasksMap);
+
+        // Re-run server component tree (refreshes the projects list prop)
+        router.refresh();
+        setIsRefreshing(false);
+    }, [expandedProjects, expandedSessionTasks, router]);
 
     /** Clear all caches for a project when it is deleted via DeleteProjectButton */
     React.useEffect(() => {
@@ -199,12 +257,24 @@ function SidebarClient({projects}: ISidebarClientProps) {
 
     if (projects.length === 0) {
         return (
-            <p className={'text-xs text-text-muted text-center py-4'}>{'No projects yet'}</p>
+            <div className={'flex flex-col gap-2'}>
+                <div className={'flex justify-end'}>
+                    <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
+                        <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
+                    </Button>
+                </div>
+                <p className={'text-xs text-text-muted text-center py-4'}>No projects yet</p>
+            </div>
         );
     }
 
     return (
         <nav className={'flex flex-col gap-0.5'}>
+            <div className={'flex justify-end mb-1'}>
+                <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
+                    <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
+                </Button>
+            </div>
             {projects.map((projectDir: string) => {
                 const projectName: string = projectDir.split('/').filter(Boolean).pop() || projectDir;
                 const isExpanded: boolean = expandedProjects.has(projectDir);
@@ -216,7 +286,8 @@ function SidebarClient({projects}: ISidebarClientProps) {
                     <div key={projectDir}>
                         {/* Project header */}
                         <div className={'flex items-center'}>
-                            <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleProject(projectDir)} className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text'}>
+                            <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleProject(projectDir)}
+                                    className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text'}>
                                 <HiOutlineChevronRight className={cn('size-3 shrink-0 transition-transform', isExpanded && 'rotate-90')}/>
                                 <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
                                 <span className={'truncate font-medium'} title={projectDir}>{projectName}</span>
@@ -298,12 +369,12 @@ function SidebarClient({projects}: ISidebarClientProps) {
 
                                                                 return (
                                                                     <Link key={task.taskId} href={taskHref} title={task.description}
-                                                                        className={cn(
-                                                                            'flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] transition-colors truncate',
-                                                                            isTaskActive
-                                                                                ? 'bg-primary/10 text-primary font-medium'
-                                                                                : 'text-text-muted hover:bg-surface-hover hover:text-text',
-                                                                        )}
+                                                                          className={cn(
+                                                                              'flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] transition-colors truncate',
+                                                                              isTaskActive
+                                                                                  ? 'bg-primary/10 text-primary font-medium'
+                                                                                  : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                                                          )}
                                                                     >
                                                                         <span className={cn('shrink-0 text-xs', isTaskActive ? '' : statusInfo.className)}>{statusInfo.label}</span>
                                                                         <span className={'truncate'}>{task.subject}</span>

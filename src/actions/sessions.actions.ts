@@ -207,4 +207,11 @@ async function deleteProject({projectDir}: IDeleteProjectParams): Promise<IDelet
     }
 }
 
-export {getAllSessions, getSession, getAllProjects, deleteSession, deleteProject};
+async function refreshSidebar(): Promise<void> {
+    updateTag('projects');
+    updateTag('sessions');
+    updateTag('tasks');
+    updateTag('memories');
+}
+
+export {getAllSessions, getSession, getAllProjects, deleteSession, deleteProject, refreshSidebar};
