@@ -9,6 +9,9 @@ const baseSetupApiUrl: string = `${baseApiUrl}/setup`;
 /** Base URL for sync endpoints */
 const baseSyncApiUrl: string = `${baseApiUrl}/sync`;
 
+/** Base URL for project endpoints */
+const baseProjectApiUrl: string = `${baseApiUrl}/projects`;
+
 /** Base URL for session endpoints */
 const baseSessionApiUrl: string = `${baseApiUrl}/sessions`;
 
@@ -26,11 +29,12 @@ const apis = {
     getLocalProjectsApi: `${baseSyncApiUrl}/projects`,
     syncApi: baseSyncApiUrl,
 
+    getAllProjectsApi: baseProjectApiUrl,
+    deleteProjectApi: (projectDir: string) => `${baseProjectApiUrl}/${encodeURIComponent(projectDir)}`,
+
     getAllSessionssApi: baseSessionApiUrl,
     getSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
-    getAllProjectsApi: `${baseSessionApiUrl}/projects`,
     deleteSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
-    deleteProjectApi: (projectDir: string) => `${baseSessionApiUrl}/projects/${encodeURIComponent(projectDir)}`,
 
     getAllTasksApi: baseTaskApiUrl,
     getTaskApi: (sessionId: string, taskId: string) => `${baseTaskApiUrl}/${sessionId}/${taskId}`,

@@ -1,3 +1,5 @@
+"use server";
+
 import {cacheTag, updateTag} from "next/cache";
 import {apis} from "@/utils/apis";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
