@@ -1,7 +1,7 @@
-import {SidebarClient} from "@/components/SidebarClient";
-import {getAllProjects} from "@/actions/sessions.actions";
-import type {IGetAllProjectsResponse} from "@/types/session";
 import {Suspense} from "react";
+import {SidebarClient} from "@/components/SidebarClient";
+import {getAllProjects} from "@/actions/project.actions";
+import type {IGetAllProjectsResponse} from "@/types/project";
 
 async function Sidebar() {
     return (

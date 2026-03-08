@@ -6,7 +6,7 @@ import {HiOutlineTrash} from "react-icons/hi";
 import {routes} from "@/utils/routes";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
-import {deleteProject} from "@/actions/sessions.actions";
+import {deleteProject} from "@/actions/project.actions";
 import type {IDeleteProjectButtonProps} from "@/types/components";
 
 function DeleteProjectButton({projectDir, projectName}: IDeleteProjectButtonProps) {

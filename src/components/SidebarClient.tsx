@@ -14,7 +14,7 @@ import {getAllTasks} from "@/actions/task.actions";
 import {getAllMemories} from "@/actions/memory.actions";
 import type {ISidebarClientProps} from "@/types/components";
 import {DeleteProjectButton} from "@/components/DeleteProjectButton";
-import {getAllSessions, refreshSidebar} from "@/actions/sessions.actions";
+import {getAllSessions, refreshSidebar} from "@/actions/session.actions";
 
 /** Task status indicator */
 const TASK_STATUS_ICON: Record<string, { label: string; className: string }> = {

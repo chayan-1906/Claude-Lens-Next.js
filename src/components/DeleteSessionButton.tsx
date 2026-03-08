@@ -6,7 +6,7 @@ import {routes} from "@/utils/routes";
 import {HiOutlineTrash} from "react-icons/hi";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
-import {deleteSession} from "@/actions/sessions.actions";
+import {deleteSession} from "@/actions/session.actions";
 import type {IDeleteSessionButtonProps} from "@/types/components";
 
 function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProps) {
