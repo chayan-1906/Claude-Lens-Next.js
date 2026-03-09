@@ -42,4 +42,21 @@ function CodeBlock({code, language}: ICodeBlockProps) {
     );
 }
 
-export {CodeBlock};
+/** Shared Markdown code renderer — delegates fenced blocks to CodeBlock, renders inline code with theme tokens */
+function renderCode({className, children, ...props}: React.ComponentProps<'code'>) {
+    const match: RegExpMatchArray | null = /language-(\w+)/.exec(className || '');
+
+    if (match) {
+        return (
+            <CodeBlock code={String(children).replace(/\n$/, '')} language={match[1]}/>
+        );
+    }
+
+    return (
+        <code className={'px-1.5 py-0.5 rounded bg-code-bg text-xs font-mono'} {...props}>
+            {children}
+        </code>
+    );
+}
+
+export {CodeBlock, renderCode};

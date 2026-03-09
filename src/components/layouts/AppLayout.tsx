@@ -39,10 +39,10 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
 
             {/* Sidebar */}
             <aside
-                className={cn('fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col transition-transform duration-200 z-50', isMobile && !sidebarOpen && '-translate-x-full')}>
+                className={cn('fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col transition-transform duration-200 z-50 md:z-auto', isMobile && !sidebarOpen && '-translate-x-full')}>
                 {/* Sidebar Header */}
                 <div className={'flex items-center justify-between gap-3 px-4 py-4 border-b border-border shrink-0'}>
-                    <h2 className={'text-sm font-semibold text-text-secondary'}>{sidebarTitle}</h2>
+                    <h2 className={'text-sm font-semibold text-secondary'}>{sidebarTitle}</h2>
                     <Button variant={'ghost'} size={'icon'} onClick={toggleSidebar} className={'md:hidden size-8'} title={'Close sidebar'}>
                         <HiOutlineX className={'size-4'}/>
                     </Button>
@@ -57,7 +57,7 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
             {/* Main Content */}
             <main className={'flex-1 flex flex-col overflow-hidden'}>
                 {/* Top Header Bar */}
-                <header className={'flex items-center justify-between gap-4 px-4 py-3 border-b border-border bg-surface/80 backdrop-blur-sm shrink-0'}>
+                <header className={'flex items-center justify-between gap-4 px-4 py-3 border-b border-border bg-surface shrink-0'}>
                     {/* Hamburger — only visible on mobile */}
                     <Button variant={'ghost'} size={'icon'} onClick={toggleSidebar} className={'md:hidden size-8'} title={'Open sidebar'}>
                         <HiOutlineMenuAlt2 className={'size-4'}/>

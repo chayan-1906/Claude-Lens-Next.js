@@ -324,7 +324,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                         'flex items-center justify-start gap-1.5 w-full px-3 py-1.5 rounded-md text-xs transition-colors truncate',
                                                         isChatActive
                                                             ? 'bg-primary/10 text-primary font-medium'
-                                                            : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                                            : 'text-text-muted hover:bg-border hover:text-text',
                                                     )}
                                             >
                                                 <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform', isSessionExpanded && 'rotate-90')}/>
@@ -338,7 +338,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                     <Link href={chatHref} title={'Chat'}
                                                           className={cn(
                                                               'flex items-center gap-1.5 px-3 py-1 rounded-md text-xs transition-colors',
-                                                              isChatActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                                              isChatActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-border hover:text-text',
                                                           )}
                                                     >
                                                         <HiOutlineChatAlt2 className={'size-3.5 shrink-0'}/>
@@ -347,7 +347,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
 
                                                     {/* Tasks toggle */}
                                                     <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSessionTasks(session.sessionId)}
-                                                            className={'flex items-center justify-start gap-1.5 w-full px-3 py-1 rounded-md text-xs text-text-muted hover:bg-surface-hover hover:text-text transition-colors'}>
+                                                            className={'flex items-center justify-start gap-1.5 w-full px-3 py-1 rounded-md text-xs text-text-muted hover:bg-border hover:text-text transition-colors'}>
                                                         <HiOutlineClipboardList className={'size-3.5 shrink-0'}/>
                                                         <span>{'Tasks'}</span>
                                                         <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform ml-auto', isTasksExpanded && 'rotate-90')}/>
@@ -373,7 +373,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                                               'flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] transition-colors truncate',
                                                                               isTaskActive
                                                                                   ? 'bg-primary/10 text-primary font-medium'
-                                                                                  : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                                                                  : 'text-text-muted hover:bg-border hover:text-text',
                                                                           )}
                                                                     >
                                                                         <span className={cn('shrink-0 text-xs', isTaskActive ? '' : statusInfo.className)}>{statusInfo.label}</span>
@@ -401,7 +401,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                   'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors truncate',
                                                   isActive
                                                       ? 'bg-primary/10 text-primary font-medium'
-                                                      : 'text-text-muted hover:bg-surface-hover hover:text-text',
+                                                      : 'text-text-muted hover:bg-border hover:text-text',
                                               )}
                                         >
                                             <HiOutlineDocumentText className={'size-3.5 shrink-0'}/>

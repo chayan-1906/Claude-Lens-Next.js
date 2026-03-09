@@ -1,7 +1,7 @@
 import React from "react";
 import remarkGfm from "remark-gfm";
 import Markdown from "react-markdown";
-import {CodeBlock} from "@/components/CodeBlock";
+import {renderCode} from "@/components/CodeBlock";
 import type {ContentBlock} from "@/types/message";
 import {EUserMessageType} from "@/types/message";
 import {stripSystemTags} from "@/utils/stripSystemTags";
@@ -98,22 +98,6 @@ function renderStringContent(text: string): React.ReactNode {
             );
         }
     }
-}
-
-function renderCode({className, children, ...props}: React.ComponentProps<'code'>) {
-    const match: RegExpMatchArray | null = /language-(\w+)/.exec(className || '');
-
-    if (match) {
-        return (
-            <CodeBlock code={String(children).replace(/\n$/, '')} language={match[1]}/>
-        );
-    }
-
-    return (
-        <code className={'px-1.5 py-0.5 rounded bg-code-bg text-xs font-mono'} {...props}>
-            {children}
-        </code>
-    );
 }
 
 export {MessageContent};

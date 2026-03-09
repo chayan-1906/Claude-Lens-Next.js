@@ -128,12 +128,12 @@ function SyncButton() {
                     {/* Targets section */}
                     <div className={'mt-4'}>
                         <h3 className={'text-sm font-medium text-text mb-2'}>{'Data Types'}</h3>
-                        <label className={'flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-surface-hover cursor-pointer'}>
+                        <label className={'flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-border cursor-pointer'}>
                             <input type={'checkbox'} checked={allTargetsSelected} onChange={handleToggleAllTargets} className={'accent-primary size-4'}/>
                             <span className={'text-sm text-text font-medium'}>Select All</span>
                         </label>
                         {ALL_SYNC_TARGETS.map((target: SyncTarget) => (
-                            <label key={target} className={'flex items-center gap-4 px-2 py-1.5 pl-6 rounded-md hover:bg-surface-hover cursor-pointer'}>
+                            <label key={target} className={'flex items-center gap-4 px-2 py-1.5 pl-6 rounded-md hover:bg-border cursor-pointer'}>
                                 <input type={'checkbox'} checked={selectedTargets.has(target)} onChange={() => handleToggleTarget(target)} className={'accent-primary size-4'}/>
                                 <span className={'text-sm text-text capitalize'}>{target}</span>
                             </label>
@@ -151,13 +151,13 @@ function SyncButton() {
                         )}
                         {(!isLoadingProjects && projects.length > 0) && (
                             <div className={'max-h-48 overflow-y-auto'}>
-                                <label className={'flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-surface-hover cursor-pointer'}>
+                                <label className={'flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-border cursor-pointer'}>
                                     <input type={'checkbox'} checked={allProjectsSelected} onChange={handleToggleAllProjects} className={'accent-primary size-4'}/>
                                     <span className={'text-sm text-text font-medium'}>Select All</span>
                                 </label>
                                 {projects.map((projectDir: string) => {
                                     return (
-                                        <label key={projectDir} className={'flex items-center gap-4 px-2 py-1.5 pl-6 rounded-md hover:bg-surface-hover cursor-pointer'}>
+                                        <label key={projectDir} className={'flex items-center gap-4 px-2 py-1.5 pl-6 rounded-md hover:bg-border cursor-pointer'}>
                                             <input type={'checkbox'} checked={selectedProjects.has(projectDir)} onChange={() => handleToggleProject(projectDir)} className={'accent-primary size-4'}/>
                                             <span className={'text-sm text-text'} title={projectDir}>{projectDir}</span>
                                         </label>

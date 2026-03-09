@@ -30,7 +30,7 @@ function MessageBubble({message}: IMessageBubbleProps) {
 
     return (
         <div className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}>
-            <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', Array.isArray(message.content) && 'py-3', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+            <div className={cn('max-w-[85%] rounded-2xl px-4 py-3 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                 <MessageContent content={message.content}/>
             </div>
             <div className={'flex items-center gap-2 mt-1 px-1'}>
