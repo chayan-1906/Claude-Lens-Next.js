@@ -27,6 +27,23 @@ function ChatInput({onSend, isStreaming, isOnline}: IChatInputProps) {
         }
     }, [handleSubmit]);
 
+    // Capture keystrokes anywhere on the page and redirect to textarea
+    React.useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent): void => {
+            // Skip if already focused on an input/textarea, or if modifier keys are held (except Shift)
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            // Only capture printable characters (single char keys or space)
+            if (e.key.length !== 1) return;
+
+            textareaRef.current?.focus();
+        };
+        document.addEventListener('keydown', handleGlobalKeyDown);
+        return (): void => {
+            document.removeEventListener('keydown', handleGlobalKeyDown);
+        };
+    }, []);
+
     // Auto-resize textarea as user types (max ~200px)
     React.useEffect(() => {
         const el: HTMLTextAreaElement | null = textareaRef.current;

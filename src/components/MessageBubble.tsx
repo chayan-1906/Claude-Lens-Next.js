@@ -34,7 +34,7 @@ function MessageBubble({message}: IMessageBubbleProps) {
                 <MessageContent content={message.content}/>
             </div>
             <div className={'flex items-center gap-2 mt-1 px-1'}>
-                <span className={'text-[10px] text-text-muted'} title={new Date(message.timestamp).toLocaleString()}>{formatRelativeDate(message.timestamp)}</span>
+                <span className={'text-[10px] text-text-muted'} title={new Date(message.timestamp).toLocaleString()} suppressHydrationWarning>{formatRelativeDate(message.timestamp)}</span>
                 {showCopyButton && (
                     <CopyMessageButton text={copyText}/>
                 )}
