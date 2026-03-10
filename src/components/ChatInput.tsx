@@ -68,7 +68,7 @@ function ChatInput({onSend, isStreaming, isOnline}: IChatInputProps) {
                     )}
                 </Button>
             </div>
-            <div className={'max-w-3xl mx-auto mt-1 text-xs text-text-muted text-center'}>
+            <div className={'max-w-3xl mx-auto mt-1 text-xs text-text-muted'}>
                 Shift+Enter for new line
             </div>
         </div>

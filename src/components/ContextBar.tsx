@@ -17,9 +17,6 @@ function ContextBar({context}: IContextBarProps) {
 
     const barColor: string = usagePercent < 50 ? 'bg-success' : usagePercent < 80 ? 'bg-warning' : 'bg-error';
 
-    // Don't render if no token data yet
-    if (context.totalTokens === 0 && !context.model) return null;
-
     return (
         <div className={'border-t border-border bg-surface'}>
             {/* Collapsed view — always visible, single row */}

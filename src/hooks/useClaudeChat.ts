@@ -162,13 +162,25 @@ function useClaudeChat(onProcessExit?: () => void) {
                     timestamp: new Date(),
                 }]);
 
-                // Update token usage — result event has top-level `usage`, not inside `message`
+                // Update token usage — include cached tokens for accurate context window usage
                 if (data.usage) {
+                    const inputTokens: number = (data.usage.input_tokens || 0)
+                        + (data.usage.cache_creation_input_tokens || 0)
+                        + (data.usage.cache_read_input_tokens || 0);
+                    const outputTokens: number = data.usage.output_tokens || 0;
+
+                    // Extract contextWindow from modelUsage if available
+                    const modelEntry = data.modelUsage
+                        ? Object.values(data.modelUsage)[0]
+                        : undefined;
+                    const contextWindowMax: number = modelEntry?.contextWindow || DEFAULT_CONTEXT_WINDOW;
+
                     setContextInfo((prevContextInfo: IContextInfo) => ({
                         ...prevContextInfo,
-                        inputTokens: data.usage!.input_tokens,
-                        outputTokens: data.usage!.output_tokens,
-                        totalTokens: data.usage!.input_tokens + data.usage!.output_tokens,
+                        inputTokens,
+                        outputTokens,
+                        totalTokens: inputTokens + outputTokens,
+                        contextWindowMax,
                     }));
                 }
 
@@ -249,7 +261,7 @@ function useClaudeChat(onProcessExit?: () => void) {
         };
 
         webSocketRef.current = webSocket;
-    }, [clearHeartbeat, startHeartbeat, handleStreamEvent, chatState.status]);
+    }, [clearHeartbeat, startHeartbeat, handleStreamEvent]);
 
     const disconnect = React.useCallback((): void => {
         clearHeartbeat();
@@ -330,4 +342,4 @@ function useClaudeChat(onProcessExit?: () => void) {
     return {chatState, messages, contextInfo, toolCalls, sessionId, isStreaming, isOnline, connect, disconnect, sendMessage, setMessages, reset};
 }
 
-export {useClaudeChat};
+export {useClaudeChat, DEFAULT_CONTEXT_WINDOW};

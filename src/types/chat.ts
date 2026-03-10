@@ -59,11 +59,22 @@ export interface IStreamJsonEvent {
     uuid?: string;
     /** Top-level model field present on system events */
     model?: string;
-    /** Top-level usage field present on result events */
+    /** Top-level usage field present on result events (includes prompt caching fields) */
     usage?: {
         input_tokens: number;
         output_tokens: number;
+        cache_creation_input_tokens?: number;
+        cache_read_input_tokens?: number;
     };
+    /** Per-model usage breakdown with context window info (present on result events) */
+    modelUsage?: Record<string, {
+        inputTokens: number;
+        outputTokens: number;
+        cacheReadInputTokens?: number;
+        cacheCreationInputTokens?: number;
+        contextWindow?: number;
+        maxOutputTokens?: number;
+    }>;
     message?: {
         role: 'user' | 'assistant';
         content: string | ContentBlock[];
@@ -71,6 +82,8 @@ export interface IStreamJsonEvent {
         usage?: {
             input_tokens: number;
             output_tokens: number;
+            cache_creation_input_tokens?: number;
+            cache_read_input_tokens?: number;
         };
     };
     customTitle?: string;

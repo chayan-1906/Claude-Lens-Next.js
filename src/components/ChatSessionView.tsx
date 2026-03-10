@@ -5,10 +5,9 @@ import {useRouter} from "next/navigation";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import type {IMessage} from "@/types/message";
+import {EMessageRole} from "@/types/message";
 import {ChatInput} from "@/components/ChatInput";
 import {ContextBar} from "@/components/ContextBar";
-import {useClaudeChat} from "@/hooks/useClaudeChat";
-import {EChatStatus, IChatMessage} from "@/types/chat";
 import {refreshSidebar} from "@/actions/session.actions";
 import {ModelSwitcher} from "@/components/ModelSwitcher";
 import {IChatSessionViewProps} from "@/types/components";
@@ -18,6 +17,8 @@ import {ChatMessageBubble} from "@/components/ChatMessageBubble";
 import {ChatToolCallBlock} from "@/components/ChatToolCallBlock";
 import {ChatStatusIndicator} from "@/components/ChatStatusIndicator";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
+import {EChatStatus, IChatMessage, IContextInfo} from "@/types/chat";
+import {DEFAULT_CONTEXT_WINDOW, useClaudeChat} from "@/hooks/useClaudeChat";
 
 function ChatSessionView({session, historicalMessages, isNewChat}: IChatSessionViewProps) {
     const router = useRouter();
@@ -36,8 +37,32 @@ function ChatSessionView({session, historicalMessages, isNewChat}: IChatSessionV
     const {chatState, messages: liveMessages, contextInfo, toolCalls, sessionId, isStreaming, isOnline, connect, sendMessage, setMessages, reset} = useClaudeChat(handleProcessExit);
 
     const [projectDir, setProjectDir] = React.useState<string>(session?.projectDir || '');
-    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
     const historicalCountRef = React.useRef<number>(historicalMessages?.length ?? 0);
+    const bottomRef = React.useRef<HTMLDivElement>(null);
+
+    // Derive context from the last historical assistant message with tokenUsage
+    const historicalContext: IContextInfo | null = React.useMemo(() => {
+        if (!historicalMessages?.length || !session) return null;
+        const lastWithUsage: IMessage | undefined = [...historicalMessages]
+            .reverse()
+            .find((m: IMessage) => m.role === EMessageRole.ASSISTANT && m.tokenUsage);
+        if (!lastWithUsage?.tokenUsage) return null;
+        const input: number = lastWithUsage.tokenUsage.input;
+        const output: number = lastWithUsage.tokenUsage.output;
+        return {
+            inputTokens: input,
+            outputTokens: output,
+            totalTokens: input + output,
+            contextWindowMax: DEFAULT_CONTEXT_WINDOW,
+            filesInContext: [],
+            model: session.aiModel || '',
+        };
+    }, [historicalMessages, session]);
+
+    // Use live context once available, fall back to historical context
+    const effectiveContext: IContextInfo | null = contextInfo.totalTokens > 0
+        ? contextInfo
+        : historicalContext;
 
     const handleSend = React.useCallback((text: string): void => {
         console.log('[handleSend] session:', session?.sessionId, '| liveSessionId:', sessionId);
@@ -86,6 +111,11 @@ function ChatSessionView({session, historicalMessages, isNewChat}: IChatSessionV
         connect();
     }, [connect]);
 
+    // Auto-scroll to bottom on mount and when new live messages arrive
+    React.useEffect(() => {
+        bottomRef.current?.scrollIntoView({behavior: 'smooth'});
+    }, [liveMessages.length]);
+
     const title: string = session?.title || 'New Chat';
 
     return (
@@ -98,7 +128,7 @@ function ChatSessionView({session, historicalMessages, isNewChat}: IChatSessionV
                         <span className={'text-sm'}>({session.projectDir})</span>
                     )}
                     <div className={'ml-auto shrink-0 flex items-center gap-2'}>
-                        <ModelSwitcher model={contextInfo.model}/>
+                        <ModelSwitcher model={effectiveContext?.model || ''}/>
                         <span className={cn('size-2 rounded-full shrink-0', isOnline ? 'bg-success' : 'bg-error')}/>
                         {session && (
                             <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title}/>
@@ -135,7 +165,7 @@ function ChatSessionView({session, historicalMessages, isNewChat}: IChatSessionV
             )}
 
             {/* Messages area — scrollable */}
-            <div ref={scrollContainerRef} className={'flex-1 overflow-y-auto chat-scroll-container'}>
+            <div className={'flex-1 overflow-y-auto chat-scroll-container'}>
                 <div className={'max-w-3xl mx-auto px-4 py-6 flex flex-col gap-4'}>
                     {/* Historical messages (from MongoDB) */}
                     {historicalMessages?.map((message: IMessage) => (
@@ -165,11 +195,16 @@ function ChatSessionView({session, historicalMessages, isNewChat}: IChatSessionV
 
                     {/* Status indicators */}
                     <ChatStatusIndicator state={chatState} onRetry={handleRetry}/>
+
+                    {/* Scroll anchor */}
+                    <div ref={bottomRef}/>
                 </div>
             </div>
 
             {/* Context bar — above input */}
-            <ContextBar context={contextInfo}/>
+            {effectiveContext && (
+                <ContextBar context={effectiveContext}/>
+            )}
 
             {/* Chat input — fixed at bottom */}
             <ChatInput onSend={handleSend} isStreaming={isStreaming} isOnline={isOnline}/>
