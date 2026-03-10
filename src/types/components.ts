@@ -3,6 +3,7 @@ import type {ITask} from "@/types/task";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
 import type {ContentBlock, IMessage} from "@/types/message";
+import type {ChatState, IChatMessage, IContextInfo} from "@/types/chat";
 
 /** ------------- Constants and Type Aliases ------------- */
 
@@ -110,4 +111,45 @@ export interface IDeleteSessionButtonProps {
 
 export interface IDeleteTasksButtonProps {
     sessionId: string;
+}
+
+export interface IChatInputProps {
+    onSend: (text: string) => void;
+    isStreaming: boolean;
+    isOnline: boolean;
+}
+
+export interface IStreamingMessageProps {
+    streamingText: string;
+}
+
+export interface IChatStatusIndicatorProps {
+    state: ChatState;
+    onRetry?: () => void;
+}
+
+export interface IChatToolCallBlockProps {
+    name: string;
+    input: Record<string, unknown>;
+    result?: string;
+    isError?: boolean;
+    isRunning: boolean;
+}
+
+export interface IContextBarProps {
+    context: IContextInfo;
+}
+
+export interface IModelSwitcherProps {
+    model: string;
+}
+
+export interface IChatMessageBubbleProps {
+    message: IChatMessage;
+}
+
+export interface IChatSessionViewProps {
+    session?: ISession;
+    historicalMessages?: IMessage[];
+    isNewChat: boolean;
 }

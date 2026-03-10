@@ -1,11 +1,20 @@
 import {notFound} from "next/navigation";
-import {SessionView} from "@/components/SessionView";
 import {getSession} from "@/actions/session.actions";
 import type {IGetSessionResponse} from "@/types/session";
 import type {ISessionPageProps} from "@/types/components";
+import {ChatSessionView} from "@/components/ChatSessionView";
 
 async function SessionPage({params}: ISessionPageProps) {
     const {sessionId} = await params;
+
+    // New chat — no historical data to fetch
+    if (sessionId === 'new') {
+        return (
+            <ChatSessionView key={sessionId} isNewChat={true}/>
+        );
+    }
+
+    // Existing session — fetch historical messages, render with chat input for resume
     const {success, session, messages, error}: IGetSessionResponse = await getSession({sessionId});
 
     if (!success || !session || !messages) {
@@ -21,7 +30,7 @@ async function SessionPage({params}: ISessionPageProps) {
     }
 
     return (
-        <SessionView session={session} messages={messages}/>
+        <ChatSessionView key={sessionId} session={session} historicalMessages={messages} isNewChat={false}/>
     );
 }
 

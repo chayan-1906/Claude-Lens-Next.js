@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import {usePathname, useRouter} from "next/navigation";
-import {HiOutlineChatAlt2, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineDocumentText, HiOutlineFolder, HiOutlineRefresh} from "react-icons/hi";
+import {HiOutlineChatAlt2, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineDocumentText, HiOutlineFolder, HiOutlinePlus, HiOutlineRefresh} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import type {ITask} from "@/types/task";
@@ -258,19 +258,27 @@ function SidebarClient({projects}: ISidebarClientProps) {
     if (projects.length === 0) {
         return (
             <div className={'flex flex-col gap-2'}>
-                <div className={'flex justify-end'}>
+                <div className={'flex items-center justify-between'}>
+                    <Link href={routes.newSessionPath} className={'flex items-center gap-1.5 text-xs text-primary hover:text-dark-primary transition-colors px-1'}>
+                        <HiOutlinePlus className={'size-3.5'}/>
+                        <span>New Chat</span>
+                    </Link>
                     <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
                         <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
                     </Button>
                 </div>
-                <p className={'text-xs text-text-muted text-center py-4'}>No projects yet</p>
+                <p className={'text-xs text-text-muted text-center py-4'}>No projects yet!</p>
             </div>
         );
     }
 
     return (
         <nav className={'flex flex-col gap-0.5'}>
-            <div className={'flex justify-end mb-1'}>
+            <div className={'flex items-center justify-between mb-1'}>
+                <Link href={routes.newSessionPath} className={'flex items-center gap-1.5 text-xs text-primary hover:text-dark-primary transition-colors px-1'}>
+                    <HiOutlinePlus className={'size-3.5'}/>
+                    <span>New Chat</span>
+                </Link>
                 <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
                     <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
                 </Button>
