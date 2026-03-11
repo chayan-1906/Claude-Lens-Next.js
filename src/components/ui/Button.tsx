@@ -28,10 +28,10 @@ function Button({variant = 'primary', size = 'md', isLoading = false, leftIcon, 
     const baseStyles: string = 'inline-flex items-center justify-center gap-2 rounded-md font-medium cursor-pointer select-none transform-gpu transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100';
 
     const content: React.ReactElement = isLoading ? (
-        <>
+        <div className={'flex justify-center gap-2'}>
             <LoadingSpinner />
             <span>{children}</span>
-        </>
+        </div>
     ) : (
         <>
             {leftIcon && <span className={'shrink-0'}>{leftIcon}</span>}

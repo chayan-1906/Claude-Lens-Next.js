@@ -111,3 +111,19 @@ export interface IDeleteSessionButtonProps {
 export interface IDeleteTasksButtonProps {
     sessionId: string;
 }
+
+export interface IChatInputProps {
+    onSend: (text: string) => void;
+    disabled: boolean;
+    isLoading: boolean;
+}
+
+export interface IScrollToBottomProps {
+    trigger: string;
+}
+
+export interface IChatSessionViewProps {
+    isNewChat: boolean;
+    session?: ISession;
+    historicalMessages?: IMessage[];
+}

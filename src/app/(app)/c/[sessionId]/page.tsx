@@ -1,11 +1,17 @@
 import {notFound} from "next/navigation";
-import {SessionView} from "@/components/SessionView";
 import {getSession} from "@/actions/session.actions";
 import type {IGetSessionResponse} from "@/types/session";
 import type {ISessionPageProps} from "@/types/components";
+import {ChatSessionView} from "@/components/ChatSessionView";
 
 async function SessionPage({params}: ISessionPageProps) {
     const {sessionId} = await params;
+    const isNewChat: boolean = sessionId === 'new';
+
+    if (isNewChat) {
+        return <ChatSessionView isNewChat={true}/>;
+    }
+
     const {success, session, messages, error}: IGetSessionResponse = await getSession({sessionId});
 
     if (!success || !session || !messages) {
@@ -21,7 +27,7 @@ async function SessionPage({params}: ISessionPageProps) {
     }
 
     return (
-        <SessionView session={session} messages={messages}/>
+        <ChatSessionView isNewChat={false} session={session} historicalMessages={messages}/>
     );
 }
 
