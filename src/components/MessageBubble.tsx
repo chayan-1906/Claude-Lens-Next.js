@@ -1,6 +1,7 @@
 import {cn} from "@/utils/cn";
 import {MessageContent} from "./MessageContent";
 import type {ContentBlock} from "@/types/message";
+import {formatModelName} from "@/utils/formatModelName";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import type {IMessageBubbleProps} from "@/types/components";
 import {formatRelativeDate} from "@/utils/formatRelativeDate";
@@ -30,13 +31,18 @@ function MessageBubble({message}: IMessageBubbleProps) {
 
     return (
         <div className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}>
-            <div className={cn('max-w-[85%] rounded-2xl px-4 py-3 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+            <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                 <MessageContent content={message.content}/>
             </div>
             <div className={'flex items-center gap-2 mt-1 px-1'}>
                 <span className={'text-[10px] text-text-muted'} suppressHydrationWarning title={new Date(message.timestamp).toLocaleString()}>{formatRelativeDate(message.timestamp)}</span>
                 {showCopyButton && (
                     <CopyMessageButton text={copyText}/>
+                )}
+                {(!isUser && message.aiModel) && (
+                    <span className={'text-xs text-text-muted italic'}>
+                        Prepared using {formatModelName(message.aiModel)}
+                    </span>
                 )}
             </div>
         </div>

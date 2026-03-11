@@ -76,6 +76,8 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
             };
         }
 
+        console.log('getSession data:', JSON.stringify(data));
+
         return {
             success: true,
             message: data.message,

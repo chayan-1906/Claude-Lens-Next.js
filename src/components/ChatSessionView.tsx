@@ -9,7 +9,9 @@ import {EChatStatus} from "@/types/chat";
 import type {IMessage} from "@/types/message";
 import {EMessageRole} from "@/types/message";
 import {ChatInput} from "@/components/ChatInput";
+import {ContextBar} from "@/components/ContextBar";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
+import {formatModelName} from "@/utils/formatModelName";
 import {MessageBubble} from "@/components/MessageBubble";
 import {refreshSidebar} from "@/actions/session.actions";
 import {MessageContent} from "@/components/MessageContent";
@@ -69,6 +71,38 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
     const hasNoMessages: boolean = !historicalMessages?.length && messages.length === 0 && !streamingContent;
 
+    // Derive token usage from the last historical assistant message as a fallback
+    const historicalTokenUsage = React.useMemo((): { input: number; output: number } | null => {
+        if (!historicalMessages?.length) return null;
+        for (let i: number = historicalMessages.length - 1; i >= 0; i--) {
+            const msg: IMessage = historicalMessages[i];
+            if (msg.role === EMessageRole.ASSISTANT && msg.tokenUsage) {
+                return msg.tokenUsage;
+            }
+        }
+        return null;
+    }, [historicalMessages]);
+
+    // When contextInfo exists but tokens are still 0 (system event fired, no usage data yet),
+    // hold the historical values until live token data arrives from the assistant event.
+    const historicalInput: number = session?.contextTokensUsed ?? historicalTokenUsage?.input ?? 0;
+    const historicalOutput: number = historicalTokenUsage?.output ?? 0;
+    const inputTokens: number = contextInfo && contextInfo.inputTokens > 0
+        ? contextInfo.inputTokens
+        : historicalInput;
+    const outputTokens: number = contextInfo && contextInfo.outputTokens > 0
+        ? contextInfo.outputTokens
+        : historicalOutput;
+    const contextWindow: number | null = contextInfo?.contextWindow && contextInfo.contextWindow > 0
+        ? contextInfo.contextWindow
+        : session?.contextWindowSize && session.contextWindowSize > 0
+            ? session.contextWindowSize
+            : null;
+    const hasContextData: boolean = contextInfo !== null
+        || inputTokens > 0
+        || outputTokens > 0
+        || contextWindow !== null;
+
     return (
         <div className={'flex flex-col h-full'}>
             {/* Header (existing sessions only) */}
@@ -101,11 +135,14 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 <div className={cn('max-w-[85%] rounded-2xl px-4 py-3 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                                     <MessageContent content={message.content}/>
                                 </div>
-                                {copyText && (
-                                    <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                        <CopyMessageButton text={copyText}/>
-                                    </div>
-                                )}
+                                <div className={'flex items-center gap-2 mt-1 px-1'}>
+                                    {copyText && <CopyMessageButton text={copyText}/>}
+                                    {(!isUser && message.model) && (
+                                        <span className={'text-xs text-text-muted italic'}>
+                                            Prepared using {formatModelName(message.model)}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
@@ -128,8 +165,11 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                 </div>
             </div>
 
-            {/* Chat input */}
+            {/* Context info + Chat input */}
             <div className={'max-w-3xl mx-auto w-full'}>
+                {hasContextData && (
+                    <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow} tools={contextInfo?.tools}/>
+                )}
                 <ChatInput onSend={handleSend} disabled={disabled} isLoading={isLoading}/>
             </div>
         </div>

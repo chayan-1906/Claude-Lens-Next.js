@@ -122,6 +122,13 @@ export interface IScrollToBottomProps {
     trigger: string;
 }
 
+export interface IContextBarProps {
+    inputTokens: number;
+    outputTokens: number;
+    contextWindow: number | null;
+    tools?: string[];
+}
+
 export interface IChatSessionViewProps {
     isNewChat: boolean;
     session?: ISession;

@@ -16,6 +16,8 @@ export interface ISession {
     gitBranch?: string;
     slug?: string;
     source: ESessionSource;
+    contextTokensUsed?: number;
+    contextWindowSize?: number;
     createdAt: string;
     updatedAt: string;
 }

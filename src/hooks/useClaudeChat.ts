@@ -13,7 +13,7 @@ import {
     IContextInfo,
     IResultEvent,
     ISendMessageOptions,
-    ISystemEvent,
+    ISystemEvent, ITokenUsage,
     IUseClaudeChatReturn,
     IWsErrorMessage,
     MAX_RECONNECT_ATTEMPTS,
@@ -41,6 +41,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
     // --- Refs: streaming ---
     const currentAssistantMessageIdRef = React.useRef<string | null>(null);
+    const currentModelRef = React.useRef<string | null>(null);
     const streamBufferRef = React.useRef<ContentBlock[] | null>(null);
     const rafIdRef = React.useRef<number | null>(null);
 
@@ -91,6 +92,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 role: EMessageRole.ASSISTANT,
                 content,
                 timestamp: new Date(),
+                model: currentModelRef.current ?? undefined,
             };
             setMessages((prev: IChatMessage[]) => [...prev, completedMessage]);
         } else {
@@ -99,6 +101,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
         streamBufferRef.current = null;
         currentAssistantMessageIdRef.current = null;
+        currentModelRef.current = null;
         setStreamingContent(null);
     }, []);
 
@@ -134,6 +137,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     finalizeStreamingMessage();
                 }
                 currentAssistantMessageIdRef.current = messageId;
+                currentModelRef.current = event.message.model;
 
                 // RAF-batched streaming update
                 streamBufferRef.current = content;
@@ -155,14 +159,18 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     setStatus(EChatStatus.STREAMING);
                 }
 
-                // Update token usage
+                // Update token usage (include cache tokens in input count)
                 if (event.message.usage) {
+                    const usage: ITokenUsage = event.message.usage;
+                    const totalInput: number = usage.input_tokens
+                        + (usage.cache_creation_input_tokens ?? 0)
+                        + (usage.cache_read_input_tokens ?? 0);
                     setContextInfo((prev: IContextInfo | null) => {
                         if (!prev) return prev;
                         return {
                             ...prev,
-                            inputTokens: event.message.usage.input_tokens,
-                            outputTokens: event.message.usage.output_tokens,
+                            inputTokens: totalInput,
+                            outputTokens: usage.output_tokens,
                         };
                     });
                 }
@@ -174,15 +182,19 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 console.log(`[useClaudeChat] result → subtype: ${event.subtype}, is_error: ${event.is_error}, turns: ${event.num_turns}, cost: $${event.total_cost_usd?.toFixed(4)}, duration: ${event.duration_ms}ms, tokens: in=${event.usage.input_tokens} out=${event.usage.output_tokens}`);
                 finalizeStreamingMessage();
 
-                // Update context with final usage
+                // Update context with final usage (include cache tokens)
+                const resultUsage: ITokenUsage = event.usage;
+                const resultTotalInput: number = resultUsage.input_tokens
+                    + (resultUsage.cache_creation_input_tokens ?? 0)
+                    + (resultUsage.cache_read_input_tokens ?? 0);
                 setContextInfo((prev: IContextInfo | null) => {
                     if (!prev) return prev;
                     const modelKey: string | undefined = Object.keys(event.modelUsage)[0];
                     const modelUsage = modelKey ? event.modelUsage[modelKey] : null;
                     return {
                         ...prev,
-                        inputTokens: event.usage.input_tokens,
-                        outputTokens: event.usage.output_tokens,
+                        inputTokens: resultTotalInput,
+                        outputTokens: resultUsage.output_tokens,
                         contextWindow: modelUsage?.contextWindow ?? prev.contextWindow,
                         costUsd: event.total_cost_usd,
                     };

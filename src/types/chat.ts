@@ -115,6 +115,7 @@ export interface IChatMessage {
     role: EMessageRole;
     content: string | ContentBlock[];
     timestamp: Date;
+    model?: string;
 }
 
 /** Context info tracked during a chat session */
