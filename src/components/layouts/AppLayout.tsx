@@ -10,7 +10,7 @@ import {SyncButton} from "@/components/SyncButton";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type {IAppLayoutProps} from "@/types/components";
 
-function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutProps) {
+function AppLayout({children, sidebar, sidebarTitle = 'Projects'}: IAppLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = React.useState<boolean>(true);
     const [isMobile, setIsMobile] = React.useState<boolean>(false);
 
@@ -41,7 +41,7 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
             <aside
                 className={cn('fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col transition-transform duration-200 z-50 md:z-auto', isMobile && !sidebarOpen && '-translate-x-full')}>
                 {/* Sidebar Header */}
-                <div className={'flex items-center justify-between gap-3 px-4 py-4 border-b border-border shrink-0'}>
+                <div className={'flex items-center justify-between gap-3 px-4 py-5 border-b border-border shrink-0'}>
                     <h2 className={'text-sm font-semibold text-secondary'}>{sidebarTitle}</h2>
                     <Button variant={'ghost'} size={'icon'} onClick={toggleSidebar} className={'md:hidden size-8'} title={'Close sidebar'}>
                         <HiOutlineX className={'size-4'}/>
@@ -66,7 +66,8 @@ function AppLayout({children, sidebar, sidebarTitle = 'Sessions'}: IAppLayoutPro
                     <div className={'flex-1'}/>
 
                     <SyncButton/>
-                    <Link href={routes.setupPath} title={'Settings'} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-all duration-150'}>
+                    <Link href={routes.setupPath} title={'Settings'}
+                          className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-all duration-150'}>
                         <HiOutlineCog className={'size-4'}/>
                     </Link>
                     <ThemeSwitcher/>

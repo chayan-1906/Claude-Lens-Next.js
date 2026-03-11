@@ -16,7 +16,7 @@ async function SidebarWrapper() {
 
     if (!success) {
         return (
-            <p className={'text-xs text-error text-center py-4'}>{error || 'Failed to load projects!'}</p>
+            <p className={'text-xs text-error font-bold text-center py-4'}>{error || 'Failed to load projects!'}</p>
         );
     }
 

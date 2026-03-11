@@ -255,6 +255,17 @@ function SidebarClient({projects}: ISidebarClientProps) {
         return () => window.removeEventListener('memory-deleted', handler);
     }, []);
 
+    /** Re-fetch sidebar data when a live chat session completes */
+    React.useEffect(() => {
+        const handler = (): void => {
+            console.log('[SidebarClient] received sidebar-refresh event');
+            handleRefresh();
+        };
+
+        window.addEventListener('sidebar-refresh', handler);
+        return () => window.removeEventListener('sidebar-refresh', handler);
+    }, [handleRefresh]);
+
     if (projects.length === 0) {
         return (
             <div className={'flex flex-col gap-2'}>
@@ -283,6 +294,8 @@ function SidebarClient({projects}: ISidebarClientProps) {
                     <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
                 </Button>
             </div>
+
+            {/* Projects */}
             {projects.map((projectDir: string) => {
                 const projectName: string = projectDir.split('/').filter(Boolean).pop() || projectDir;
                 const isExpanded: boolean = expandedProjects.has(projectDir);
@@ -294,7 +307,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                     <div key={projectDir}>
                         {/* Project header */}
                         <div className={'flex items-center'}>
-                            <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleProject(projectDir)}
+                            <Button variant={'ghost'} onClick={() => handleToggleProject(projectDir)}
                                     className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text'}>
                                 <HiOutlineChevronRight className={cn('size-3 shrink-0 transition-transform', isExpanded && 'rotate-90')}/>
                                 <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
@@ -309,13 +322,13 @@ function SidebarClient({projects}: ISidebarClientProps) {
                         {isExpanded && (
                             <div className={'ml-5 flex flex-col gap-0.5 mt-0.5'}>
                                 {isLoading && (
-                                    <p className={'text-xs text-text-muted px-3 py-1.5'}>{'Loading...'}</p>
+                                    <p className={'text-xs text-text-muted px-3 py-1.5'}>Loading...</p>
                                 )}
                                 {(!isLoading && sessions.length === 0 && memories.length === 0) && (
-                                    <p className={'text-xs text-text-muted px-3 py-1.5'}>{'No sessions & memories'}</p>
+                                    <p className={'text-xs text-text-muted px-3 py-1.5'}>No sessions & memories</p>
                                 )}
 
-                                {/** Sessions */}
+                                {/* Sessions */}
                                 {sessions.map((session: ISession) => {
                                     const isSessionExpanded: boolean = expandedSessions.has(session.sessionId);
                                     const chatHref: string = routes.sessionPath(session.sessionId);
@@ -350,14 +363,14 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                           )}
                                                     >
                                                         <HiOutlineChatAlt2 className={'size-3.5 shrink-0'}/>
-                                                        <span>{'Chat'}</span>
+                                                        <span>Chat</span>
                                                     </Link>
 
                                                     {/* Tasks toggle */}
                                                     <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSessionTasks(session.sessionId)}
                                                             className={'flex items-center justify-start gap-1.5 w-full px-3 py-1 rounded-md text-xs text-text-muted hover:bg-border hover:text-text transition-colors'}>
                                                         <HiOutlineClipboardList className={'size-3.5 shrink-0'}/>
-                                                        <span>{'Tasks'}</span>
+                                                        <span>Tasks</span>
                                                         <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform ml-auto', isTasksExpanded && 'rotate-90')}/>
                                                     </Button>
 
@@ -365,10 +378,10 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                     {isTasksExpanded && (
                                                         <div className={'ml-4 flex flex-col gap-0.5'}>
                                                             {isTasksLoading && (
-                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>{'Loading...'}</p>
+                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>Loading...</p>
                                                             )}
                                                             {(!isTasksLoading && tasks.length === 0) && (
-                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>{'No tasks'}</p>
+                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>No tasks</p>
                                                             )}
                                                             {tasks.map((task: ITask) => {
                                                                 const statusInfo = TASK_STATUS_ICON[task.status] ?? TASK_STATUS_ICON.pending;
@@ -397,7 +410,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                     );
                                 })}
 
-                                {/** Memories */}
+                                {/* Memories */}
                                 {memories.map((memory: IMemory) => {
                                     const href: string = routes.memoryPath(memory.projectDir);
                                     const isActive: boolean = pathname === href;

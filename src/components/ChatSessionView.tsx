@@ -28,6 +28,7 @@ function ChatSessionView({session, historicalMessages, isNewChat}: IChatSessionV
         console.log('[handleProcessExit] sessionIdRef:', sessionIdRef.current);
         await refreshSidebar();
         console.log('[handleProcessExit] refreshSidebar done');
+        window.dispatchEvent(new CustomEvent('sidebar-refresh'));
         if (sessionIdRef.current) {
             console.log('[handleProcessExit] router.replace to', routes.sessionPath(sessionIdRef.current));
             router.replace(routes.sessionPath(sessionIdRef.current));
