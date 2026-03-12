@@ -2,7 +2,7 @@
 
 import React from "react";
 import {useRouter} from "next/navigation";
-import {HiOutlineExclamationCircle, HiOutlinePencil, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
+import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlinePencil, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import type {IMessage} from "@/types/message";
@@ -13,10 +13,12 @@ import {ContextBar} from "@/components/ContextBar";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
 import {EChatStatus, IChatMessage} from "@/types/chat";
 import {formatModelName} from "@/utils/formatModelName";
+import {openFolderPicker} from "@/actions/file.actions";
 import {MessageBubble} from "@/components/MessageBubble";
 import {refreshSidebar} from "@/actions/session.actions";
 import {MessageContent} from "@/components/MessageContent";
 import {ScrollToBottom} from "@/components/ScrollToBottom";
+import type {IOpenFolderPickerResponse} from "@/types/file";
 import type {IChatSessionViewProps} from "@/types/components";
 import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
@@ -33,6 +35,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // Edit state: which message is being edited, and how many historical messages to show
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [historicalCutoffIndex, setHistoricalCutoffIndex] = React.useState<number | null>(null);
+
+    // Project directory state for new chats
+    const [projectDir, setProjectDir] = React.useState<string>('');
+    const [isBrowsing, setIsBrowsing] = React.useState<boolean>(false);
 
     console.log(`[ChatSessionView] Render — isNewChat: ${isNewChat}, sessionId: ${session?.sessionId ?? contextInfo?.sessionId ?? 'none'}, status: ${status}, liveMessages: ${messages.length}, streaming: ${streamingContent !== null}, historicalMessages: ${historicalMessages?.length ?? 0}`);
 
@@ -72,13 +78,12 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // Main ChatInput disabled while chatting OR while an edit is in progress
     const disabled: boolean = isChattingDisabled || editingId !== null;
 
-    const isLoading: boolean = status === EChatStatus.SENDING
-        || status === EChatStatus.CONNECTING;
+    const isLoading: boolean = status === EChatStatus.SENDING || status === EChatStatus.CONNECTING;
 
     const handleSend = React.useCallback((text: string): void => {
         console.log(`[ChatSessionView] handleSend — text:`, text.slice(0, 50));
-        sendMessage(text, isNewChat ? undefined : {sessionId: session?.sessionId});
-    }, [sendMessage, isNewChat, session?.sessionId]);
+        sendMessage(text, isNewChat ? {projectDir: projectDir || undefined} : {sessionId: session?.sessionId});
+    }, [sendMessage, isNewChat, session?.sessionId, projectDir]);
 
     const handleHistoricalEditSave = React.useCallback((newText: string, historicalIndex: number): void => {
         setHistoricalCutoffIndex(historicalIndex);
@@ -125,6 +130,15 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         setHistoricalCutoffIndex(lastUserIndex + 1);
         regenerateMessage(0, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId});
     }, [historicalMessages, historicalCutoffIndex, regenerateMessage, isNewChat, session?.sessionId]);
+
+    const handleBrowse = React.useCallback(async (): Promise<void> => {
+        setIsBrowsing(true);
+        const result: IOpenFolderPickerResponse = await openFolderPicker();
+        setIsBrowsing(false);
+        if (result.success && result.path) {
+            setProjectDir(result.path);
+        }
+    }, []);
 
     const hasNoMessages: boolean = !historicalMessages?.length && messages.length === 0 && !streamingContent;
     const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
@@ -209,6 +223,26 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                 </div>
             )}
 
+            {/* Project directory input for new chats */}
+            {(isNewChat && !session && messages.length === 0) && (
+                <div className={'px-6 py-4 border-b border-border bg-surface shrink-0'}>
+                    <label className={'block text-xs text-text-muted mb-1.5'}>{'Project directory (optional)'}</label>
+                    <div className={'flex items-center gap-2'}>
+                        <input
+                            type={'text'}
+                            value={projectDir}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectDir(e.target.value)}
+                            placeholder={'/Users/you/projects/my-app'}
+                            className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
+                        />
+                        <Button variant={'secondary'} size={'sm'} onClick={handleBrowse} isLoading={isBrowsing} disabled={isBrowsing}>
+                            <HiOutlineFolder className={'size-4'}/>
+                            Browse...
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Messages area */}
             <div className={'flex-1 overflow-y-auto px-6 py-4'}>
                 <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
@@ -262,7 +296,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         const copyText: string = extractMessageText(message.content);
                         return (
                             <div key={message.id} className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}>
-                                <div className={cn('max-w-[85%] rounded-2xl px-4 py-3 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+                                <div className={cn('max-w-[85%] rounded-2xl px-4 py-2 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                                     <MessageContent content={message.content}/>
                                 </div>
                                 <div className={'flex items-center gap-2 mt-1 px-1'}>
@@ -297,7 +331,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     {/* Streaming assistant response */}
                     {streamingContent && (
                         <div className={'flex flex-col items-start'}>
-                            <div className={'max-w-[85%] rounded-2xl px-4 py-3 text-sm bg-assistant-bubble text-text'}>
+                            <div className={'max-w-[85%] rounded-2xl px-4 py-2 text-sm bg-assistant-bubble text-text'}>
                                 <MessageContent content={streamingContent}/>
                             </div>
                         </div>

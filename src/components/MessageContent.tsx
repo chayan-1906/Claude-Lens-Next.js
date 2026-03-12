@@ -2,7 +2,7 @@ import React from "react";
 import remarkGfm from "remark-gfm";
 import Markdown from "react-markdown";
 import {renderCode} from "@/components/CodeBlock";
-import type {ContentBlock} from "@/types/message";
+import type {ContentBlock, ParsedUserMessage} from "@/types/message";
 import {EUserMessageType} from "@/types/message";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {ThinkingBlock} from "@/components/ThinkingBlock";
@@ -51,7 +51,7 @@ function MessageContent({content}: IMessageContentProps) {
 }
 
 function renderStringContent(text: string): React.ReactNode {
-    const parsed = parseUserMessage(text);
+    const parsed: ParsedUserMessage = parseUserMessage(text);
 
     switch (parsed.type) {
         case EUserMessageType.SLASH_COMMAND: {
@@ -62,7 +62,7 @@ function renderStringContent(text: string): React.ReactNode {
             return (
                 <div className={'flex flex-col gap-2'}>
                     <span className={'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-mono w-fit'}>
-                        {'⚡'}{label}
+                        ⚡{label}
                     </span>
                     {parsed.remainingText && (
                         <div className={'markdown-content'}>
