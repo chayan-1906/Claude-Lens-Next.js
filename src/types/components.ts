@@ -53,6 +53,14 @@ export interface ISessionViewProps {
 
 export interface IMessageBubbleProps {
     message: IMessage;
+    onEdit?: () => void;
+}
+
+export interface IInlineMessageEditorProps {
+    initialText: string;
+    disabled: boolean;
+    onSave: (newText: string) => void;
+    onCancel: () => void;
 }
 
 export interface IMessageContentProps {
@@ -126,7 +134,6 @@ export interface IContextBarProps {
     inputTokens: number;
     outputTokens: number;
     contextWindow: number | null;
-    tools?: string[];
 }
 
 export interface IChatSessionViewProps {

@@ -386,6 +386,26 @@ function useClaudeChat(): IUseClaudeChatReturn {
         doSendRef.current(text, options);
     }, []);
 
+    const editMessage = React.useCallback((keepUpToIndex: number, newText: string, options?: ISendMessageOptions): void => {
+        console.log(`[useClaudeChat] editMessage — keepUpTo: ${keepUpToIndex}, text: "${newText.slice(0, 50)}..."`);
+
+        // Cancel any in-progress streaming
+        if (rafIdRef.current !== null) {
+            cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = null;
+        }
+        streamBufferRef.current = null;
+        currentAssistantMessageIdRef.current = null;
+        currentModelRef.current = null;
+        setStreamingContent(null);
+        setError(null);
+
+        // Trim messages to the edit point, then re-send
+        // React 18 batches both setMessages calls: first slices, then appends the new user message
+        setMessages((prev: IChatMessage[]) => prev.slice(0, keepUpToIndex));
+        sendMessage(newText, options);
+    }, [sendMessage]);
+
     const disconnect = React.useCallback((): void => {
         console.log('[useClaudeChat] disconnect() called (intentional close)!');
         intentionalCloseRef.current = true;
@@ -441,7 +461,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, sendMessage, disconnect, retry};
+    return {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, disconnect, retry};
 }
 
 export {useClaudeChat};

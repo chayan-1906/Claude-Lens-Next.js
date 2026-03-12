@@ -1,12 +1,20 @@
 "use client";
 
 import React from "react";
+import hljs from "highlight.js/lib/common";
 import {HiOutlineCheck, HiOutlineClipboardCopy} from "react-icons/hi";
 import {Button} from "@/components/ui/Button";
 import type {ICodeBlockProps} from "@/types/components";
 
 function CodeBlock({code, language}: ICodeBlockProps) {
     const [copied, setCopied] = React.useState<boolean>(false);
+
+    const highlighted: string = React.useMemo((): string => {
+        if (language && hljs.getLanguage(language)) {
+            return hljs.highlight(code, {language}).value;
+        }
+        return hljs.highlightAuto(code).value;
+    }, [code, language]);
 
     const handleCopy = React.useCallback(async (): Promise<void> => {
         await navigator.clipboard.writeText(code);
@@ -36,7 +44,7 @@ function CodeBlock({code, language}: ICodeBlockProps) {
                 </Button>
             )}
             <pre className={'p-3 bg-code-bg overflow-x-auto'}>
-                <code className={'text-xs font-mono text-text leading-relaxed'}>{code}</code>
+                <code className={'text-xs font-mono leading-relaxed'} dangerouslySetInnerHTML={{__html: highlighted}}/>
             </pre>
         </div>
     );

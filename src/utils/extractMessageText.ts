@@ -1,13 +1,28 @@
-import type {ContentBlock} from "@/types/message";
+import {ContentBlock, EUserMessageType} from "@/types/message";
 import {stripSystemTags} from "@/utils/stripSystemTags";
+import {parseUserMessage} from "@/utils/parseUserMessage";
 
 /**
  * Extracts copyable plain text from message content.
  * Handles both user (string) and assistant (ContentBlock[]) messages.
+ * For user strings, parses command XML tags so the output is clean text.
  */
 function extractMessageText(content: string | ContentBlock[]): string {
     if (typeof content === 'string') {
-        return stripSystemTags(content);
+        const parsed = parseUserMessage(content);
+        switch (parsed.type) {
+            case EUserMessageType.SLASH_COMMAND: {
+                const parts: string[] = [parsed.command, parsed.args, parsed.remainingText].filter(Boolean);
+                return parts.join(' ').trim();
+            }
+            case EUserMessageType.COMMAND_OUTPUT:
+                return parsed.output;
+            case EUserMessageType.SYSTEM_CAVEAT:
+                return '';
+            case EUserMessageType.PLAIN:
+            default:
+                return stripSystemTags(parsed.text);
+        }
     }
 
     const parts: string[] = content.map((block: ContentBlock): string => {

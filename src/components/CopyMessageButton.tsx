@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {HiOutlineCheck, HiOutlineClipboardCopy} from "react-icons/hi";
+import {TbCopy, TbCopyCheck} from "react-icons/tb";
 import {Button} from "@/components/ui/Button";
 import type {ICopyMessageButtonProps} from "@/types/components";
 
@@ -15,10 +15,10 @@ function CopyMessageButton({text}: ICopyMessageButtonProps) {
     }, [text]);
 
     return (
-        <Button variant={'ghost'} size={'icon'} onClick={handleCopy} className={'size-6 text-text-muted'} title={'Copy message'}>
+        <Button variant={'ghost'} size={'icon'} onClick={handleCopy} className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'} title={'Copy message'}>
             {copied
-                ? <HiOutlineCheck className={'size-3.5 text-success'}/>
-                : <HiOutlineClipboardCopy className={'size-3.5'}/>
+                ? <TbCopyCheck className={'size-3.5 text-success font-bold'}/>
+                : <TbCopy className={'size-3.5'}/>
             }
         </Button>
     );

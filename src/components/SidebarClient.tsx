@@ -259,7 +259,8 @@ function SidebarClient({projects}: ISidebarClientProps) {
         return (
             <div className={'flex flex-col gap-2'}>
                 <div className={'flex justify-end gap-1'}>
-                    <Link href={routes.newSessionPath} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-colors'} title={'New chat'}>
+                    <Link href={routes.newSessionPath} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-colors'}
+                          title={'New chat'}>
                         <HiOutlinePlus className={'size-3.5'}/>
                     </Link>
                     <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
@@ -274,7 +275,8 @@ function SidebarClient({projects}: ISidebarClientProps) {
     return (
         <nav className={'flex flex-col gap-0.5'}>
             <div className={'flex justify-end gap-1 mb-1'}>
-                <Link href={routes.newSessionPath} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-colors'} title={'New chat'}>
+                <Link href={routes.newSessionPath} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-colors'}
+                      title={'New chat'}>
                     <HiOutlinePlus className={'size-3.5'}/>
                 </Link>
                 <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>

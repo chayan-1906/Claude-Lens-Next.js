@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import 'highlight.js/styles/atom-one-dark.css';
 
 /* ========================================
    Theme System: 15 schemes x 2 modes
@@ -1278,6 +1279,13 @@ body {
 .markdown-content th {
 	font-weight: 600;
 	background-color: var(--color-code-bg);
+}
+
+/* highlight.js — let project theme handle background and base text color */
+.hljs {
+	background: transparent !important;
+	padding: 0 !important;
+	color: inherit;
 }
 
 .markdown-content pre {

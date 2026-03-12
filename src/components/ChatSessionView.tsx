@@ -2,15 +2,16 @@
 
 import React from "react";
 import {useRouter} from "next/navigation";
+import {HiOutlineExclamationCircle, HiOutlinePencil, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
-import type {IChatMessage} from "@/types/chat";
-import {EChatStatus} from "@/types/chat";
 import type {IMessage} from "@/types/message";
 import {EMessageRole} from "@/types/message";
+import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
 import {ContextBar} from "@/components/ContextBar";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
+import {EChatStatus, IChatMessage} from "@/types/chat";
 import {formatModelName} from "@/utils/formatModelName";
 import {MessageBubble} from "@/components/MessageBubble";
 import {refreshSidebar} from "@/actions/session.actions";
@@ -19,14 +20,19 @@ import {ScrollToBottom} from "@/components/ScrollToBottom";
 import type {IChatSessionViewProps} from "@/types/components";
 import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
+import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
-    const {status, messages, streamingContent, contextInfo, sendMessage} = useClaudeChat();
+    const {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, retry} = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
     const hasSyncedSidebarRef = React.useRef<boolean>(false);
+
+    // Edit state: which message is being edited, and how many historical messages to show
+    const [editingId, setEditingId] = React.useState<string | null>(null);
+    const [historicalCutoffIndex, setHistoricalCutoffIndex] = React.useState<number | null>(null);
 
     console.log(`[ChatSessionView] Render — isNewChat: ${isNewChat}, sessionId: ${session?.sessionId ?? contextInfo?.sessionId ?? 'none'}, status: ${status}, liveMessages: ${messages.length}, streaming: ${streamingContent !== null}, historicalMessages: ${historicalMessages?.length ?? 0}`);
 
@@ -57,9 +63,14 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         }
     }, [isNewChat, messages, status, router]);
 
-    const disabled: boolean = status === EChatStatus.STREAMING
+    // True while Claude is actively responding — blocks new input and edit triggers
+    const isChattingDisabled: boolean = status === EChatStatus.STREAMING
         || status === EChatStatus.TOOL_RUNNING
-        || status === EChatStatus.CONNECTING;
+        || status === EChatStatus.CONNECTING
+        || status === EChatStatus.OFFLINE;
+
+    // Main ChatInput disabled while chatting OR while an edit is in progress
+    const disabled: boolean = isChattingDisabled || editingId !== null;
 
     const isLoading: boolean = status === EChatStatus.SENDING
         || status === EChatStatus.CONNECTING;
@@ -69,7 +80,19 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         sendMessage(text, isNewChat ? undefined : {sessionId: session?.sessionId});
     }, [sendMessage, isNewChat, session?.sessionId]);
 
+    const handleHistoricalEditSave = React.useCallback((newText: string, historicalIndex: number): void => {
+        setHistoricalCutoffIndex(historicalIndex);
+        editMessage(0, newText, isNewChat ? undefined : {sessionId: session?.sessionId});
+        setEditingId(null);
+    }, [editMessage, isNewChat, session?.sessionId]);
+
+    const handleLiveEditSave = React.useCallback((newText: string, liveIndex: number): void => {
+        editMessage(liveIndex, newText, isNewChat ? undefined : {sessionId: session?.sessionId});
+        setEditingId(null);
+    }, [editMessage, isNewChat, session?.sessionId]);
+
     const hasNoMessages: boolean = !historicalMessages?.length && messages.length === 0 && !streamingContent;
+    const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
 
     // Derive token usage from the last historical assistant message as a fallback
     const historicalTokenUsage = React.useMemo((): { input: number; output: number } | null => {
@@ -105,13 +128,33 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
     return (
         <div className={'flex flex-col h-full'}>
+            {/* Reconnecting banner — shown immediately when connection drops mid-session */}
+            {(status === EChatStatus.CONNECTING && messages.length > 0) && (
+                <div className={'flex items-center gap-2 px-4 py-2 bg-warning/10 border-b border-warning/20 text-warning text-xs shrink-0'}>
+                    <HiOutlineWifi className={'size-4 shrink-0'}/>
+                    <span>Reconnecting to server...</span>
+                </div>
+            )}
+
+            {/* Offline banner — shown after all reconnect attempts exhausted */}
+            {status === EChatStatus.OFFLINE && (
+                <div className={'flex items-center gap-2 px-4 py-2 bg-error/10 border-b border-error/20 text-error text-xs shrink-0'}>
+                    <HiOutlineWifi className={'size-4 shrink-0'}/>
+                    <span>Connection lost. Unable to reconnect!</span>
+                    <Button variant={'danger'} size={'sm'} onClick={retry} className={'ml-auto flex items-center gap-1 cursor-pointer'}>
+                        <HiOutlineRefresh className={'size-3'}/>
+                        Retry
+                    </Button>
+                </div>
+            )}
+
             {/* Header (existing sessions only) */}
             {session && (
                 <div className={'px-6 py-3 border-b border-border shrink-0'}>
                     <h1 className={'text-sm font-semibold truncate'}>{session.title}</h1>
                     <p className={'text-xs text-text-muted mt-0.5'}>
                         {session.aiModel && <span>{session.aiModel}</span>}
-                        {session.aiModel && session.gitBranch && <span>{' • '}</span>}
+                        {session.aiModel && session.gitBranch && <span> • </span>}
                         {session.gitBranch && <span>{session.gitBranch}</span>}
                     </p>
                 </div>
@@ -120,23 +163,61 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             {/* Messages area */}
             <div className={'flex-1 overflow-y-auto px-6 py-4'}>
                 <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
-                    {/* Historical messages */}
-                    {historicalMessages?.map((message: IMessage) => (
-                        <MessageBubble key={message.uuid} message={message}/>
-                    ))}
-
-                    {/* Live messages (user + finalized assistant) */}
-                    {messages.map((message: IChatMessage) => {
+                    {/* Historical messages — sliced at edit cutoff when user edits from history */}
+                    {historicalMessages?.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
                         const isUser: boolean = message.role === EMessageRole.USER;
-                        const copyText: string = extractMessageText(message.content);
+
+                        if (editingId === message.uuid) {
+                            return (
+                                <div key={message.uuid} className={'flex flex-col items-end'}>
+                                    <InlineMessageEditor
+                                        initialText={extractMessageText(message.content)}
+                                        disabled={isChattingDisabled}
+                                        onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
+                                        onCancel={() => setEditingId(null)}
+                                    />
+                                </div>
+                            );
+                        }
 
                         return (
-                            <div key={message.id} className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}>
+                            <MessageBubble key={message.uuid} message={message} onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}/>
+                        );
+                    })}
+
+                    {/* Live messages (user + finalized assistant) */}
+                    {messages.map((message: IChatMessage, index: number) => {
+                        const isUser: boolean = message.role === EMessageRole.USER;
+
+                        if (editingId === message.id) {
+                            return (
+                                <div key={message.id} className={'flex flex-col items-end'}>
+                                    <InlineMessageEditor
+                                        initialText={extractMessageText(message.content)}
+                                        disabled={isChattingDisabled}
+                                        onSave={(newText: string) => handleLiveEditSave(newText, index)}
+                                        onCancel={() => setEditingId(null)}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        const copyText: string = extractMessageText(message.content);
+                        return (
+                            <div key={message.id} className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}>
                                 <div className={cn('max-w-[85%] rounded-2xl px-4 py-3 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                                     <MessageContent content={message.content}/>
                                 </div>
                                 <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                    {copyText && <CopyMessageButton text={copyText}/>}
+                                    {(isUser && !isChattingDisabled && editingId === null) && (
+                                        <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
+                                                className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
+                                            <HiOutlinePencil className={'size-3.5'}/>
+                                        </Button>
+                                    )}
+                                    {copyText && (
+                                        <CopyMessageButton text={copyText}/>
+                                    )}
                                     {(!isUser && message.model) && (
                                         <span className={'text-xs text-text-muted italic'}>
                                             Prepared using {formatModelName(message.model)}
@@ -156,6 +237,29 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         </div>
                     )}
 
+                    {/* Thinking dots — waiting for first token */}
+                    {showThinking && (
+                        <div className={'flex items-start'}>
+                            <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
+                                <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '0ms'}}/>
+                                <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '150ms'}}/>
+                                <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '300ms'}}/>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error state */}
+                    {status === EChatStatus.ERROR && error && (
+                        <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
+                            <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
+                            <span className={'flex-1'}>{error}</span>
+                            <Button variant={'link'} size={'sm'} onClick={retry} className={'shrink-0'}>
+                                <HiOutlineRefresh className={'size-3'}/>
+                                Retry
+                            </Button>
+                        </div>
+                    )}
+
                     {/* Empty state for new chats */}
                     {(isNewChat && hasNoMessages && status === EChatStatus.IDLE) && (
                         <p className={'text-sm text-text-muted text-center py-8'}>Start a new conversation</p>
@@ -168,8 +272,9 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             {/* Context info + Chat input */}
             <div className={'max-w-3xl mx-auto w-full'}>
                 {hasContextData && (
-                    <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow} tools={contextInfo?.tools}/>
+                    <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow}/>
                 )}
+                {/*<ChatInput onSend={handleSend} disabled={disabled} isLoading={isLoading}/>*/}
                 <ChatInput onSend={handleSend} disabled={disabled} isLoading={isLoading}/>
             </div>
         </div>
