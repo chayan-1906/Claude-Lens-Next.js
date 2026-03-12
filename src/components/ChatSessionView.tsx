@@ -185,13 +185,27 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
             {/* Header (existing sessions only) */}
             {session && (
-                <div className={'px-6 py-3 border-b border-border shrink-0'}>
-                    <h1 className={'text-sm font-semibold truncate'}>{session.title}</h1>
-                    <p className={'text-xs text-text-muted mt-0.5'}>
-                        {session.aiModel && <span>{session.aiModel}</span>}
-                        {session.aiModel && session.gitBranch && <span> • </span>}
-                        {session.gitBranch && <span>{session.gitBranch}</span>}
-                    </p>
+                <div className={'flex px-6 py-3 items-center justify-between border-b border-border shrink-0'}>
+                    <div className={'flex flex-col justify-center'}>
+                        <h1 className={'text-sm font-semibold truncate'}>{session.title}</h1>
+
+                        <div className={'flex items-center gap-1'}>
+                            {session.aiModel && (
+                                <span className={'text-xs text-text-muted'}>{session.aiModel}</span>
+                            )}
+                            {(session.aiModel && session.gitBranch) && (
+                                <span className={'text-xs text-text-muted'}>•</span>
+                            )}{session.gitBranch && (
+                            <span className={'text-xs text-text-muted'}>{session.gitBranch}</span>
+                        )}
+                        </div>
+                    </div>
+
+                    <span className={cn(
+                        'size-2.5 rounded-full shrink-0',
+                        status === EChatStatus.CONNECTING ? 'bg-warning' :
+                            status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success'
+                    )}/>
                 </div>
             )}
 

@@ -421,11 +421,11 @@ function useClaudeChat(): IUseClaudeChatReturn {
         setError(null);
 
         // Trim messages (keeps user message, removes assistant response)
-        setMessages((prev: IChatMessage[]) => prev.slice(0, keepUpToIndex));
+        setMessages((previousMessage: IChatMessage[]) => previousMessage.slice(0, keepUpToIndex));
 
         // Send via WS without adding a user message to the list
-        const ws: WebSocket | null = wsRef.current;
-        if (ws && ws.readyState === WebSocket.OPEN) {
+        const webSocket: WebSocket | null = wsRef.current;
+        if (webSocket && webSocket.readyState === WebSocket.OPEN) {
             doSendRef.current(resendText, options);
         } else {
             pendingMessageRef.current = {text: resendText, options};
