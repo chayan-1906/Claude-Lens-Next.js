@@ -406,6 +406,33 @@ function useClaudeChat(): IUseClaudeChatReturn {
         sendMessage(newText, options);
     }, [sendMessage]);
 
+    const regenerateMessage = React.useCallback((keepUpToIndex: number, resendText: string, options?: ISendMessageOptions): void => {
+        console.log(`[useClaudeChat] regenerateMessage — keepUpTo: ${keepUpToIndex}, text: "${resendText.slice(0, 50)}..."`);
+
+        // Cancel any in-progress streaming
+        if (rafIdRef.current !== null) {
+            cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = null;
+        }
+        streamBufferRef.current = null;
+        currentAssistantMessageIdRef.current = null;
+        currentModelRef.current = null;
+        setStreamingContent(null);
+        setError(null);
+
+        // Trim messages (keeps user message, removes assistant response)
+        setMessages((prev: IChatMessage[]) => prev.slice(0, keepUpToIndex));
+
+        // Send via WS without adding a user message to the list
+        const ws: WebSocket | null = wsRef.current;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            doSendRef.current(resendText, options);
+        } else {
+            pendingMessageRef.current = {text: resendText, options};
+            connectRef.current();
+        }
+    }, []);
+
     const disconnect = React.useCallback((): void => {
         console.log('[useClaudeChat] disconnect() called (intentional close)!');
         intentionalCloseRef.current = true;
@@ -461,7 +488,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, disconnect, retry};
+    return {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, regenerateMessage, disconnect, retry};
 }
 
 export {useClaudeChat};

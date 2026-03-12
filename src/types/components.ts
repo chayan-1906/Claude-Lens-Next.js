@@ -46,14 +46,11 @@ export interface ISessionPageProps {
     params: Promise<{ sessionId: string }>;
 }
 
-export interface ISessionViewProps {
-    session: ISession;
-    messages: IMessage[];
-}
-
 export interface IMessageBubbleProps {
     message: IMessage;
+    index: number;
     onEdit?: () => void;
+    onRegenerate?: (clickedIndex: number) => void;
 }
 
 export interface IInlineMessageEditorProps {

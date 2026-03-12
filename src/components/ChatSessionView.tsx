@@ -24,7 +24,7 @@ import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
-    const {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, retry} = useClaudeChat();
+    const {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, regenerateMessage, retry} = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -90,6 +90,41 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         editMessage(liveIndex, newText, isNewChat ? undefined : {sessionId: session?.sessionId});
         setEditingId(null);
     }, [editMessage, isNewChat, session?.sessionId]);
+
+    // Regenerate is allowed only when IDLE, no edit in progress, and not streaming
+    const canRegenerate: boolean = status === EChatStatus.IDLE && editingId === null && !streamingContent;
+    // const visibleHistoricalLength: number = historicalCutoffIndex ?? (historicalMessages?.length ?? 0);
+
+    const handleLiveRegenerate = React.useCallback((clickedIndex: number): void => {
+        let lastUserIndex: number = -1;
+        let lastUserText: string = '';
+        for (let i: number = clickedIndex - 1; i >= 0; i--) {
+            if (messages[i].role === EMessageRole.USER) {
+                lastUserIndex = i;
+                lastUserText = extractMessageText(messages[i].content);
+                break;
+            }
+        }
+        if (lastUserIndex === -1 || !lastUserText) return;
+        regenerateMessage(lastUserIndex + 1, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId});
+    }, [messages, regenerateMessage, isNewChat, session?.sessionId]);
+
+    const handleHistoricalRegenerate = React.useCallback((clickedIndex: number): void => {
+        const visibleHistorical: IMessage[] | undefined = historicalMessages?.slice(0, historicalCutoffIndex ?? undefined);
+        if (!visibleHistorical?.length) return;
+        let lastUserIndex: number = -1;
+        let lastUserText: string = '';
+        for (let i: number = clickedIndex - 1; i >= 0; i--) {
+            if (visibleHistorical[i].role === EMessageRole.USER) {
+                lastUserIndex = i;
+                lastUserText = extractMessageText(visibleHistorical[i].content);
+                break;
+            }
+        }
+        if (lastUserIndex === -1 || !lastUserText) return;
+        setHistoricalCutoffIndex(lastUserIndex + 1);
+        regenerateMessage(0, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId});
+    }, [historicalMessages, historicalCutoffIndex, regenerateMessage, isNewChat, session?.sessionId]);
 
     const hasNoMessages: boolean = !historicalMessages?.length && messages.length === 0 && !streamingContent;
     const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
@@ -180,8 +215,16 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                             );
                         }
 
+                        const showHistoricalRegenerate: boolean = !isUser && canRegenerate;
+
                         return (
-                            <MessageBubble key={message.uuid} message={message} onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}/>
+                            <MessageBubble
+                                key={message.uuid}
+                                message={message}
+                                index={index}
+                                onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}
+                                onRegenerate={showHistoricalRegenerate ? handleHistoricalRegenerate : undefined}
+                            />
                         );
                     })}
 
@@ -215,6 +258,15 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                             <HiOutlinePencil className={'size-3.5'}/>
                                         </Button>
                                     )}
+                                    {(() => {
+                                        const showLiveRegenerate: boolean = !isUser && canRegenerate;
+                                        return showLiveRegenerate ? (
+                                            <Button variant={'ghost'} size={'icon'} onClick={() => handleLiveRegenerate(index)} title={'Regenerate response'}
+                                                    className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
+                                                <HiOutlineRefresh className={'size-3.5'}/>
+                                            </Button>
+                                        ) : null;
+                                    })()}
                                     {copyText && (
                                         <CopyMessageButton text={copyText}/>
                                     )}

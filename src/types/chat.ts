@@ -137,6 +137,7 @@ export interface IUseClaudeChatReturn {
     error: string | null;
     sendMessage: (text: string, options?: ISendMessageOptions) => void;
     editMessage: (keepUpToIndex: number, newText: string, options?: ISendMessageOptions) => void;
+    regenerateMessage: (keepUpToIndex: number, resendText: string, options?: ISendMessageOptions) => void;
     disconnect: () => void;
     retry: () => void;
 }

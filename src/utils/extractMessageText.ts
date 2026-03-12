@@ -1,6 +1,6 @@
-import {ContentBlock, EUserMessageType} from "@/types/message";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
+import {ContentBlock, EUserMessageType} from "@/types/message";
 
 /**
  * Extracts copyable plain text from message content.
