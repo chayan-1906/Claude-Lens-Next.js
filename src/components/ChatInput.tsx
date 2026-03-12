@@ -5,6 +5,7 @@ import {HiArrowUp} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {Button} from "@/components/ui/Button";
 import type {IChatInputProps} from "@/types/components";
+import {useMarkdownShortcuts} from "@/hooks/useMarkdownShortcuts";
 
 const MAX_TEXTAREA_HEIGHT: number = 200;
 
@@ -39,13 +40,19 @@ function ChatInput({onSend, disabled, isLoading}: IChatInputProps) {
         }
     }, [text, disabled, onSend]);
 
+    const handleMarkdownKeyDown = useMarkdownShortcuts(textareaRef, text, setText);
+
     const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+        if (handleMarkdownKeyDown(e)) {
+            requestAnimationFrame(adjustHeight);
+            return;
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             console.log('[ChatInput] Enter pressed (sending)!');
             handleSend();
         }
-    }, [handleSend]);
+    }, [handleMarkdownKeyDown, adjustHeight, handleSend]);
 
     // Capture keystrokes anywhere on the page and redirect to textarea
     React.useEffect(() => {

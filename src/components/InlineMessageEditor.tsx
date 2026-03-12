@@ -5,6 +5,7 @@ import {HiCheck, HiX} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {Button} from "@/components/ui/Button";
 import type {IInlineMessageEditorProps} from "@/types/components";
+import {useMarkdownShortcuts} from "@/hooks/useMarkdownShortcuts";
 
 const MAX_TEXTAREA_HEIGHT: number = 200;
 
@@ -21,7 +22,19 @@ function InlineMessageEditor({initialText, disabled, onSave, onCancel}: IInlineM
         }
     }, []);
 
+    const handleMarkdownKeyDown = useMarkdownShortcuts(textareaRef, text, setText);
+
     const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+        if (handleMarkdownKeyDown(e)) {
+            requestAnimationFrame((): void => {
+                const textarea: HTMLTextAreaElement | null = textareaRef.current;
+                if (textarea) {
+                    textarea.style.height = 'auto';
+                    textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
+                }
+            });
+            return;
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             const trimmed: string = text.trim();
@@ -30,7 +43,7 @@ function InlineMessageEditor({initialText, disabled, onSave, onCancel}: IInlineM
         if (e.key === 'Escape') {
             onCancel();
         }
-    }, [text, disabled, onSave, onCancel]);
+    }, [handleMarkdownKeyDown, text, disabled, onSave, onCancel]);
 
     React.useEffect(() => {
         const textarea: HTMLTextAreaElement | null = textareaRef.current;
