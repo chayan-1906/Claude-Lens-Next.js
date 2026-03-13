@@ -1,5 +1,6 @@
 import React from "react";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import Markdown from "react-markdown";
 import {renderCode} from "@/components/CodeBlock";
 import type {ContentBlock, ParsedUserMessage} from "@/types/message";
@@ -30,7 +31,7 @@ function MessageContent({content}: IMessageContentProps) {
                         if (!cleaned) return null;
                         return (
                             <div key={index} className={'markdown-content'}>
-                                <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
+                                <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode}}>
                                     {cleaned}
                                 </Markdown>
                             </div>
@@ -66,7 +67,7 @@ function renderStringContent(text: string): React.ReactNode {
                     </span>
                     {parsed.remainingText && (
                         <div className={'markdown-content'}>
-                            <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
+                            <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode}}>
                                 {parsed.remainingText}
                             </Markdown>
                         </div>
@@ -91,7 +92,7 @@ function renderStringContent(text: string): React.ReactNode {
             if (!cleaned) return null;
             return (
                 <div className={'markdown-content'}>
-                    <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode}}>
+                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode}}>
                         {cleaned}
                     </Markdown>
                 </div>
