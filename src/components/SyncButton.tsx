@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {HiOutlineRefresh} from "react-icons/hi";
+import {HiOutlineCloudUpload} from "react-icons/hi";
 import {Modal} from "@/components/ui/Modal";
 import type {SyncTarget} from "@/types/sync";
 import {ALL_SYNC_TARGETS, type ISyncResponse} from "@/types/sync";
@@ -117,7 +117,7 @@ function SyncButton() {
     return (
         <>
             <Button variant={'ghost'} size={'icon'} onClick={handleOpen} className={'size-8'} title={'Sync data'}>
-                <HiOutlineRefresh className={'size-4'}/>
+                <HiOutlineCloudUpload className={'size-4'}/>
             </Button>
 
             <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen} onClose={handleClose}>

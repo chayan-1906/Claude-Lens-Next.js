@@ -141,4 +141,8 @@ async function refreshSidebar(): Promise<void> {
     updateTag('memories');
 }
 
-export {getAllSessions, getSession, deleteSession, refreshSidebar};
+async function refreshSessions(): Promise<void> {
+    updateTag('sessions');
+}
+
+export {getAllSessions, getSession, deleteSession, refreshSidebar, refreshSessions};

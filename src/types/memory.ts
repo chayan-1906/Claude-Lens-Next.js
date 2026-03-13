@@ -20,7 +20,7 @@ export interface IGetAllMemoriesResponse extends IApiResponse {
 }
 
 export interface IGetMemoryResponse extends IApiResponse {
-    memory?: IMemory;
+    memories?: IMemory[];
 }
 
 export interface IDeleteMemoryResponse extends IApiResponse {

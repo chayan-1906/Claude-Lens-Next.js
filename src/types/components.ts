@@ -105,7 +105,6 @@ export interface IDeleteProjectButtonProps {
 
 export interface IDeleteMemoryButtonProps {
     projectDir: string;
-    fileName: string;
 }
 
 export interface IDeleteSessionButtonProps {

@@ -9,7 +9,7 @@ import {Button} from "@/components/ui/Button";
 import {deleteMemory} from "@/actions/memory.actions";
 import type {IDeleteMemoryButtonProps} from "@/types/components";
 
-function DeleteMemoryButton({projectDir, fileName}: IDeleteMemoryButtonProps) {
+function DeleteMemoryButton({projectDir}: IDeleteMemoryButtonProps) {
     const router = useRouter();
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
     const [isDeleting, setIsDeleting] = React.useState<boolean>(false);
@@ -45,9 +45,7 @@ function DeleteMemoryButton({projectDir, fileName}: IDeleteMemoryButtonProps) {
                 <div className={'p-6'}>
                     <h2 className={'text-base font-semibold text-text'}>{'Delete Memory'}</h2>
                     <p className={'text-sm text-text-muted mt-2'}>
-                        {'Are you sure you want to delete '}
-                        <span className={'font-medium text-text'}>{fileName}</span>
-                        {'? This will permanently remove all memory files for this project'}
+                        Are you sure you want to delete all memory files for this project? This action cannot be undone!
                     </p>
 
                     {error && (

@@ -398,25 +398,19 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                 })}
 
                                 {/** Memories */}
-                                {memories.map((memory: IMemory) => {
-                                    const href: string = routes.memoryPath(memory.projectDir);
-                                    const isActive: boolean = pathname === href;
-                                    const fileName: string = memory.filePath.split('/').pop() || memory.filePath;
-
-                                    return (
-                                        <Link key={memory.memoryId} href={href} title={memory.filePath}
-                                              className={cn(
-                                                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors truncate',
-                                                  isActive
-                                                      ? 'bg-primary/10 text-primary font-medium'
-                                                      : 'text-text-muted hover:bg-border hover:text-text',
-                                              )}
-                                        >
-                                            <HiOutlineDocumentText className={'size-3.5 shrink-0'}/>
-                                            <span className={'truncate'}>{fileName}</span>
-                                        </Link>
-                                    );
-                                })}
+                                {memories.length > 0 && (
+                                    <Link href={routes.memoryPath(memories[0].projectDir)}
+                                          className={cn(
+                                              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors truncate',
+                                              pathname === routes.memoryPath(memories[0].projectDir)
+                                                  ? 'bg-primary/10 text-primary font-medium'
+                                                  : 'text-text-muted hover:bg-border hover:text-text',
+                                          )}
+                                    >
+                                        <HiOutlineDocumentText className={'size-3.5 shrink-0'}/>
+                                        <span className={'truncate'}>Memories</span>
+                                    </Link>
+                                )}
                             </div>
                         )}
                     </div>
