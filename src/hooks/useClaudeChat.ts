@@ -179,26 +179,29 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
             case 'result': {
                 const event: IResultEvent = data as IResultEvent;
-                console.log(`[useClaudeChat] result → subtype: ${event.subtype}, is_error: ${event.is_error}, turns: ${event.num_turns}, cost: $${event.total_cost_usd?.toFixed(4)}, duration: ${event.duration_ms}ms, tokens: in=${event.usage.input_tokens} out=${event.usage.output_tokens}`);
+                // Finalize FIRST — must never be blocked by any logging or parsing that could throw
                 finalizeStreamingMessage();
+                console.log(`[useClaudeChat] result → subtype: ${event.subtype}, is_error: ${event.is_error}, turns: ${event.num_turns}, cost: $${event.total_cost_usd?.toFixed(4)}, duration: ${event.duration_ms}ms, tokens: in=${event.usage?.input_tokens} out=${event.usage?.output_tokens}`);
 
                 // Update context with final usage (include cache tokens)
-                const resultUsage: ITokenUsage = event.usage;
-                const resultTotalInput: number = resultUsage.input_tokens
-                    + (resultUsage.cache_creation_input_tokens ?? 0)
-                    + (resultUsage.cache_read_input_tokens ?? 0);
-                setContextInfo((prev: IContextInfo | null) => {
-                    if (!prev) return prev;
-                    const modelKey: string | undefined = Object.keys(event.modelUsage)[0];
-                    const modelUsage = modelKey ? event.modelUsage[modelKey] : null;
-                    return {
-                        ...prev,
-                        inputTokens: resultTotalInput,
-                        outputTokens: resultUsage.output_tokens,
-                        contextWindow: modelUsage?.contextWindow ?? prev.contextWindow,
-                        costUsd: event.total_cost_usd,
-                    };
-                });
+                const resultUsage: ITokenUsage | undefined = event.usage;
+                if (resultUsage) {
+                    const resultTotalInput: number = resultUsage.input_tokens
+                        + (resultUsage.cache_creation_input_tokens ?? 0)
+                        + (resultUsage.cache_read_input_tokens ?? 0);
+                    setContextInfo((prev: IContextInfo | null) => {
+                        if (!prev) return prev;
+                        const modelKey: string | undefined = event.modelUsage ? Object.keys(event.modelUsage)[0] : undefined;
+                        const modelUsage = modelKey ? event.modelUsage[modelKey] : null;
+                        return {
+                            ...prev,
+                            inputTokens: resultTotalInput,
+                            outputTokens: resultUsage.output_tokens,
+                            contextWindow: modelUsage?.contextWindow ?? prev.contextWindow,
+                            costUsd: event.total_cost_usd,
+                        };
+                    });
+                }
 
                 console.log('[useClaudeChat] Status → IDLE (turn complete)');
                 setStatus(EChatStatus.IDLE);
