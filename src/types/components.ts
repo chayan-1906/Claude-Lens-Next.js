@@ -3,6 +3,7 @@ import type {ITask} from "@/types/task";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
 import type {ContentBlock, IMessage} from "@/types/message";
+import {IProject} from "@/types/project";
 
 /** ------------- Constants and Type Aliases ------------- */
 
@@ -39,7 +40,7 @@ export interface IAppLayoutProps {
 }
 
 export interface ISidebarClientProps {
-    projects: string[];
+    projects: IProject[];
 }
 
 export interface ISessionPageProps {

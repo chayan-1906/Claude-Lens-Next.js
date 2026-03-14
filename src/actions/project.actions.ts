@@ -3,7 +3,7 @@
 import {cacheTag, updateTag} from "next/cache";
 import {apis} from "@/utils/apis";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IDeleteProjectParams, IDeleteProjectResponse, IGetAllProjectsResponse} from "@/types/project";
+import {IDeleteProjectParams, IDeleteProjectResponse, IGetAllProjectsResponse, IProject} from "@/types/project";
 
 async function getAllProjects(): Promise<IGetAllProjectsResponse> {
     "use cache";
@@ -27,7 +27,7 @@ async function getAllProjects(): Promise<IGetAllProjectsResponse> {
         return {
             success: true,
             message: data.message,
-            projects: data.projects as string[],
+            projects: data.projects as IProject[],
         };
     } catch (error: unknown) {
         console.error('Get projects error:', error);

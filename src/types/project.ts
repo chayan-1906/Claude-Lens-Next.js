@@ -2,11 +2,16 @@ import {IApiResponse} from "@/types/session";
 
 /** ------------- Constants and Type Aliases ------------- */
 
+export interface IProject {
+    rawProjectDir: string;
+    projectDir: string;
+}
+
 
 /** ------------- API response types ------------- */
 
 export interface IGetAllProjectsResponse extends IApiResponse {
-    projects?: string[];
+    projects?: IProject[];
 }
 
 export interface IDeleteProjectResponse extends IApiResponse {

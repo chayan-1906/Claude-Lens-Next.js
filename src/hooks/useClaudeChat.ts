@@ -45,6 +45,11 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const streamBufferRef = React.useRef<ContentBlock[] | null>(null);
     const rafIdRef = React.useRef<number | null>(null);
 
+    // --- Refs: regenerate retry ---
+    // Stores the pending regenerate payload so process_exit can auto-retry via resume_session
+    // if the Claude process exited before the frontend received it (race condition).
+    const regenerateRetryRef = React.useRef<{ text: string; options?: ISendMessageOptions } | null>(null);
+
     // --- Refs: stable function references for WS callbacks ---
     const handleServerMessageRef = React.useRef<(data: ServerMessage) => void>(() => {
     });
@@ -125,6 +130,9 @@ function useClaudeChat(): IUseClaudeChatReturn {
             }
 
             case 'assistant': {
+                // Response is arriving — no longer need to retry regenerate
+                regenerateRetryRef.current = null;
+
                 const event: IAssistantEvent = data as IAssistantEvent;
                 const content: ContentBlock[] = event.message.content;
                 const messageId: string = event.message.id;
@@ -178,10 +186,20 @@ function useClaudeChat(): IUseClaudeChatReturn {
             }
 
             case 'result': {
+                // Response fully completed — no longer need to retry regenerate
+                regenerateRetryRef.current = null;
+
                 const event: IResultEvent = data as IResultEvent;
                 // Finalize FIRST — must never be blocked by any logging or parsing that could throw
                 finalizeStreamingMessage();
                 console.log(`[useClaudeChat] result → subtype: ${event.subtype}, is_error: ${event.is_error}, turns: ${event.num_turns}, cost: $${event.total_cost_usd?.toFixed(4)}, duration: ${event.duration_ms}ms, tokens: in=${event.usage?.input_tokens} out=${event.usage?.output_tokens}`);
+
+                if (event.is_error) {
+                    console.log(`[useClaudeChat] Status → ERROR (result is_error: true, subtype: ${event.subtype})`);
+                    setError(event.subtype);
+                    setStatus(EChatStatus.ERROR);
+                    break;
+                }
 
                 // Update context with final usage (include cache tokens)
                 const resultUsage: ITokenUsage | undefined = event.usage;
@@ -218,8 +236,23 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 console.log(`[useClaudeChat] process_exit → code: ${exitEvent.code}`);
                 finalizeStreamingMessage();
                 isSessionActiveRef.current = false;
-                console.log('[useClaudeChat] Status → IDLE (process exited, session deactivated)');
-                setStatus(EChatStatus.IDLE);
+
+                // Race-condition guard: if the process exited BEFORE delivering a response
+                // to a pending regenerate (user clicked Regenerate just before process_exit
+                // arrived), automatically retry via resume_session so the backend spawns a
+                // fresh claude process and the response is not silently lost.
+                const pendingRegenerate = regenerateRetryRef.current;
+                regenerateRetryRef.current = null;
+
+                if (pendingRegenerate) {
+                    console.log('[useClaudeChat] process_exit during pending regenerate — retrying via resume_session');
+                    // isSessionActiveRef is now false → doSend will send resume_session
+                    doSendRef.current(pendingRegenerate.text, pendingRegenerate.options);
+                } else {
+                    // Don't overwrite ERROR status — if result already set is_error, preserve it
+                    setStatus((prev: EChatStatus) => prev === EChatStatus.ERROR ? prev : EChatStatus.IDLE);
+                    console.log('[useClaudeChat] Status → IDLE (process exited, session deactivated)');
+                }
                 break;
             }
 
@@ -229,6 +262,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
             }
 
             case 'error': {
+                regenerateRetryRef.current = null;
                 const wsError: IWsErrorMessage = data as IWsErrorMessage;
                 console.error(`[useClaudeChat] Server error: ${wsError.message}`);
                 setError(wsError.message);
@@ -368,6 +402,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         if (!text.trim()) return;
 
         console.log(`[useClaudeChat] sendMessage called (text: "${text.slice(0, 50)}...", options: ${JSON.stringify(options ?? {})})`);
+        regenerateRetryRef.current = null;
         setError(null);
 
         const userMessage: IChatMessage = {
@@ -397,6 +432,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
             cancelAnimationFrame(rafIdRef.current);
             rafIdRef.current = null;
         }
+        regenerateRetryRef.current = null;
         streamBufferRef.current = null;
         currentAssistantMessageIdRef.current = null;
         currentModelRef.current = null;
@@ -425,6 +461,10 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
         // Trim messages (keeps user message, removes assistant response)
         setMessages((previousMessage: IChatMessage[]) => previousMessage.slice(0, keepUpToIndex));
+
+        // Store payload so process_exit can auto-retry if the Claude process exits
+        // in the race window between the user clicking Regenerate and process_exit arriving.
+        regenerateRetryRef.current = {text: resendText, options};
 
         // Send via WS without adding a user message to the list
         const webSocket: WebSocket | null = wsRef.current;
@@ -458,6 +498,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         }
 
         isSessionActiveRef.current = false;
+        regenerateRetryRef.current = null;
         reconnectAttemptsRef.current = 0;
     }, [stopHeartbeat]);
 

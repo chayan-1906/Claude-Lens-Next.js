@@ -283,8 +283,8 @@ function SidebarClient({projects}: ISidebarClientProps) {
                     <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
                 </Button>
             </div>
-            {projects.map((projectDir: string) => {
-                const projectName: string = projectDir.split('/').filter(Boolean).pop() || projectDir;
+            {projects.map(({rawProjectDir, projectDir}) => {
+                const projectName: string = rawProjectDir.split('/').filter(Boolean).pop() || projectDir;
                 const isExpanded: boolean = expandedProjects.has(projectDir);
                 const sessions: ISession[] = sessionsMap[projectDir] ?? [];
                 const memories: IMemory[] = memoriesMap[projectDir] ?? [];

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import {useRouter} from "next/navigation";
 import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlinePencil, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
@@ -25,7 +24,6 @@ import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {refreshSessions, refreshSidebar} from "@/actions/session.actions";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
-    const router = useRouter();
     const {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, regenerateMessage, retry} = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
@@ -60,14 +58,13 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             console.log('[ChatSessionView] First response complete — refreshing sidebar (2s delay for auto-sync)');
             const timeoutId: ReturnType<typeof setTimeout> = setTimeout(async (): Promise<void> => {
                 await refreshSidebar();
-                router.refresh();
                 console.log('[ChatSessionView] Sidebar refreshed');
             }, 2000);
             return (): void => {
                 clearTimeout(timeoutId);
             };
         }
-    }, [isNewChat, messages, status, router]);
+    }, [isNewChat, messages, status]);
 
     // True while Claude is actively responding — blocks new input and edit triggers
     const isChattingDisabled: boolean = status === EChatStatus.STREAMING
