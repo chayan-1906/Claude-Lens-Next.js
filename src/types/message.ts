@@ -50,6 +50,7 @@ export type ParsedUserMessage =
 export interface IMessage {
     messageId: string;
     uuid: string;
+    parentUuid?: string;
     sessionInternalId: string;
     role: EMessageRole;
     content: string | ContentBlock[];

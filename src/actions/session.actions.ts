@@ -3,6 +3,7 @@
 import {cacheTag, updateTag} from "next/cache";
 import {apis} from "@/utils/apis";
 import {IMessage} from "@/types/message";
+import {getActiveBranch} from "@/utils/getActiveBranch";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
 import {IDeleteSessionParams, IDeleteSessionResponse, IGetAllSessionsParams, IGetAllSessionsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
 
@@ -76,13 +77,16 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
             };
         }
 
-        console.log('getSession data:', JSON.stringify(data));
+        // console.log('getSession data:', JSON.stringify(data));
+
+        const allMessages: IMessage[] = data.messages as IMessage[];
+        const activeMessages: IMessage[] = getActiveBranch(allMessages);
 
         return {
             success: true,
             message: data.message,
             session: data.session as ISession,
-            messages: data.messages as IMessage[],
+            messages: activeMessages,
         };
     } catch (error: unknown) {
         console.error('Get session error:', error);

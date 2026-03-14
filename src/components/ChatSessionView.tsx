@@ -295,7 +295,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         const copyText: string = extractMessageText(message.content);
                         return (
                             <div key={message.id} className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}>
-                                <div className={cn('max-w-[85%] rounded-2xl px-4 py-2 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+                                <div className={cn('max-w-[85%] rounded-2xl px-4 py-0 text-sm', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                                     <MessageContent content={message.content}/>
                                 </div>
                                 <div className={'flex items-center gap-2 mt-1 px-1'}>
@@ -330,7 +330,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     {/* Streaming assistant response */}
                     {streamingContent && (
                         <div className={'flex flex-col items-start'}>
-                            <div className={'max-w-[85%] rounded-2xl px-4 py-2 text-sm bg-assistant-bubble text-text'}>
+                            <div className={'max-w-[85%] rounded-2xl px-4 py-0 text-sm bg-assistant-bubble text-text'}>
                                 <MessageContent content={streamingContent}/>
                             </div>
                         </div>
