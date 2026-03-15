@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import {ContentBlock, EMessageRole} from "@/types/message";
 import {NEXT_PUBLIC_BACKEND_WS_URL} from "../../config/config";
+import {ContentBlock, EMessageRole, TextBlock, ThinkingBlock, ToolUseBlock} from "@/types/message";
 import {
     BASE_RECONNECT_DELAY_MS,
     ClientMessage,
@@ -14,6 +14,8 @@ import {
     IEditSessionMessage,
     IResultEvent,
     ISendMessageOptions,
+    IStreamEvent,
+    IStreamInnerEvent,
     ISystemEvent, ITokenUsage,
     IUseClaudeChatReturn,
     IWsErrorMessage,
@@ -49,6 +51,11 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const currentUuidRef = React.useRef<string | null>(null);  // JSONL UUID from IAssistantEvent.uuid
     const streamBufferRef = React.useRef<ContentBlock[] | null>(null);
     const rafIdRef = React.useRef<number | null>(null);
+    // true once the first content_block_delta arrives for the current message via stream_events —
+    // prevents the assistant checkpoint event from overwriting the incrementally-built buffer.
+    const streamEventActiveRef = React.useRef<boolean>(false);
+    // Accumulates input_json_delta strings per block index for tool_use blocks.
+    const inputJsonBufferRef = React.useRef<Record<number, string>>({});
 
     // --- Refs: regenerate retry ---
     // Stores the pending regenerate payload so process_exit can auto-retry via resume_session
@@ -115,6 +122,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
         currentAssistantMessageIdRef.current = null;
         currentModelRef.current = null;
         currentUuidRef.current = null;
+        streamEventActiveRef.current = false;
+        inputJsonBufferRef.current = {};
         setStreamingContent(null);
     }, []);
 
@@ -162,15 +171,20 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 currentModelRef.current = event.message.model;
                 currentUuidRef.current = event.uuid ?? null;
 
-                // RAF-batched streaming update
-                streamBufferRef.current = content;
-                if (rafIdRef.current === null) {
-                    rafIdRef.current = requestAnimationFrame(() => {
-                        if (streamBufferRef.current) {
-                            setStreamingContent(streamBufferRef.current);
-                        }
-                        rafIdRef.current = null;
-                    });
+                // RAF-batched streaming update — only drive buffer from assistant when stream_events
+                // are not active (backward-compat: no --include-partial-messages). When stream_events
+                // are active they already built the buffer incrementally; assistant carries only the
+                // current block and would overwrite previously-accumulated blocks.
+                if (!streamEventActiveRef.current) {
+                    streamBufferRef.current = content;
+                    if (rafIdRef.current === null) {
+                        rafIdRef.current = requestAnimationFrame((): void => {
+                            if (streamBufferRef.current) {
+                                setStreamingContent(streamBufferRef.current);
+                            }
+                            rafIdRef.current = null;
+                        });
+                    }
                 }
 
                 // State transition: tool_running vs streaming
@@ -308,8 +322,83 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 break;
             }
 
+            case 'stream_event': {
+                const streamEvent: IStreamEvent = data as IStreamEvent;
+                const inner: IStreamInnerEvent = streamEvent.event;
+
+                if (inner.type === 'message_start') {
+                    // New message starting — finalize previous if different ID
+                    const msgId: string = inner.message.id;
+                    if (currentAssistantMessageIdRef.current && currentAssistantMessageIdRef.current !== msgId) {
+                        finalizeStreamingMessage();
+                    }
+                    currentAssistantMessageIdRef.current = msgId;
+                    currentModelRef.current = inner.message.model;
+                    if (!streamBufferRef.current) {
+                        streamBufferRef.current = [];
+                    }
+                } else if (inner.type === 'content_block_start') {
+                    streamEventActiveRef.current = true;
+                    if (!streamBufferRef.current) streamBufferRef.current = [];
+                    const cb = inner.content_block;
+                    let emptyBlock: ContentBlock;
+                    if (cb.type === 'thinking') {
+                        emptyBlock = {type: 'thinking', thinking: ''} as ThinkingBlock;
+                    } else if (cb.type === 'tool_use' && 'id' in cb) {
+                        const toolCb = cb as { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
+                        emptyBlock = {type: 'tool_use', id: toolCb.id, name: toolCb.name, input: {}} as ToolUseBlock;
+                    } else {
+                        emptyBlock = {type: 'text', text: ''} as TextBlock;
+                    }
+                    streamBufferRef.current[inner.index] = emptyBlock;
+                } else if (inner.type === 'content_block_delta') {
+                    const buffer: ContentBlock[] | null = streamBufferRef.current;
+                    if (!buffer || !buffer[inner.index]) break;
+                    const delta = inner.delta;
+                    let shouldScheduleRaf: boolean = false;
+                    if (delta.type === 'thinking_delta') {
+                        const block: ContentBlock = buffer[inner.index];
+                        if (block.type === 'thinking') {
+                            (block as ThinkingBlock).thinking += delta.thinking;
+                            shouldScheduleRaf = true;
+                        }
+                    } else if (delta.type === 'text_delta') {
+                        const block: ContentBlock = buffer[inner.index];
+                        if (block.type === 'text') {
+                            (block as TextBlock).text += delta.text;
+                            shouldScheduleRaf = true;
+                        }
+                        setStatus(EChatStatus.STREAMING);
+                    } else if (delta.type === 'input_json_delta') {
+                        inputJsonBufferRef.current[inner.index] = (inputJsonBufferRef.current[inner.index] ?? '') + delta.partial_json;
+                    }
+                    if (shouldScheduleRaf && rafIdRef.current === null) {
+                        rafIdRef.current = requestAnimationFrame((): void => {
+                            if (streamBufferRef.current) {
+                                setStreamingContent(streamBufferRef.current.slice());
+                            }
+                            rafIdRef.current = null;
+                        });
+                    }
+                } else if (inner.type === 'content_block_stop') {
+                    // Parse accumulated input JSON for tool_use blocks
+                    const buffer: ContentBlock[] | null = streamBufferRef.current;
+                    if (buffer && buffer[inner.index]?.type === 'tool_use') {
+                        const json: string | undefined = inputJsonBufferRef.current[inner.index];
+                        if (json) {
+                            try {
+                                (buffer[inner.index] as ToolUseBlock).input = JSON.parse(json);
+                            } catch { /* partial JSON — leave input as {} */ }
+                            delete inputJsonBufferRef.current[inner.index];
+                        }
+                    }
+                }
+                // message_delta and message_stop are no-ops — result event handles final state
+                break;
+            }
+
             default: {
-                console.log(`[useClaudeChat] Unknown event type: ${(data as Record<string, unknown>).type}`);
+                console.log(`[useClaudeChat] Unhandled event type: ${(data as Record<string, unknown>).type}`);
                 break;
             }
         }

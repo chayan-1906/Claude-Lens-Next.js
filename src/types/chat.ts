@@ -107,7 +107,38 @@ export interface IWsErrorMessage {
     message: string;
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage;
+/** Incremental token delta inside a stream_event content_block_delta */
+export type IStreamDelta =
+    | { type: 'thinking_delta'; thinking: string }
+    | { type: 'text_delta'; text: string }
+    | { type: 'input_json_delta'; partial_json: string }
+    | { type: 'signature_delta'; signature: string };
+
+/** Content block descriptor inside a stream_event content_block_start */
+export type IStreamContentBlockStart =
+    | { type: 'thinking'; thinking: string; signature: string }
+    | { type: 'text'; text: string }
+    | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
+
+/** Discriminated union of all Anthropic API streaming event subtypes */
+export type IStreamInnerEvent =
+    | { type: 'message_start'; message: { id: string; model: string; [key: string]: unknown } }
+    | { type: 'content_block_start'; index: number; content_block: IStreamContentBlockStart }
+    | { type: 'content_block_delta'; index: number; delta: IStreamDelta }
+    | { type: 'content_block_stop'; index: number }
+    | { type: 'message_delta'; delta: { stop_reason: string | null; stop_sequence: string | null }; usage: { output_tokens: number } }
+    | { type: 'message_stop' };
+
+/** Anthropic API streaming event wrapper — emitted with --include-partial-messages */
+export interface IStreamEvent {
+    type: 'stream_event';
+    event: IStreamInnerEvent;
+    session_id: string;
+    parent_tool_use_id: string | null;
+    uuid: string;
+}
+
+export type ServerMessage = ISystemEvent | IAssistantEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IStreamEvent;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {

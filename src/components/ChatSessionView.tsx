@@ -5,7 +5,7 @@ import {useRouter} from "next/navigation";
 import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
-import type {IMessage} from "@/types/message";
+import type {ContentBlock, IMessage} from "@/types/message";
 import {EMessageRole} from "@/types/message";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
