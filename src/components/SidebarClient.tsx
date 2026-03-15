@@ -286,7 +286,12 @@ function SidebarClient({projects}: ISidebarClientProps) {
             {projects.map(({rawProjectDir, projectDir}) => {
                 const projectName: string = rawProjectDir.split('/').filter(Boolean).pop() || projectDir;
                 const isExpanded: boolean = expandedProjects.has(projectDir);
-                const sessions: ISession[] = sessionsMap[projectDir] ?? [];
+                const allSessions: ISession[] = sessionsMap[projectDir] ?? [];
+                // Hide parent sessions — show only leaf sessions (those not superseded by a fork)
+                const parentSessionIds: Set<string> = new Set(
+                    allSessions.filter((session: ISession) => session.parentSessionId).map((session: ISession) => session.parentSessionId!),
+                );
+                const sessions: ISession[] = allSessions.filter((s: ISession) => !parentSessionIds.has(s.sessionId));
                 const memories: IMemory[] = memoriesMap[projectDir] ?? [];
                 const isLoading: boolean = loadingProject === projectDir;
 

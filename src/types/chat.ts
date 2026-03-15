@@ -116,6 +116,7 @@ export interface IChatMessage {
     content: string | ContentBlock[];
     timestamp: Date;
     model?: string;
+    uuid?: string;  // JSONL UUID from IAssistantEvent.uuid — set for assistant messages after stream completes
 }
 
 /** Context info tracked during a chat session */
@@ -135,6 +136,7 @@ export interface IUseClaudeChatReturn {
     streamingContent: ContentBlock[] | null;
     contextInfo: IContextInfo | null;
     error: string | null;
+    forkedSessionId: string | null;
     sendMessage: (text: string, options?: ISendMessageOptions) => void;
     editMessage: (keepUpToIndex: number, newText: string, options?: ISendMessageOptions) => void;
     regenerateMessage: (keepUpToIndex: number, resendText: string, options?: ISendMessageOptions) => void;
@@ -170,10 +172,21 @@ export interface IPingMessage {
     type: 'ping';
 }
 
-export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage;
+export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage;
 
 /** Options passed to useClaudeChat.sendMessage */
 export interface ISendMessageOptions {
     sessionId?: string;
+    projectDir?: string;
+    isEditSession?: boolean;  // true = send edit_session instead of resume/new/send_message
+    editAtUuid?: string;      // UUID of last context message before the edit point (edit_session only)
+}
+
+/** Client → Server: fork or reconstruct a session at an edit/regenerate point */
+export interface IEditSessionMessage {
+    type: 'edit_session';
+    sessionId: string;
+    editAtUuid?: string;
+    text: string;
     projectDir?: string;
 }

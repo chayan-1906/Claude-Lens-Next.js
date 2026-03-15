@@ -18,6 +18,7 @@ export interface ISession {
     source: ESessionSource;
     contextTokensUsed?: number;
     contextWindowSize?: number;
+    parentSessionId?: string;
     createdAt: string;
     updatedAt: string;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import {useRouter} from "next/navigation";
 import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlinePencil, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
@@ -24,7 +25,8 @@ import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {refreshSessions, refreshSidebar} from "@/actions/session.actions";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
-    const {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, regenerateMessage, retry} = useClaudeChat();
+    const router = useRouter();
+    const {status, messages, streamingContent, contextInfo, error, forkedSessionId, sendMessage, editMessage, regenerateMessage, retry} = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -66,6 +68,22 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         }
     }, [isNewChat, messages, status]);
 
+    // Redirect to forked session after response completes and sync finishes.
+    // IMPORTANT: Must NOT replaceState during streaming — SidebarClient uses usePathname(),
+    // and changing the [sessionId] param mid-stream triggers Next.js soft navigation,
+    // which destroys the component tree (WebSocket + claude process killed by SIGTERM).
+    // NOTE: No cleanup function — the timeout must survive effect re-runs (e.g. process_exit
+    // changing status after result). The ref guard ensures it's scheduled only once.
+    const hasRedirectedForkRef = React.useRef<boolean>(false);
+    React.useEffect(() => {
+        if (!forkedSessionId || status !== EChatStatus.IDLE || hasRedirectedForkRef.current) return;
+        hasRedirectedForkRef.current = true;
+        console.log(`[ChatSessionView] edit_session complete — navigating to forked session ${forkedSessionId} (5s delay for sync)`);
+        setTimeout((): void => {
+            router.replace(routes.sessionPath(forkedSessionId));
+        }, 5000);
+    }, [forkedSessionId, status, router]);
+
     // True while Claude is actively responding — blocks new input and edit triggers
     const isChattingDisabled: boolean = status === EChatStatus.STREAMING
         || status === EChatStatus.TOOL_RUNNING
@@ -84,14 +102,21 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
     const handleHistoricalEditSave = React.useCallback((newText: string, historicalIndex: number): void => {
         setHistoricalCutoffIndex(historicalIndex);
-        editMessage(0, newText, isNewChat ? undefined : {sessionId: session?.sessionId});
+        const editAtUuid: string | undefined = historicalIndex > 0
+            ? historicalMessages?.[historicalIndex - 1]?.uuid
+            : undefined;
+        editMessage(0, newText, isNewChat ? undefined : {sessionId: session?.sessionId, editAtUuid});
         setEditingId(null);
-    }, [editMessage, isNewChat, session?.sessionId]);
+    }, [editMessage, isNewChat, session?.sessionId, historicalMessages]);
 
     const handleLiveEditSave = React.useCallback((newText: string, liveIndex: number): void => {
-        editMessage(liveIndex, newText, isNewChat ? undefined : {sessionId: session?.sessionId});
+        // editAtUuid: look at the live message just before the edit point, or fall back to last historical UUID
+        const editAtUuid: string | undefined = liveIndex > 0
+            ? messages[liveIndex - 1]?.uuid
+            : historicalMessages?.[historicalMessages.length - 1]?.uuid;
+        editMessage(liveIndex, newText, isNewChat ? undefined : {sessionId: session?.sessionId, editAtUuid});
         setEditingId(null);
-    }, [editMessage, isNewChat, session?.sessionId]);
+    }, [editMessage, isNewChat, session?.sessionId, messages, historicalMessages]);
 
     // Regenerate is allowed only when IDLE, no edit in progress, and not streaming
     const canRegenerate: boolean = status === EChatStatus.IDLE && editingId === null && !streamingContent;
@@ -108,8 +133,12 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             }
         }
         if (lastUserIndex === -1 || !lastUserText) return;
-        regenerateMessage(lastUserIndex + 1, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId});
-    }, [messages, regenerateMessage, isNewChat, session?.sessionId]);
+        // editAtUuid: message just before the user message being resent, or last historical UUID
+        const editAtUuid: string | undefined = lastUserIndex > 0
+            ? messages[lastUserIndex - 1]?.uuid
+            : historicalMessages?.[historicalMessages.length - 1]?.uuid;
+        regenerateMessage(lastUserIndex + 1, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId, editAtUuid});
+    }, [messages, historicalMessages, regenerateMessage, isNewChat, session?.sessionId]);
 
     const handleHistoricalRegenerate = React.useCallback((clickedIndex: number): void => {
         const visibleHistorical: IMessage[] | undefined = historicalMessages?.slice(0, historicalCutoffIndex ?? undefined);
@@ -125,7 +154,11 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         }
         if (lastUserIndex === -1 || !lastUserText) return;
         setHistoricalCutoffIndex(lastUserIndex + 1);
-        regenerateMessage(0, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId});
+        // editAtUuid: message just before the user message being resent
+        const editAtUuid: string | undefined = lastUserIndex > 0
+            ? visibleHistorical[lastUserIndex - 1]?.uuid
+            : undefined;
+        regenerateMessage(0, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId, editAtUuid});
     }, [historicalMessages, historicalCutoffIndex, regenerateMessage, isNewChat, session?.sessionId]);
 
     const handleBrowse = React.useCallback(async (): Promise<void> => {

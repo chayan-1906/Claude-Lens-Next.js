@@ -11,6 +11,7 @@ import {
     IAssistantEvent,
     IChatMessage,
     IContextInfo,
+    IEditSessionMessage,
     IResultEvent,
     ISendMessageOptions,
     ISystemEvent, ITokenUsage,
@@ -27,6 +28,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const [streamingContent, setStreamingContent] = React.useState<ContentBlock[] | null>(null);
     const [contextInfo, setContextInfo] = React.useState<IContextInfo | null>(null);
     const [error, setError] = React.useState<string | null>(null);
+    const [forkedSessionId, setForkedSessionId] = React.useState<string | null>(null);
 
     // --- Refs: WebSocket and timers ---
     const wsRef = React.useRef<WebSocket | null>(null);
@@ -38,10 +40,12 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const isSessionActiveRef = React.useRef<boolean>(false);
     const intentionalCloseRef = React.useRef<boolean>(false);
     const pendingMessageRef = React.useRef<{ text: string; options?: ISendMessageOptions } | null>(null);
+    const isEditSessionRef = React.useRef<boolean>(false);  // true while waiting for system event from edit_session
 
     // --- Refs: streaming ---
     const currentAssistantMessageIdRef = React.useRef<string | null>(null);
     const currentModelRef = React.useRef<string | null>(null);
+    const currentUuidRef = React.useRef<string | null>(null);  // JSONL UUID from IAssistantEvent.uuid
     const streamBufferRef = React.useRef<ContentBlock[] | null>(null);
     const rafIdRef = React.useRef<number | null>(null);
 
@@ -89,6 +93,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
         const content: ContentBlock[] | null = streamBufferRef.current;
         const messageId: string | null = currentAssistantMessageIdRef.current;
+        const messageUuid: string | null = currentUuidRef.current;
 
         if (content && messageId) {
             console.log(`[useClaudeChat] Finalizing assistant message (id: ${messageId}, blocks: ${content.length})`);
@@ -98,6 +103,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 content,
                 timestamp: new Date(),
                 model: currentModelRef.current ?? undefined,
+                uuid: messageUuid ?? undefined,
             };
             setMessages((prev: IChatMessage[]) => [...prev, completedMessage]);
         } else {
@@ -107,6 +113,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         streamBufferRef.current = null;
         currentAssistantMessageIdRef.current = null;
         currentModelRef.current = null;
+        currentUuidRef.current = null;
         setStreamingContent(null);
     }, []);
 
@@ -126,6 +133,12 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     costUsd: 0,
                     tools: event.tools,
                 });
+                // If this system event came from an edit_session, capture the new session ID for redirect
+                if (isEditSessionRef.current) {
+                    isEditSessionRef.current = false;
+                    console.log(`[useClaudeChat] edit_session fork detected — new session_id: ${event.session_id}`);
+                    setForkedSessionId(event.session_id);
+                }
                 break;
             }
 
@@ -146,6 +159,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 }
                 currentAssistantMessageIdRef.current = messageId;
                 currentModelRef.current = event.message.model;
+                currentUuidRef.current = event.uuid ?? null;
 
                 // RAF-batched streaming update
                 streamBufferRef.current = content;
@@ -234,6 +248,15 @@ function useClaudeChat(): IUseClaudeChatReturn {
             case 'process_exit': {
                 const exitEvent = data as { type: 'process_exit'; code: number | null };
                 console.log(`[useClaudeChat] process_exit → code: ${exitEvent.code}`);
+
+                // Skip IDLE transition when edit_session killed the old process — the new
+                // session is about to start and will manage status itself. Setting IDLE here
+                // would prematurely trigger the forkedSessionId redirect before the response.
+                if (isEditSessionRef.current) {
+                    console.log('[useClaudeChat] process_exit from killed old process (edit_session) — skipping IDLE');
+                    break;
+                }
+
                 finalizeStreamingMessage();
                 isSessionActiveRef.current = false;
 
@@ -292,7 +315,17 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
         let clientMessage: ClientMessage;
 
-        if (!isSessionActiveRef.current) {
+        if (options?.isEditSession) {
+            clientMessage = {
+                type: 'edit_session',
+                sessionId: options.sessionId!,
+                editAtUuid: options.editAtUuid,
+                text,
+            } as IEditSessionMessage;
+            isSessionActiveRef.current = true;
+            isEditSessionRef.current = true;
+            console.log(`[useClaudeChat] Sending edit_session (sessionId: ${options.sessionId}, editAtUuid: ${options.editAtUuid ?? 'none'}, text: "${text.slice(0, 50)}...")`);
+        } else if (!isSessionActiveRef.current) {
             if (options?.sessionId) {
                 clientMessage = {type: 'resume_session', sessionId: options.sessionId, text};
                 console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, text: "${text.slice(0, 50)}...")`);
@@ -425,7 +458,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
     }, []);
 
     const editMessage = React.useCallback((keepUpToIndex: number, newText: string, options?: ISendMessageOptions): void => {
-        console.log(`[useClaudeChat] editMessage — keepUpTo: ${keepUpToIndex}, text: "${newText.slice(0, 50)}..."`);
+        console.log(`[useClaudeChat] editMessage — keepUpTo: ${keepUpToIndex}, editAtUuid: ${options?.editAtUuid ?? 'none'}, text: "${newText.slice(0, 50)}..."`);
 
         // Cancel any in-progress streaming
         if (rafIdRef.current !== null) {
@@ -436,17 +469,21 @@ function useClaudeChat(): IUseClaudeChatReturn {
         streamBufferRef.current = null;
         currentAssistantMessageIdRef.current = null;
         currentModelRef.current = null;
+        currentUuidRef.current = null;
         setStreamingContent(null);
         setError(null);
+        setForkedSessionId(null);
 
-        // Trim messages to the edit point, then re-send
-        // React 18 batches both setMessages calls: first slices, then appends the new user message
+        // Force new session — edit_session always creates a fresh claude process
+        isSessionActiveRef.current = false;
+
+        // Trim messages to the edit point, then send as edit_session
         setMessages((prev: IChatMessage[]) => prev.slice(0, keepUpToIndex));
-        sendMessage(newText, options);
+        sendMessage(newText, {...options, isEditSession: true});
     }, [sendMessage]);
 
     const regenerateMessage = React.useCallback((keepUpToIndex: number, resendText: string, options?: ISendMessageOptions): void => {
-        console.log(`[useClaudeChat] regenerateMessage — keepUpTo: ${keepUpToIndex}, text: "${resendText.slice(0, 50)}..."`);
+        console.log(`[useClaudeChat] regenerateMessage — keepUpTo: ${keepUpToIndex}, editAtUuid: ${options?.editAtUuid ?? 'none'}, text: "${resendText.slice(0, 50)}..."`);
 
         // Cancel any in-progress streaming
         if (rafIdRef.current !== null) {
@@ -456,22 +493,27 @@ function useClaudeChat(): IUseClaudeChatReturn {
         streamBufferRef.current = null;
         currentAssistantMessageIdRef.current = null;
         currentModelRef.current = null;
+        currentUuidRef.current = null;
         setStreamingContent(null);
         setError(null);
+        setForkedSessionId(null);
+
+        // Force new session — edit_session always creates a fresh claude process
+        isSessionActiveRef.current = false;
 
         // Trim messages (keeps user message, removes assistant response)
         setMessages((previousMessage: IChatMessage[]) => previousMessage.slice(0, keepUpToIndex));
 
         // Store payload so process_exit can auto-retry if the Claude process exits
         // in the race window between the user clicking Regenerate and process_exit arriving.
-        regenerateRetryRef.current = {text: resendText, options};
+        regenerateRetryRef.current = {text: resendText, options: {...options, isEditSession: true}};
 
-        // Send via WS without adding a user message to the list
+        // Send edit_session via WS without adding a user message to the list
         const webSocket: WebSocket | null = wsRef.current;
         if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-            doSendRef.current(resendText, options);
+            doSendRef.current(resendText, {...options, isEditSession: true});
         } else {
-            pendingMessageRef.current = {text: resendText, options};
+            pendingMessageRef.current = {text: resendText, options: {...options, isEditSession: true}};
             connectRef.current();
         }
     }, []);
@@ -532,7 +574,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, sendMessage, editMessage, regenerateMessage, disconnect, retry};
+    return {status, messages, streamingContent, contextInfo, error, forkedSessionId, sendMessage, editMessage, regenerateMessage, disconnect, retry};
 }
 
 export {useClaudeChat};
