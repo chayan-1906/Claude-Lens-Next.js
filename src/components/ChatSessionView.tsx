@@ -72,7 +72,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // IMPORTANT: Must NOT replaceState during streaming — SidebarClient uses usePathname(),
     // and changing the [sessionId] param mid-stream triggers Next.js soft navigation,
     // which destroys the component tree (WebSocket + claude process killed by SIGTERM).
-    // NOTE: No cleanup function — the timeout must survive effect re-runs (e.g. process_exit
+    // NOTE: No cleanup function — the timeout must survive effect re-`runs (e.g. process_exit
     // changing status after result). The ref guard ensures it's scheduled only once.
     const hasRedirectedForkRef = React.useRef<boolean>(false);
     React.useEffect(() => {
