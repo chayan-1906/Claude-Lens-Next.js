@@ -26,7 +26,7 @@ import {refreshSessions, refreshSidebar} from "@/actions/session.actions";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
-    const {status, messages, streamingContent, contextInfo, error, forkedSessionId, sendMessage, editMessage, regenerateMessage, retry} = useClaudeChat();
+    const {status, messages, streamingContent, contextInfo, error, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, retry} = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -72,7 +72,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // IMPORTANT: Must NOT replaceState during streaming — SidebarClient uses usePathname(),
     // and changing the [sessionId] param mid-stream triggers Next.js soft navigation,
     // which destroys the component tree (WebSocket + claude process killed by SIGTERM).
-    // NOTE: No cleanup function — the timeout must survive effect re-`runs (e.g. process_exit
+    // NOTE: No cleanup function — the timeout must survive effect re-runs (e.g. process_exit
     // changing status after result). The ref guard ensures it's scheduled only once.
     const hasRedirectedForkRef = React.useRef<boolean>(false);
     React.useEffect(() => {
@@ -93,7 +93,9 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // Main ChatInput disabled while chatting OR while an edit is in progress
     const disabled: boolean = isChattingDisabled || editingId !== null;
 
-    const isLoading: boolean = status === EChatStatus.SENDING || status === EChatStatus.CONNECTING;
+    const isLoading: boolean = status === EChatStatus.SENDING
+        || status === EChatStatus.STREAMING
+        || status === EChatStatus.TOOL_RUNNING;
 
     const handleSend = React.useCallback((text: string): void => {
         console.log(`[ChatSessionView] handleSend — text:`, text.slice(0, 50));
@@ -406,8 +408,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                 {hasContextData && (
                     <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow}/>
                 )}
-                {/*<ChatInput onSend={handleSend} disabled={disabled} isLoading={isLoading}/>*/}
-                <ChatInput onSend={handleSend} disabled={disabled} isLoading={isLoading}/>
+                <ChatInput onSend={handleSend} onStop={stopExecution} disabled={disabled} isLoading={isLoading}/>
             </div>
         </div>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import {FaSquare} from "react-icons/fa";
 import {HiArrowUp} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {Button} from "@/components/ui/Button";
@@ -9,8 +10,9 @@ import {useMarkdownShortcuts} from "@/hooks/useMarkdownShortcuts";
 
 const MAX_TEXTAREA_HEIGHT: number = 200;
 
-function ChatInput({onSend, disabled, isLoading}: IChatInputProps) {
+function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
     const [text, setText] = React.useState<string>('');
+    const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
     const adjustHeight = React.useCallback((): void => {
@@ -77,6 +79,19 @@ function ChatInput({onSend, disabled, isLoading}: IChatInputProps) {
         }
     }, [disabled]);
 
+    const handleStop = React.useCallback((): void => {
+        if (isStopping) return;
+        setIsStopping(true);
+        onStop();
+    }, [isStopping, onStop]);
+
+    // Reset isStopping when loading finishes (process stopped or completed)
+    React.useEffect(() => {
+        if (!isLoading) {
+            setIsStopping(false);
+        }
+    }, [isLoading]);
+
     const canSend: boolean = text.trim().length > 0 && !disabled;
 
     return (
@@ -97,9 +112,15 @@ function ChatInput({onSend, disabled, isLoading}: IChatInputProps) {
                 )}
                 style={{maxHeight: `${MAX_TEXTAREA_HEIGHT}px`}}
             />
-            <Button variant={'primary'} size={'icon'} onClick={handleSend} disabled={!canSend} isLoading={isLoading} className={'shrink-0 size-9 rounded-lg'}>
-                {!isLoading && <HiArrowUp className={'size-4'}/>}
-            </Button>
+            {isLoading ? (
+                <Button variant={'primary'} size={'icon'} onClick={handleStop} disabled={isStopping} className={'shrink-0 size-9 rounded-lg'}>
+                    <FaSquare className={'size-4'}/>
+                </Button>
+            ) : (
+                <Button variant={'primary'} size={'icon'} onClick={handleSend} disabled={!canSend} className={'shrink-0 size-9 rounded-lg'}>
+                    <HiArrowUp className={'size-4'}/>
+                </Button>
+            )}
         </div>
     );
 }

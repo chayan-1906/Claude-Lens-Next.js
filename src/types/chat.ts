@@ -140,6 +140,7 @@ export interface IUseClaudeChatReturn {
     sendMessage: (text: string, options?: ISendMessageOptions) => void;
     editMessage: (keepUpToIndex: number, newText: string, options?: ISendMessageOptions) => void;
     regenerateMessage: (keepUpToIndex: number, resendText: string, options?: ISendMessageOptions) => void;
+    stopExecution: () => void;
     disconnect: () => void;
     retry: () => void;
 }
@@ -172,7 +173,7 @@ export interface IPingMessage {
     type: 'ping';
 }
 
-export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage;
+export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage | IStopExecutionMessage;
 
 /** Options passed to useClaudeChat.sendMessage */
 export interface ISendMessageOptions {
@@ -189,4 +190,9 @@ export interface IEditSessionMessage {
     editAtUuid?: string;
     text: string;
     projectDir?: string;
+}
+
+/** Client → Server: interrupt/stop Claude's current execution (equivalent to Esc in terminal) */
+export interface IStopExecutionMessage {
+    type: 'stop_execution';
 }

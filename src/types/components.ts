@@ -119,6 +119,7 @@ export interface IDeleteTasksButtonProps {
 
 export interface IChatInputProps {
     onSend: (text: string) => void;
+    onStop: () => void;
     disabled: boolean;
     isLoading: boolean;
 }

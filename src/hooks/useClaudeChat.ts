@@ -41,6 +41,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const intentionalCloseRef = React.useRef<boolean>(false);
     const pendingMessageRef = React.useRef<{ text: string; options?: ISendMessageOptions } | null>(null);
     const isEditSessionRef = React.useRef<boolean>(false);  // true while waiting for system event from edit_session
+    const stopRequestedRef = React.useRef<boolean>(false);  // true after stopExecution() — cleared in process_exit
 
     // --- Refs: streaming ---
     const currentAssistantMessageIdRef = React.useRef<string | null>(null);
@@ -259,6 +260,20 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
                 finalizeStreamingMessage();
                 isSessionActiveRef.current = false;
+
+                // If the user explicitly stopped execution and no assistant response was
+                // produced, remove the trailing user message so live state matches what
+                // the backend will have after sync (the unanswered turn was never persisted).
+                if (stopRequestedRef.current) {
+                    stopRequestedRef.current = false;
+                    setMessages((prev: IChatMessage[]) => {
+                        if (prev.length > 0 && prev[prev.length - 1].role === EMessageRole.USER) {
+                            console.log('[useClaudeChat] Removing unanswered user message after stop');
+                            return prev.slice(0, -1);
+                        }
+                        return prev;
+                    });
+                }
 
                 // Race-condition guard: if the process exited BEFORE delivering a response
                 // to a pending regenerate (user clicked Regenerate just before process_exit
@@ -544,6 +559,17 @@ function useClaudeChat(): IUseClaudeChatReturn {
         reconnectAttemptsRef.current = 0;
     }, [stopHeartbeat]);
 
+    const stopExecution = React.useCallback((): void => {
+        const ws: WebSocket | null = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.warn('[useClaudeChat] stopExecution called but WS not open');
+            return;
+        }
+        console.log('[useClaudeChat] Sending stop_execution');
+        stopRequestedRef.current = true;
+        ws.send(JSON.stringify({type: 'stop_execution'}));
+    }, []);
+
     const retry = React.useCallback((): void => {
         console.log('[useClaudeChat] retry() called — resetting error and reconnecting');
         setError(null);
@@ -574,7 +600,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, forkedSessionId, sendMessage, editMessage, regenerateMessage, disconnect, retry};
+    return {status, messages, streamingContent, contextInfo, error, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, disconnect, retry};
 }
 
 export {useClaudeChat};
