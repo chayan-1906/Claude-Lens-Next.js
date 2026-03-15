@@ -22,6 +22,8 @@ export type ToolResultBlock = {
     tool_use_id: string;
     content: string;
     is_error: boolean;
+    _stubbed?: boolean;
+    _originalTokenCount?: number;
 }
 
 export type ContentBlock = ThinkingBlock | TextBlock | ToolUseBlock | ToolResultBlock;
@@ -62,6 +64,13 @@ export interface IMessage {
     };
     createdAt: string;
     updatedAt: string;
+}
+
+export interface IStubToolResultsResponse {
+    success: boolean;
+    error?: string;
+    stubbedCount?: number;
+    diskUpdated?: boolean;
 }
 
 

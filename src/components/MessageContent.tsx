@@ -2,16 +2,17 @@ import React from "react";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import Markdown from "react-markdown";
-import {renderCode} from "@/components/CodeBlock";
-import type {ContentBlock, ParsedUserMessage} from "@/types/message";
 import {EUserMessageType} from "@/types/message";
+import {renderCode} from "@/components/CodeBlock";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {ThinkingBlock} from "@/components/ThinkingBlock";
 import {ToolCallBlock} from "@/components/ToolCallBlock";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import type {IMessageContentProps} from "@/types/components";
+import {ToolResultContentBlock} from "@/components/ToolResultContentBlock";
+import type {ContentBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
-function MessageContent({content}: IMessageContentProps) {
+function MessageContent({content, sessionId, messageId, onStubbed}: IMessageContentProps) {
     if (typeof content === 'string') {
         return (
             renderStringContent(content)
@@ -19,7 +20,7 @@ function MessageContent({content}: IMessageContentProps) {
     }
 
     return (
-        <div className={'flex flex-col gap-3'}>
+        <div className={'flex flex-col'}>
             {content.map((block: ContentBlock, index: number) => {
                 switch (block.type) {
                     case 'thinking':
@@ -42,7 +43,10 @@ function MessageContent({content}: IMessageContentProps) {
                             <ToolCallBlock key={index} name={block.name} input={block.input}/>
                         );
                     case 'tool_result':
-                        return null;
+                        if (!sessionId || !messageId || !onStubbed) return null;
+                        return (
+                            <ToolResultContentBlock key={index} block={block as ToolResultBlock} sessionId={sessionId} messageId={messageId} onStubbed={onStubbed}/>
+                        );
                     default:
                         return null;
                 }
@@ -61,7 +65,7 @@ function renderStringContent(text: string): React.ReactNode {
                 : parsed.command;
 
             return (
-                <div className={'flex flex-col gap-2'}>
+                <div className={'flex flex-col gap-2 '}>
                     <span className={'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-mono w-fit'}>
                         ⚡{label}
                     </span>

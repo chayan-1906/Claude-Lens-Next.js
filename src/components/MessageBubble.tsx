@@ -8,7 +8,7 @@ import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ContentBlock, EMessageRole, EUserMessageType} from "@/types/message";
 
-function MessageBubble({message, onEdit, index, onRegenerate}: IMessageBubbleProps) {
+function MessageBubble({message, onEdit, index, onRegenerate, sessionId, onStubbed}: IMessageBubbleProps) {
     const isUserMessage: boolean = message.role === EMessageRole.USER;
 
     if (isUserMessage && typeof message.content === 'string') {
@@ -19,8 +19,8 @@ function MessageBubble({message, onEdit, index, onRegenerate}: IMessageBubblePro
     }
 
     if (Array.isArray(message.content)) {
-        const hasVisibleBlock: boolean = message.content.some((block: ContentBlock) => block.type !== 'tool_result');
-        if (!hasVisibleBlock) {
+        const hasAnyBlock: boolean = message.content.length > 0;
+        if (!hasAnyBlock) {
             return null;
         }
     }
@@ -41,11 +41,12 @@ function MessageBubble({message, onEdit, index, onRegenerate}: IMessageBubblePro
     const copyText: string = extractMessageText(message.content);
     const showCopyButton: boolean = typeof message.content === 'string' || message.content.some((block: ContentBlock) => block.type === 'text' || block.type === 'thinking');
     const hasToolUse: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_use');
+    const hasToolResult: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_result');
 
     return (
         <div className={cn('flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
-            <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasToolUse ? 'py-3' : 'py-0', isUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
-                <MessageContent content={message.content}/>
+            <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', (hasToolUse || hasToolResult) ? 'py-3' : 'py-0', isUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+                <MessageContent content={message.content} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
             </div>
             <div className={'flex items-center gap-2 mt-1 px-1'}>
                 <span className={'text-[10px] text-text-muted'} suppressHydrationWarning title={new Date(message.timestamp).toLocaleString()}>{formatRelativeDate(message.timestamp)}</span>

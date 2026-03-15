@@ -5,7 +5,6 @@ import {useRouter} from "next/navigation";
 import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
-import type {ContentBlock, IMessage} from "@/types/message";
 import {EMessageRole} from "@/types/message";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
@@ -24,6 +23,7 @@ import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {refreshSessions, refreshSidebar} from "@/actions/session.actions";
+import type {ContentBlock, IMessage, ToolResultBlock} from "@/types/message";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
@@ -32,6 +32,9 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
     const hasSyncedSidebarRef = React.useRef<boolean>(false);
+
+    // Local copy of historical messages — enables optimistic stub updates without a full page refresh
+    const [localHistoricalMessages, setLocalHistoricalMessages] = React.useState<IMessage[]>(historicalMessages ?? []);
 
     // Edit state: which message is being edited, and how many historical messages to show
     const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -106,20 +109,20 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     const handleHistoricalEditSave = React.useCallback((newText: string, historicalIndex: number): void => {
         setHistoricalCutoffIndex(historicalIndex);
         const editAtUuid: string | undefined = historicalIndex > 0
-            ? historicalMessages?.[historicalIndex - 1]?.uuid
+            ? localHistoricalMessages[historicalIndex - 1]?.uuid
             : undefined;
         editMessage(0, newText, isNewChat ? undefined : {sessionId: session?.sessionId, editAtUuid});
         setEditingId(null);
-    }, [editMessage, isNewChat, session?.sessionId, historicalMessages]);
+    }, [editMessage, isNewChat, session?.sessionId, localHistoricalMessages]);
 
     const handleLiveEditSave = React.useCallback((newText: string, liveIndex: number): void => {
         // editAtUuid: look at the live message just before the edit point, or fall back to last historical UUID
         const editAtUuid: string | undefined = liveIndex > 0
             ? messages[liveIndex - 1]?.uuid
-            : historicalMessages?.[historicalMessages.length - 1]?.uuid;
+            : localHistoricalMessages[localHistoricalMessages.length - 1]?.uuid;
         editMessage(liveIndex, newText, isNewChat ? undefined : {sessionId: session?.sessionId, editAtUuid});
         setEditingId(null);
-    }, [editMessage, isNewChat, session?.sessionId, messages, historicalMessages]);
+    }, [editMessage, isNewChat, session?.sessionId, messages, localHistoricalMessages]);
 
     // Regenerate is allowed only when IDLE, no edit in progress, and not streaming
     const canRegenerate: boolean = status === EChatStatus.IDLE && editingId === null && !streamingContent;
@@ -139,13 +142,13 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         // editAtUuid: message just before the user message being resent, or last historical UUID
         const editAtUuid: string | undefined = lastUserIndex > 0
             ? messages[lastUserIndex - 1]?.uuid
-            : historicalMessages?.[historicalMessages.length - 1]?.uuid;
+            : localHistoricalMessages[localHistoricalMessages.length - 1]?.uuid;
         regenerateMessage(lastUserIndex + 1, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId, editAtUuid});
-    }, [messages, historicalMessages, regenerateMessage, isNewChat, session?.sessionId]);
+    }, [messages, localHistoricalMessages, regenerateMessage, isNewChat, session?.sessionId]);
 
     const handleHistoricalRegenerate = React.useCallback((clickedIndex: number): void => {
-        const visibleHistorical: IMessage[] | undefined = historicalMessages?.slice(0, historicalCutoffIndex ?? undefined);
-        if (!visibleHistorical?.length) return;
+        const visibleHistorical: IMessage[] = localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined);
+        if (!visibleHistorical.length) return;
         let lastUserIndex: number = -1;
         let lastUserText: string = '';
         for (let i: number = clickedIndex - 1; i >= 0; i--) {
@@ -162,7 +165,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             ? visibleHistorical[lastUserIndex - 1]?.uuid
             : undefined;
         regenerateMessage(0, lastUserText, isNewChat ? undefined : {sessionId: session?.sessionId, editAtUuid});
-    }, [historicalMessages, historicalCutoffIndex, regenerateMessage, isNewChat, session?.sessionId]);
+    }, [localHistoricalMessages, historicalCutoffIndex, regenerateMessage, isNewChat, session?.sessionId]);
 
     const handleBrowse = React.useCallback(async (): Promise<void> => {
         setIsBrowsing(true);
@@ -173,20 +176,39 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         }
     }, []);
 
-    const hasNoMessages: boolean = !historicalMessages?.length && messages.length === 0 && !streamingContent;
+    const handleStubbed = React.useCallback((messageId: string): void => {
+        setLocalHistoricalMessages((prev: IMessage[]) => prev.map((msg: IMessage) => {
+            if (msg.messageId !== messageId) return msg;
+            return {
+                ...msg,
+                content: (msg.content as ContentBlock[]).map((block: ContentBlock) => {
+                    if (block.type !== 'tool_result' || (block as ToolResultBlock)._stubbed) return block;
+                    const tokenCount: number = Math.round((block as ToolResultBlock).content.length / 4);
+                    return {
+                        ...block,
+                        content: `[content removed — was ~${tokenCount} tokens]`,
+                        _stubbed: true,
+                        _originalTokenCount: tokenCount,
+                    } as ToolResultBlock;
+                }),
+            };
+        }));
+    }, []);
+
+    const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
     const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
 
     // Derive token usage from the last historical assistant message as a fallback
     const historicalTokenUsage = React.useMemo((): { input: number; output: number } | null => {
-        if (!historicalMessages?.length) return null;
-        for (let i: number = historicalMessages.length - 1; i >= 0; i--) {
-            const msg: IMessage = historicalMessages[i];
+        if (!localHistoricalMessages.length) return null;
+        for (let i: number = localHistoricalMessages.length - 1; i >= 0; i--) {
+            const msg: IMessage = localHistoricalMessages[i];
             if (msg.role === EMessageRole.ASSISTANT && msg.tokenUsage) {
                 return msg.tokenUsage;
             }
         }
         return null;
-    }, [historicalMessages]);
+    }, [localHistoricalMessages]);
 
     // When contextInfo exists but tokens are still 0 (system event fired, no usage data yet),
     // hold the historical values until live token data arrives from the assistant event.
@@ -283,7 +305,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             <div className={'flex-1 overflow-y-auto px-6 py-4'}>
                 <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
                     {/* Historical messages — sliced at edit cutoff when user edits from history */}
-                    {historicalMessages?.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
+                    {localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
                         const isUser: boolean = message.role === EMessageRole.USER;
 
                         if (editingId === message.uuid) {
@@ -306,8 +328,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 key={message.uuid}
                                 message={message}
                                 index={index}
+                                sessionId={session?.sessionId}
                                 onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}
                                 onRegenerate={showHistoricalRegenerate ? handleHistoricalRegenerate : undefined}
+                                onStubbed={handleStubbed}
                             />
                         );
                     })}

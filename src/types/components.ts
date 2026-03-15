@@ -1,9 +1,9 @@
 import React from "react";
 import type {ITask} from "@/types/task";
+import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
-import type {ContentBlock, IMessage} from "@/types/message";
-import {IProject} from "@/types/project";
+import type {ContentBlock, IMessage, ToolResultBlock} from "@/types/message";
 
 /** ------------- Constants and Type Aliases ------------- */
 
@@ -50,8 +50,10 @@ export interface ISessionPageProps {
 export interface IMessageBubbleProps {
     message: IMessage;
     index: number;
+    sessionId?: string;
     onEdit?: () => void;
     onRegenerate?: (clickedIndex: number) => void;
+    onStubbed?: (messageId: string) => void;
 }
 
 export interface IInlineMessageEditorProps {
@@ -63,6 +65,16 @@ export interface IInlineMessageEditorProps {
 
 export interface IMessageContentProps {
     content: string | ContentBlock[];
+    sessionId?: string;
+    messageId?: string;
+    onStubbed?: (messageId: string) => void;
+}
+
+export interface IToolResultContentBlockProps {
+    block: ToolResultBlock;
+    sessionId: string;
+    messageId: string;
+    onStubbed: (messageId: string) => void;
 }
 
 export interface IThinkingBlockProps {
