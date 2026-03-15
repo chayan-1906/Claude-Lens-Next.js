@@ -114,7 +114,7 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
             />
             {isLoading ? (
                 <Button variant={'primary'} size={'icon'} onClick={handleStop} disabled={isStopping} className={'shrink-0 size-9 rounded-lg'}>
-                    <FaSquare className={'size-4'}/>
+                    <FaSquare className={'size-3.5'}/>
                 </Button>
             ) : (
                 <Button variant={'primary'} size={'icon'} onClick={handleSend} disabled={!canSend} className={'shrink-0 size-9 rounded-lg'}>

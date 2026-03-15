@@ -14,6 +14,7 @@ import {getAllTasks} from "@/actions/task.actions";
 import {getAllMemories} from "@/actions/memory.actions";
 import type {ISidebarClientProps} from "@/types/components";
 import {DeleteProjectButton} from "@/components/DeleteProjectButton";
+import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getAllSessions, refreshSidebar} from "@/actions/session.actions";
 
 /** Task status indicator */
@@ -332,17 +333,22 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                     return (
                                         <div key={session.sessionId}>
                                             {/* Session header */}
-                                            <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSession(session.sessionId)} title={session.title}
-                                                    className={cn(
-                                                        'flex items-center justify-start gap-1.5 w-full px-3 py-1.5 rounded-md text-xs transition-colors truncate',
-                                                        isChatActive
-                                                            ? 'bg-primary/10 text-primary font-medium'
-                                                            : 'text-text-muted hover:bg-border hover:text-text',
-                                                    )}
-                                            >
-                                                <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform', isSessionExpanded && 'rotate-90')}/>
-                                                <span className={'truncate'}>{session.title}</span>
-                                            </Button>
+                                            <div className={'flex items-center'}>
+                                                <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSession(session.sessionId)} title={session.title}
+                                                        className={cn(
+                                                            'flex items-center justify-start gap-1.5 flex-1 min-w-0 px-3 py-1.5 rounded-md text-xs transition-colors truncate',
+                                                            isChatActive
+                                                                ? 'bg-primary/10 text-primary font-medium'
+                                                                : 'text-text-muted hover:bg-border hover:text-text',
+                                                        )}
+                                                >
+                                                    <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform', isSessionExpanded && 'rotate-90')}/>
+                                                    <span className={'truncate'}>{session.title}</span>
+                                                </Button>
+                                                <div className={'shrink-0'}>
+                                                    <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title}/>
+                                                </div>
+                                            </div>
 
                                             {/* Session sub-items */}
                                             {isSessionExpanded && (

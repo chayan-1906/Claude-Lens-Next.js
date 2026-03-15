@@ -22,6 +22,7 @@ import type {IChatSessionViewProps} from "@/types/components";
 import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
+import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {refreshSessions, refreshSidebar} from "@/actions/session.actions";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
@@ -251,6 +252,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         <Button variant={'ghost'} size={'icon'} onClick={refreshSessions} className={'size-7 text-text-muted'} title={'Refresh session'}>
                             <HiOutlineRefresh className={'size-3.5'}/>
                         </Button>
+                        <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title}/>
                         <span
                             className={cn('size-2.5 rounded-full', status === EChatStatus.CONNECTING ? 'bg-warning' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success')}/>
                     </div>

@@ -38,7 +38,7 @@ function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProp
         <>
             <Button variant={'ghost'} size={'sm'} onClick={() => setIsModalOpen(true)} className={'p-1.5 rounded-md text-text-muted hover:text-error'} aria-label={'Delete session'}
                     title={'Delete session'}>
-                <HiOutlineTrash className={'size-4'}/>
+                <HiOutlineTrash className={'size-4 mr-1'}/>
             </Button>
 
             <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
