@@ -9,6 +9,7 @@ import {routes} from "@/utils/routes";
 import type {ITask} from "@/types/task";
 import type {IMemory} from "@/types/memory";
 import {Button} from "@/components/ui/Button";
+import type {IProject} from "@/types/project";
 import type {ISession} from "@/types/session";
 import {getAllTasks} from "@/actions/task.actions";
 import {getAllMemories} from "@/actions/memory.actions";
@@ -16,6 +17,52 @@ import type {ISidebarClientProps} from "@/types/components";
 import {DeleteProjectButton} from "@/components/DeleteProjectButton";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getAllSessions, refreshSidebar} from "@/actions/session.actions";
+
+/**
+ * Compute a unique display name for each project using the minimum number of
+ * trailing path segments needed to disambiguate — same algorithm VS Code uses
+ * for editor tabs. e.g. two projects both named "claude-lens" become
+ * "all-next-js-projects/claude-lens" and "NodeJs/claude-lens".
+ */
+function computeProjectDisplayNames(projects: IProject[]): Map<string, string> {
+    const depths: Map<string, number> = new Map(
+        projects.map((p: IProject) => [p.rawProjectDir, 1]),
+    );
+
+    let hasConflicts: boolean = true;
+    while (hasConflicts) {
+        hasConflicts = false;
+
+        const currentNames: Map<string, string> = new Map();
+        for (const [rawDir, depth] of depths) {
+            const parts: string[] = rawDir.split('/').filter(Boolean);
+            currentNames.set(rawDir, parts.slice(Math.max(0, parts.length - depth)).join('/'));
+        }
+
+        const nameGroups: Map<string, string[]> = new Map();
+        for (const [rawDir, name] of currentNames) {
+            if (!nameGroups.has(name)) nameGroups.set(name, []);
+            nameGroups.get(name)!.push(rawDir);
+        }
+
+        for (const dirs of nameGroups.values()) {
+            if (dirs.length > 1) {
+                hasConflicts = true;
+                for (const dir of dirs) {
+                    const maxDepth: number = dir.split('/').filter(Boolean).length;
+                    depths.set(dir, Math.min(depths.get(dir)! + 1, maxDepth));
+                }
+            }
+        }
+    }
+
+    const result: Map<string, string> = new Map();
+    for (const [rawDir, depth] of depths) {
+        const parts: string[] = rawDir.split('/').filter(Boolean);
+        result.set(rawDir, parts.slice(Math.max(0, parts.length - depth)).join('/') || rawDir);
+    }
+    return result;
+}
 
 /** Task status indicator */
 const TASK_STATUS_ICON: Record<string, { label: string; className: string }> = {
@@ -37,6 +84,16 @@ function SidebarClient({projects}: ISidebarClientProps) {
     const [loadingProject, setLoadingProject] = React.useState<string | null>(null);
     const [loadingTasks, setLoadingTasks] = React.useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
+
+  const {sortedProjects, displayNames} = React.useMemo(() => {
+        const names: Map<string, string> = computeProjectDisplayNames(projects);
+        const sorted: IProject[] = [...projects].sort((a: IProject, b: IProject) =>
+            (names.get(a.rawProjectDir) ?? '').toLowerCase().localeCompare(
+                (names.get(b.rawProjectDir) ?? '').toLowerCase(),
+            ),
+        );
+        return {sortedProjects: sorted, displayNames: names};
+    }, [projects]);
 
     const handleToggleProject = React.useCallback(async (projectDir: string): Promise<void> => {
         setExpandedProjects((prev: Set<string>) => {
@@ -284,8 +341,8 @@ function SidebarClient({projects}: ISidebarClientProps) {
                     <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
                 </Button>
             </div>
-            {projects.map(({rawProjectDir, projectDir}) => {
-                const projectName: string = rawProjectDir.split('/').filter(Boolean).pop() || projectDir;
+            {sortedProjects.map(({rawProjectDir, projectDir}) => {
+                const projectName: string = displayNames.get(rawProjectDir) || projectDir;
                 const isExpanded: boolean = expandedProjects.has(projectDir);
                 const allSessions: ISession[] = sessionsMap[projectDir] ?? [];
                 // Hide parent sessions — show only leaf sessions (those not superseded by a fork)
