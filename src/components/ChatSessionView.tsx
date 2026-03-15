@@ -2,7 +2,7 @@
 
 import React from "react";
 import {useRouter} from "next/navigation";
-import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlinePencil, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
+import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import type {IMessage} from "@/types/message";
@@ -336,13 +336,13 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                     <MessageContent content={message.content}/>
                                 </div>
                                 <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                    {(isUser && !isChattingDisabled && editingId === null) && (
+                                    {/*{(isUser && !isChattingDisabled && editingId === null) && (
                                         <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
                                                 className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
                                             <HiOutlinePencil className={'size-3.5'}/>
                                         </Button>
-                                    )}
-                                    {(() => {
+                                    )}*/}
+                                    {/*{(() => {
                                         const showLiveRegenerate: boolean = !isUser && canRegenerate;
                                         return showLiveRegenerate ? (
                                             <Button variant={'ghost'} size={'icon'} onClick={() => handleLiveRegenerate(index)} title={'Regenerate response'}
@@ -350,7 +350,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                                 <HiOutlineRefresh className={'size-3.5'}/>
                                             </Button>
                                         ) : null;
-                                    })()}
+                                    })()}*/}
                                     {copyText && (
                                         <CopyMessageButton text={copyText}/>
                                     )}

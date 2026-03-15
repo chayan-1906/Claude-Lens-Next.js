@@ -1,6 +1,4 @@
 import {cn} from "@/utils/cn";
-import {HiOutlinePencil, HiOutlineRefresh} from "react-icons/hi";
-import {Button} from "@/components/ui/Button";
 import {MessageContent} from "./MessageContent";
 import {IMessageBubbleProps} from "@/types/components";
 import {formatModelName} from "@/utils/formatModelName";
@@ -51,17 +49,17 @@ function MessageBubble({message, onEdit, index, onRegenerate}: IMessageBubblePro
             </div>
             <div className={'flex items-center gap-2 mt-1 px-1'}>
                 <span className={'text-[10px] text-text-muted'} suppressHydrationWarning title={new Date(message.timestamp).toLocaleString()}>{formatRelativeDate(message.timestamp)}</span>
-                {(!isUserMessage && onRegenerate) && (
+                {/*{(!isUserMessage && onRegenerate) && (
                     <Button variant={'ghost'} size={'icon'} onClick={() => onRegenerate(index)} title={'Regenerate response'}
                             className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
                         <HiOutlineRefresh className={'size-3.5'}/>
                     </Button>
-                )}
-                {(isUserMessage && onEdit) && (
+                )}*/}
+                {/*{(isUserMessage && onEdit) && (
                     <Button variant={'ghost'} size={'icon'} onClick={onEdit} title={'Edit message'} className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
                         <HiOutlinePencil className={'size-3.5'}/>
                     </Button>
-                )}
+                )}*/}
                 {showCopyButton && (
                     <CopyMessageButton text={copyText}/>
                 )}
