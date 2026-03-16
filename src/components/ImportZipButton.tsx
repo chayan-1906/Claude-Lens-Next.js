@@ -9,6 +9,35 @@ import type {IImportManifest} from "@/types/import";
 import {getImportUrl} from "@/actions/import.actions";
 import type {IImportZipButtonProps} from "@/types/components";
 
+async function findManifestEntry(zip: JSZip): Promise<{ manifestFile: JSZip.JSZipObject; prefix: string } | null> {
+    const rootManifest: JSZip.JSZipObject | null = zip.file('manifest.json');
+    if (rootManifest) {
+        return {manifestFile: rootManifest, prefix: ''};
+    }
+    const nestedPath: string | undefined = Object.keys(zip.files).find((path) => {
+        const parts: string[] = path.split('/');
+        return parts.length === 2 && parts[1] === 'manifest.json';
+    });
+    if (!nestedPath) return null;
+    const nestedManifest: JSZip.JSZipObject | null = zip.file(nestedPath);
+    if (!nestedManifest) return null;
+    const prefix: string = nestedPath.slice(0, nestedPath.indexOf('/') + 1);
+    return {manifestFile: nestedManifest, prefix};
+}
+
+async function normalizeFlatZip(zip: JSZip, prefix: string): Promise<File> {
+    const flatZip: JSZip = new JSZip();
+    for (const [path, entry] of Object.entries(zip.files)) {
+        if (!path.startsWith(prefix) || entry.dir) continue;
+        const newPath: string = path.slice(prefix.length);
+        if (!newPath) continue;
+        const content: ArrayBuffer = await entry.async('arraybuffer');
+        flatZip.file(newPath, content);
+    }
+    const blob: Blob = await flatZip.generateAsync({type: 'blob'});
+    return new File([blob], 'claude-lens-normalized.zip', {type: 'application/zip'});
+}
+
 function ImportZipButton({onImported}: IImportZipButtonProps) {
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
@@ -42,18 +71,22 @@ function ImportZipButton({onImported}: IImportZipButtonProps) {
 
         try {
             const zip: JSZip = await JSZip.loadAsync(file);
-            const manifestFile: JSZip.JSZipObject | null = zip.file('manifest.json');
-            if (!manifestFile) {
+            console.log('zip:', zip);
+            const result: { manifestFile: JSZip.JSZipObject; prefix: string } | null = await findManifestEntry(zip);
+            if (!result) {
                 setError('Invalid Claude Lens backup: manifest.json missing!');
                 setIsModalOpen(true);
                 return;
             }
 
+            const {manifestFile, prefix} = result;
+            const normalizedFile: File = prefix ? await normalizeFlatZip(zip, prefix) : file;
+
             const manifestJson: string = await manifestFile.async('string');
             const parsed: IImportManifest = JSON.parse(manifestJson);
 
             setManifest(parsed);
-            setPendingFile(file);
+            setPendingFile(normalizedFile);
             setRemappedProjectDir(parsed.projectDir);
             setIsModalOpen(true);
         } catch (err: unknown) {
