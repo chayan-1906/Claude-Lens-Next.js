@@ -23,7 +23,7 @@ import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {refreshSessions, refreshSidebar} from "@/actions/session.actions";
-import type {ContentBlock, IMessage, ToolResultBlock} from "@/types/message";
+import type {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
@@ -182,14 +182,25 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             return {
                 ...msg,
                 content: (msg.content as ContentBlock[]).map((block: ContentBlock) => {
-                    if (block.type !== 'tool_result' || (block as ToolResultBlock)._stubbed) return block;
-                    const tokenCount: number = Math.round((block as ToolResultBlock).content.length / 4);
-                    return {
-                        ...block,
-                        content: `[content removed — was ~${tokenCount} tokens]`,
-                        _stubbed: true,
-                        _originalTokenCount: tokenCount,
-                    } as ToolResultBlock;
+                    if (block.type === 'tool_result' && !(block as ToolResultBlock)._stubbed) {
+                        const tokenCount: number = Math.round((block as ToolResultBlock).content.length / 4);
+                        return {
+                            ...block,
+                            content: `[content removed — was ~${tokenCount} tokens]`,
+                            _stubbed: true,
+                            _originalTokenCount: tokenCount,
+                        } as ToolResultBlock;
+                    }
+                    if (block.type === 'thinking' && !(block as ThinkingBlock)._stubbed) {
+                        const tokenCount: number = Math.round((block as ThinkingBlock).thinking.length / 4);
+                        return {
+                            ...block,
+                            thinking: `[thinking removed — was ~${tokenCount} tokens]`,
+                            _stubbed: true,
+                            _originalTokenCount: tokenCount,
+                        } as ThinkingBlock;
+                    }
+                    return block;
                 }),
             };
         }));

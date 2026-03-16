@@ -3,6 +3,8 @@
 export type ThinkingBlock = {
     type: 'thinking';
     thinking: string;
+    _stubbed?: boolean;
+    _originalTokenCount?: number;
 }
 
 export type TextBlock = {

@@ -37,7 +37,7 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
 
     if (block._stubbed) {
         return (
-            <div className={'my-2 text-xs text-text-muted bg-surface border border-border rounded-md px-3 py-1.5 font-mono'}>
+            <div className={'my-2 text-xs text-text-muted bg-surface border border-border rounded-md p-3 font-mono'}>
                 {block.content}
             </div>
         );
@@ -47,12 +47,12 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
         <div className={'group/tool-result my-2 border border-border rounded-lg overflow-hidden'}>
             <div className={'flex items-center'}>
                 <Button variant={'ghost'} size={'sm'} onClick={() => setIsOpen((prev: boolean) => !prev)}
-                        className={'flex items-center gap-2 flex-1 justify-start text-xs text-text-muted active:bg-transparent active:scale-100'}>
+                        className={'flex items-center gap-2 flex-1 justify-start text-xs text-text-muted hover:bg-transparent active:bg-transparent active:scale-100'}>
                     <HiOutlineChevronRight className={cn('size-3 transition-transform', isOpen && 'rotate-90')}/>
                     <span className={'font-mono'}>tool_result</span>
                     <span className={'text-text-muted/60'}>-{estimatedTokens.toLocaleString()} tokens</span>
                 </Button>
-                <Button variant={'ghost'} size={'icon'} onClick={() => setIsModalOpen(true)} title={'Remove content'}
+                <Button variant={'ghost'} size={'icon'} onClick={() => setIsModalOpen(true)} title={'Remove tool_result content'}
                         className={'size-7 opacity-0 group-hover/tool-result:opacity-100 text-text-muted hover:text-warning shrink-0 mr-1'}>
                     <HiOutlineTrash className={'size-3.5'}/>
                 </Button>
@@ -68,7 +68,7 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
                 <div className={'p-6'}>
                     <h2 className={'text-base font-semibold text-text'}>{'Remove tool result content?'}</h2>
                     <p className={'text-sm text-text-muted mt-2'}>
-                        This frees ~`{estimatedTokens.toLocaleString()}` tokens. The tool call will be kept
+                        This frees ~`{estimatedTokens.toLocaleString()}` tokens. The tool call will be kept!
                     </p>
 
                     {error && (

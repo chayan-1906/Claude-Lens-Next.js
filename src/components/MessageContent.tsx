@@ -2,6 +2,7 @@ import React from "react";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import Markdown from "react-markdown";
+import type {ContentBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 import {EUserMessageType} from "@/types/message";
 import {renderCode} from "@/components/CodeBlock";
 import {stripSystemTags} from "@/utils/stripSystemTags";
@@ -10,7 +11,6 @@ import {ToolCallBlock} from "@/components/ToolCallBlock";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import type {IMessageContentProps} from "@/types/components";
 import {ToolResultContentBlock} from "@/components/ToolResultContentBlock";
-import type {ContentBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
 function MessageContent({content, sessionId, messageId, onStubbed}: IMessageContentProps) {
     if (typeof content === 'string') {
@@ -25,8 +25,9 @@ function MessageContent({content, sessionId, messageId, onStubbed}: IMessageCont
                 switch (block.type) {
                     case 'thinking':
                         return (
-                            <ThinkingBlock key={index} thinking={block.thinking}/>
+                            <ThinkingBlock key={index} block={block} sessionId={sessionId} messageId={messageId} onStubbed={onStubbed}/>
                         );
+
                     case 'text': {
                         const cleaned: string = stripSystemTags(block.text);
                         if (!cleaned) return null;
@@ -38,15 +39,18 @@ function MessageContent({content, sessionId, messageId, onStubbed}: IMessageCont
                             </div>
                         );
                     }
+
                     case 'tool_use':
                         return (
                             <ToolCallBlock key={index} name={block.name} input={block.input}/>
                         );
+
                     case 'tool_result':
                         if (!sessionId || !messageId || !onStubbed) return null;
                         return (
                             <ToolResultContentBlock key={index} block={block as ToolResultBlock} sessionId={sessionId} messageId={messageId} onStubbed={onStubbed}/>
                         );
+
                     default:
                         return null;
                 }
