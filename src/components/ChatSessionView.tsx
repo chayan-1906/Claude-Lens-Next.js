@@ -14,6 +14,7 @@ import {useClaudeChat} from "@/hooks/useClaudeChat";
 import {EChatStatus, IChatMessage} from "@/types/chat";
 import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
+import type {IGetSessionResponse} from "@/types/session";
 import {MessageBubble} from "@/components/MessageBubble";
 import {MessageContent} from "@/components/MessageContent";
 import {ScrollToBottom} from "@/components/ScrollToBottom";
@@ -23,7 +24,7 @@ import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
-import {refreshSessions, refreshSidebar} from "@/actions/session.actions";
+import {getSession, refreshSidebar} from "@/actions/session.actions";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
@@ -43,6 +44,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // Project directory state for new chats
     const [projectDir, setProjectDir] = React.useState<string>('');
     const [isBrowsing, setIsBrowsing] = React.useState<boolean>(false);
+    const [isRefreshingMessages, setIsRefreshingMessages] = React.useState<boolean>(false);
 
     console.log(`[ChatSessionView] Render — isNewChat: ${isNewChat}, sessionId: ${session?.sessionId ?? contextInfo?.sessionId ?? 'none'}, status: ${status}, liveMessages: ${messages.length}, streaming: ${streamingContent !== null}, historicalMessages: ${historicalMessages?.length ?? 0}`);
 
@@ -177,12 +179,27 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         }
     }, []);
 
+    const handleRefreshMessages = React.useCallback(async (): Promise<void> => {
+        const sessionId: string | undefined = session?.sessionId;
+        if (!sessionId) {
+            return;
+        }
+        setIsRefreshingMessages(true);
+        const result: IGetSessionResponse = await getSession({sessionId});
+        if (result.success && result.messages) {
+            setLocalHistoricalMessages(result.messages);
+            setHistoricalCutoffIndex(null);
+            console.log(`[ChatSessionView] Messages refreshed — ${result.messages.length} messages loaded`);
+        }
+        setIsRefreshingMessages(false);
+    }, [session?.sessionId]);
+
     const handleStubbed = React.useCallback((messageId: string): void => {
-        setLocalHistoricalMessages((prev: IMessage[]) => prev.map((msg: IMessage) => {
-            if (msg.messageId !== messageId) return msg;
+        setLocalHistoricalMessages((prev: IMessage[]) => prev.map((message: IMessage) => {
+            if (message.messageId !== messageId) return message;
             return {
-                ...msg,
-                content: (msg.content as ContentBlock[]).map((block: ContentBlock) => {
+                ...message,
+                content: (message.content as ContentBlock[]).map((block: ContentBlock) => {
                     if (block.type === 'tool_result' && !(block as ToolResultBlock)._stubbed) {
                         const tokenCount: number = Math.round((block as ToolResultBlock).content.length / 4);
                         return {
@@ -286,8 +303,8 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     </div>
 
                     <div className={'flex items-center gap-2 shrink-0'}>
-                        <Button variant={'ghost'} size={'icon'} onClick={refreshSessions} className={'size-7 text-text-muted'} title={'Refresh session'}>
-                            <HiOutlineRefresh className={'size-3.5'}/>
+                        <Button variant={'ghost'} size={'icon'} onClick={handleRefreshMessages} disabled={isRefreshingMessages || isChattingDisabled} className={'size-7 text-text-muted'} title={'Refresh session'}>
+                            <HiOutlineRefresh className={cn('size-3.5', isRefreshingMessages && 'animate-spin')}/>
                         </Button>
                         <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title}/>
                         <span
