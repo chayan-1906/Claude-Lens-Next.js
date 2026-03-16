@@ -21,6 +21,9 @@ const baseTaskApiUrl: string = `${baseApiUrl}/tasks`;
 /** Base URL for memory endpoints */
 const baseMemoryApiUrl: string = `${baseApiUrl}/memories`;
 
+/** Base URL for export endpoints */
+const baseExportApiUrl: string = `${baseApiUrl}/export`;
+
 /** Base URL for file-picker endpoints */
 const baseFilePickerApiUrl: string = `${baseApiUrl}/file-picker`;
 
@@ -47,6 +50,11 @@ const apis = {
     getAllMemoriesApi: baseMemoryApiUrl,
     getMemory: (projectDir: string) => `${baseMemoryApiUrl}/${projectDir}`,
     deleteMemoryApi: (projectDir: string) => `${baseMemoryApiUrl}/${encodeURIComponent(projectDir)}`,
+
+    exportProjectApi: (projectDir: string, sessionId?: string) => {
+        const baseUrl: string = `${baseExportApiUrl}/${encodeURIComponent(projectDir)}`;
+        return sessionId ? `${baseUrl}?sessionId=${sessionId}` : baseUrl;
+    },
 
     openFolderPickerApi: `${baseFilePickerApiUrl}/folder`,
 };

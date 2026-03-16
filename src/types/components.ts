@@ -132,6 +132,15 @@ export interface IDeleteTasksButtonProps {
     sessionId: string;
 }
 
+export interface IExportProjectButtonProps {
+    projectDir: string;
+}
+
+export interface IExportSessionButtonProps {
+    projectDir: string;
+    sessionId: string;
+}
+
 export interface IChatInputProps {
     onSend: (text: string) => void;
     onStop: () => void;

@@ -15,7 +15,9 @@ import {getAllTasks} from "@/actions/task.actions";
 import {getAllMemories} from "@/actions/memory.actions";
 import type {ISidebarClientProps} from "@/types/components";
 import {DeleteProjectButton} from "@/components/DeleteProjectButton";
+import {ExportProjectButton} from "@/components/ExportProjectButton";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
+import {ExportSessionButton} from "@/components/ExportSessionButton";
 import {getAllSessions, refreshSidebar} from "@/actions/session.actions";
 
 /**
@@ -363,7 +365,8 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                 <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
                                 <span className={'truncate font-medium'} title={projectDir}>{projectName}</span>
                             </Button>
-                            <div className={'shrink-0 pr-1'}>
+                            <div className={'shrink-0 flex items-center pr-1'}>
+                                <ExportProjectButton projectDir={projectDir}/>
                                 <DeleteProjectButton projectDir={projectDir} projectName={projectName}/>
                             </div>
                         </div>
@@ -402,7 +405,8 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                     <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform', isSessionExpanded && 'rotate-90')}/>
                                                     <span className={'truncate'}>{session.title}</span>
                                                 </Button>
-                                                <div className={'shrink-0'}>
+                                                <div className={'shrink-0 flex items-center'}>
+                                                    <ExportSessionButton projectDir={projectDir} sessionId={session.sessionId}/>
                                                     <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title}/>
                                                 </div>
                                             </div>

@@ -5,6 +5,7 @@ import {useRouter} from "next/navigation";
 import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
+import type {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 import {EMessageRole} from "@/types/message";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
@@ -23,7 +24,6 @@ import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {refreshSessions, refreshSidebar} from "@/actions/session.actions";
-import type {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
@@ -64,7 +64,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             console.log('[ChatSessionView] First response complete — refreshing sidebar (2s delay for auto-sync)');
             const timeoutId: ReturnType<typeof setTimeout> = setTimeout(async (): Promise<void> => {
                 await refreshSidebar();
-                console.log('[ChatSessionView] Sidebar refreshed');
+                console.log('[ChatSessionView] Sidebar refreshed!');
             }, 2000);
             return (): void => {
                 clearTimeout(timeoutId);
