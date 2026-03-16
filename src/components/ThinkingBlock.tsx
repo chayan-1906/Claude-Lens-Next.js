@@ -57,7 +57,7 @@ function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockP
                         className={'flex items-center gap-2 flex-1 justify-start p-3 text-xs text-text-muted hover:bg-transparent active:bg-transparent active:scale-100'}>
                     <HiOutlineChevronRight className={cn('size-3 transition-transform', isOpen && 'rotate-90')}/>
                     <span>Thinking...</span>
-                    <span className={'text-text-muted/60'}>~ {estimatedTokens.toLocaleString()} tokens</span>
+                    <span className={'text-text-muted/60'}>~{estimatedTokens.toLocaleString()} tokens</span>
                 </Button>
                 {canStub && (
                     <Button variant={'ghost'} size={'icon'} onClick={() => setIsModalOpen(true)} title={'Remove thinking content'}

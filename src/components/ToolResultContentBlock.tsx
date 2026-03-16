@@ -18,7 +18,12 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
         ? (block._originalTokenCount ?? 0)
         : Math.round(block.content.length / 4);
 
+    const canStub: boolean = !block._stubbed && !!sessionId && !!messageId && !!onStubbed;
+
     const handleStub = React.useCallback(async (): Promise<void> => {
+        if (!sessionId || !messageId || !onStubbed) {
+            return;
+        }
         setIsStubbing(true);
         setError(null);
 
@@ -52,10 +57,12 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
                     <span className={'font-mono'}>tool_result</span>
                     <span className={'text-text-muted/60'}>-{estimatedTokens.toLocaleString()} tokens</span>
                 </Button>
-                <Button variant={'ghost'} size={'icon'} onClick={() => setIsModalOpen(true)} title={'Remove tool_result content'}
-                        className={'size-7 opacity-0 group-hover/tool-result:opacity-100 text-text-muted hover:text-warning shrink-0 mr-1'}>
-                    <HiOutlineTrash className={'size-3.5'}/>
-                </Button>
+                {canStub && (
+                    <Button variant={'ghost'} size={'icon'} onClick={() => setIsModalOpen(true)} title={'Remove tool_result content'}
+                            className={'size-7 opacity-0 group-hover/tool-result:opacity-100 text-text-muted hover:text-warning shrink-0 mr-1'}>
+                        <HiOutlineTrash className={'size-3.5'}/>
+                    </Button>
+                )}
             </div>
 
             {isOpen && (

@@ -46,7 +46,6 @@ function MessageContent({content, sessionId, messageId, onStubbed}: IMessageCont
                         );
 
                     case 'tool_result':
-                        if (!sessionId || !messageId || !onStubbed) return null;
                         return (
                             <ToolResultContentBlock key={index} block={block as ToolResultBlock} sessionId={sessionId} messageId={messageId} onStubbed={onStubbed}/>
                         );

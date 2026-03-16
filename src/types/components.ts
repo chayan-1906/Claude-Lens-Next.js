@@ -79,9 +79,9 @@ export interface IThinkingBlockProps {
 
 export interface IToolResultContentBlockProps {
     block: ToolResultBlock;
-    sessionId: string;
-    messageId: string;
-    onStubbed: (messageId: string) => void;
+    sessionId?: string;
+    messageId?: string;
+    onStubbed?: (messageId: string) => void;
 }
 
 export interface IToolCallBlockProps {
