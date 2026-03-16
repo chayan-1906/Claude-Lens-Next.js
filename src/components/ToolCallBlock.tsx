@@ -11,7 +11,7 @@ function ToolCallBlock({name, input}: IToolCallBlockProps) {
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
 
     return (
-        <div className={'border border-border rounded-lg overflow-hidden mb-4'}>
+        <div className={'border border-primary/30 rounded-lg overflow-hidden'}>
             <Button variant={'ghost'} size={'sm'} onClick={() => setIsOpen((prev: boolean) => !prev)} className={'flex w-full justify-start text-xs active:bg-transparent active:scale-100'}>
                 <HiOutlineChevronRight className={cn('size-3 transition-transform', isOpen && 'rotate-90')}/>
                 <HiOutlineTerminal className={'size-3 text-text-muted'}/>

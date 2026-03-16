@@ -42,14 +42,14 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
 
     if (block._stubbed) {
         return (
-            <div className={'my-2 text-xs text-text-muted bg-surface border border-border rounded-md p-3 font-mono'}>
+            <div className={'my-2 text-xs text-text-muted bg-surface border border-primary/30 rounded-md p-3 font-mono'}>
                 {block.content}
             </div>
         );
     }
 
     return (
-        <div className={'group/tool-result my-2 border border-border rounded-lg overflow-hidden'}>
+        <div className={'group/tool-result my-2 border border-primary/30 rounded-lg overflow-hidden'}>
             <div className={'flex items-center'}>
                 <Button variant={'ghost'} size={'sm'} onClick={() => setIsOpen((prev: boolean) => !prev)}
                         className={'flex items-center gap-2 flex-1 justify-start text-xs text-text-muted hover:bg-transparent active:bg-transparent active:scale-100'}>
@@ -66,7 +66,7 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
             </div>
 
             {isOpen && (
-                <div className={'px-3 pb-3 text-xs text-text-muted font-mono whitespace-pre-wrap leading-relaxed bg-code-bg max-h-64 overflow-y-auto'}>
+                <div className={'px-3 py-3 text-xs text-text-muted font-mono whitespace-pre-wrap leading-relaxed bg-code-bg max-h-64 overflow-y-auto'}>
                     {block.content}
                 </div>
             )}

@@ -267,16 +267,19 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             {session && (
                 <div className={'flex px-6 py-3 items-center justify-between border-b border-border shrink-0'}>
                     <div className={'flex flex-col justify-center'}>
-                        <h1 className={'text-sm font-semibold truncate'}>{session.title}</h1>
+                        <div className={'flex gap-2 items-end'}>
+                            <h1 className={'text-sm font-semibold truncate text-primary'}>{session.title}</h1>
+                            <p className={'text-xs text-primary/80 font-semibold'}>({session.rawProjectDir})</p>
+                        </div>
 
-                        <div className={'flex items-center gap-1'}>
+                        <div className={'flex items-center gap-1 text-xs text-primary'}>
                             {session.aiModel && (
-                                <span className={'text-xs text-text-muted'}>{session.aiModel}</span>
+                                <span>{session.aiModel}</span>
                             )}
                             {(session.aiModel && session.gitBranch) && (
-                                <span className={'text-xs text-text-muted'}>•</span>
+                                <span>•</span>
                             )}{session.gitBranch && (
-                            <span className={'text-xs text-text-muted'}>{session.gitBranch}</span>
+                            <span>{session.gitBranch}</span>
                         )}
                         </div>
                     </div>

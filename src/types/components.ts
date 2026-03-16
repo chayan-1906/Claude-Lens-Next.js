@@ -141,6 +141,10 @@ export interface IExportSessionButtonProps {
     sessionId: string;
 }
 
+export interface IImportZipButtonProps {
+    onImported: () => void;
+}
+
 export interface IChatInputProps {
     onSend: (text: string) => void;
     onStop: () => void;

@@ -24,6 +24,9 @@ const baseMemoryApiUrl: string = `${baseApiUrl}/memories`;
 /** Base URL for export endpoints */
 const baseExportApiUrl: string = `${baseApiUrl}/export`;
 
+/** Base URL for import endpoints */
+const baseImportApiUrl: string = `${baseApiUrl}/import`;
+
 /** Base URL for file-picker endpoints */
 const baseFilePickerApiUrl: string = `${baseApiUrl}/file-picker`;
 
@@ -55,6 +58,8 @@ const apis = {
         const baseUrl: string = `${baseExportApiUrl}/${encodeURIComponent(projectDir)}`;
         return sessionId ? `${baseUrl}?sessionId=${sessionId}` : baseUrl;
     },
+
+    importProjectApi: baseImportApiUrl,
 
     openFolderPickerApi: `${baseFilePickerApiUrl}/folder`,
 };

@@ -13,6 +13,7 @@ export interface ISession {
     title: string;
     aiModel?: string;
     projectDir: string;
+    rawProjectDir: string;
     gitBranch?: string;
     slug?: string;
     source: ESessionSource;

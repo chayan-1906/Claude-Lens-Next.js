@@ -14,6 +14,7 @@ import type {ISession} from "@/types/session";
 import {getAllTasks} from "@/actions/task.actions";
 import {getAllMemories} from "@/actions/memory.actions";
 import type {ISidebarClientProps} from "@/types/components";
+import {ImportZipButton} from "@/components/ImportZipButton";
 import {DeleteProjectButton} from "@/components/DeleteProjectButton";
 import {ExportProjectButton} from "@/components/ExportProjectButton";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
@@ -323,6 +324,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                           title={'New chat'}>
                         <HiOutlinePlus className={'size-3.5'}/>
                     </Link>
+                    <ImportZipButton onImported={handleRefresh}/>
                     <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
                         <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
                     </Button>
@@ -339,6 +341,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                       title={'New chat'}>
                     <HiOutlinePlus className={'size-3.5'}/>
                 </Link>
+                <ImportZipButton onImported={handleRefresh}/>
                 <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
                     <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
                 </Button>
