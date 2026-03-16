@@ -66,6 +66,17 @@ export interface IAssistantEvent {
     };
 }
 
+/** stream-json event: tool_result-carrying user turn between two assistant turns */
+export interface IUserEvent {
+    type: 'user';
+    uuid?: string;
+    session_id: string;
+    message: {
+        role: 'user';
+        content: ContentBlock[];
+    };
+}
+
 /** stream-json event: always the last event — final usage, cost, duration */
 export interface IResultEvent {
     type: 'result';
@@ -138,7 +149,7 @@ export interface IStreamEvent {
     uuid: string;
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IStreamEvent;
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IStreamEvent;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {

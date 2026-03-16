@@ -18,6 +18,7 @@ import {
     IStreamInnerEvent,
     ISystemEvent, ITokenUsage,
     IUseClaudeChatReturn,
+    IUserEvent,
     IWsErrorMessage,
     MAX_RECONNECT_ATTEMPTS,
     ServerMessage,
@@ -211,6 +212,26 @@ function useClaudeChat(): IUseClaudeChatReturn {
                         };
                     });
                 }
+                break;
+            }
+
+            case 'user': {
+                const event: IUserEvent = data as IUserEvent;
+                const blockTypes: string = event.message.content.map((b: ContentBlock) => b.type).join(', ');
+                console.log(`[useClaudeChat] user → blocks: [${blockTypes}]`);
+
+                // Finalize any in-progress assistant streaming before appending tool_result
+                if (currentAssistantMessageIdRef.current) {
+                    finalizeStreamingMessage();
+                }
+
+                const userToolResult: IChatMessage = {
+                    id: crypto.randomUUID(),
+                    role: EMessageRole.USER,
+                    content: event.message.content,
+                    timestamp: new Date(),
+                };
+                setMessages((prev: IChatMessage[]) => [...prev, userToolResult]);
                 break;
             }
 
