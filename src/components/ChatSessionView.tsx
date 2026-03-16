@@ -64,6 +64,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             console.log('[ChatSessionView] First response complete — refreshing sidebar (2s delay for auto-sync)');
             const timeoutId: ReturnType<typeof setTimeout> = setTimeout(async (): Promise<void> => {
                 await refreshSidebar();
+                window.dispatchEvent(new CustomEvent('session-created'));
                 console.log('[ChatSessionView] Sidebar refreshed!');
             }, 2000);
             return (): void => {

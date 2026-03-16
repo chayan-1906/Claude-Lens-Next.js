@@ -316,6 +316,47 @@ function SidebarClient({projects}: ISidebarClientProps) {
         return () => window.removeEventListener('memory-deleted', handler);
     }, []);
 
+    /** Re-fetch sessions + memories for expanded projects when a new session is created */
+    React.useEffect(() => {
+        const handler = async (): Promise<void> => {
+            console.log('[SidebarClient] received session-created event');
+            const expandedProjectDirs: string[] = Array.from(expandedProjects);
+            if (expandedProjectDirs.length === 0) return;
+
+            const fetches = expandedProjectDirs.map(async (projectDir: string) => {
+                const [sessionsResult, memoriesResult] = await Promise.all([
+                    getAllSessions({projectDir, limit: 50}),
+                    getAllMemories({projectDir, limit: 50}),
+                ]);
+                return {projectDir, sessionsResult, memoriesResult};
+            });
+
+            const results = await Promise.all(fetches);
+
+            setSessionsMap((prev: Record<string, ISession[]>) => {
+                const next: Record<string, ISession[]> = {...prev};
+                for (const {projectDir, sessionsResult} of results) {
+                    if (sessionsResult.success && sessionsResult.sessions && sessionsResult.sessions.length !== 0) {
+                        next[projectDir] = sessionsResult.sessions;
+                    }
+                }
+                return next;
+            });
+            setMemoriesMap((prev: Record<string, IMemory[]>) => {
+                const next: Record<string, IMemory[]> = {...prev};
+                for (const {projectDir, memoriesResult} of results) {
+                    if (memoriesResult.success && memoriesResult.memories && memoriesResult.memories.length !== 0) {
+                        next[projectDir] = memoriesResult.memories;
+                    }
+                }
+                return next;
+            });
+        };
+
+        window.addEventListener('session-created', handler);
+        return () => window.removeEventListener('session-created', handler);
+    }, [expandedProjects]);
+
     if (projects.length === 0) {
         return (
             <div className={'flex flex-col gap-2'}>
