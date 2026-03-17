@@ -7,6 +7,7 @@ import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
 import {stubToolResults} from "@/actions/message.actions";
 import type {IToolResultContentBlockProps} from "@/types/components";
+import {normalizeToolResultContent} from "@/utils/extractMessageText";
 
 function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolResultContentBlockProps) {
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
@@ -14,9 +15,10 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
     const [isStubbing, setIsStubbing] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string | null>(null);
 
+    const contentText: string = normalizeToolResultContent(block.content);
     const estimatedTokens: number = block._stubbed
         ? (block._originalTokenCount ?? 0)
-        : Math.round(block.content.length / 4);
+        : Math.round(contentText.length / 4);
 
     const canStub: boolean = !block._stubbed && !!sessionId && !!messageId && !!onStubbed;
 
@@ -43,7 +45,7 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
     if (block._stubbed) {
         return (
             <div className={'my-2 text-xs text-text-muted bg-surface border border-primary/30 rounded-md p-3 font-mono'}>
-                {block.content}
+                {contentText}
             </div>
         );
     }
@@ -67,7 +69,7 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
 
             {isOpen && (
                 <div className={'px-3 py-3 text-xs text-text-muted font-mono whitespace-pre-wrap leading-relaxed bg-code-bg max-h-64 overflow-y-auto'}>
-                    {block.content}
+                    {contentText}
                 </div>
             )}
 

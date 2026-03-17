@@ -1,6 +1,20 @@
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
-import {ContentBlock, EUserMessageType} from "@/types/message";
+import {ContentBlock, EUserMessageType, ToolResultContentItem} from "@/types/message";
+
+/**
+ * Normalize tool_result content to a plain string.
+ * The Claude API returns tool_result content as either a string or an array of
+ * content items ({type: "text", text: "..."} | {type: "tool_reference", tool_name: "..."}).
+ */
+function normalizeToolResultContent(content: string | ToolResultContentItem[]): string {
+    if (typeof content === 'string') return content;
+    return content.map((item: ToolResultContentItem): string => {
+        if (item.type === 'text' && item.text) return item.text;
+        if (item.type === 'tool_reference' && item.tool_name) return `[tool: ${item.tool_name}]`;
+        return JSON.stringify(item);
+    }).join('\n');
+}
 
 /**
  * Extracts copyable plain text from message content.
@@ -34,7 +48,7 @@ function extractMessageText(content: string | ContentBlock[]): string {
             case 'tool_use':
                 return `[Tool: ${block.name}]\n${JSON.stringify(block.input, null, 2)}`;
             case 'tool_result':
-                return block.content ? `[Tool Result]\n${block.content}` : '';
+                return block.content ? `[Tool Result]\n${normalizeToolResultContent(block.content)}` : '';
             default:
                 return '';
         }
@@ -43,4 +57,4 @@ function extractMessageText(content: string | ContentBlock[]): string {
     return parts.join('\n\n');
 }
 
-export {extractMessageText};
+export {normalizeToolResultContent, extractMessageText};

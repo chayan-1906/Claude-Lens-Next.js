@@ -19,10 +19,16 @@ export type ToolUseBlock = {
     input: Record<string, unknown>;
 }
 
+export type ToolResultContentItem = {
+    type: string;
+    text?: string;
+    tool_name?: string;
+}
+
 export type ToolResultBlock = {
     type: 'tool_result';
     tool_use_id: string;
-    content: string;
+    content: string | ToolResultContentItem[];
     is_error: boolean;
     _stubbed?: boolean;
     _originalTokenCount?: number;

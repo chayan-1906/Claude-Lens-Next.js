@@ -20,11 +20,11 @@ import {MessageContent} from "@/components/MessageContent";
 import {ScrollToBottom} from "@/components/ScrollToBottom";
 import type {IOpenFolderPickerResponse} from "@/types/file";
 import type {IChatSessionViewProps} from "@/types/components";
-import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
+import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
@@ -202,7 +202,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                 ...message,
                 content: (message.content as ContentBlock[]).map((block: ContentBlock) => {
                     if (block.type === 'tool_result' && !(block as ToolResultBlock)._stubbed) {
-                        const tokenCount: number = Math.round((block as ToolResultBlock).content.length / 4);
+                        const tokenCount: number = Math.round(normalizeToolResultContent((block as ToolResultBlock).content).length / 4);
                         return {
                             ...block,
                             content: `[content removed — was ~${tokenCount} tokens]`,
