@@ -17,6 +17,7 @@ import {
     IStreamEvent,
     IStreamInnerEvent,
     ISystemEvent, ITokenUsage,
+    IProjectNotAvailableMessage,
     IUseClaudeChatReturn,
     IUserEvent,
     IWsErrorMessage,
@@ -31,6 +32,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const [streamingContent, setStreamingContent] = React.useState<ContentBlock[] | null>(null);
     const [contextInfo, setContextInfo] = React.useState<IContextInfo | null>(null);
     const [error, setError] = React.useState<string | null>(null);
+    const [retryable, setRetryable] = React.useState<boolean>(true);
     const [forkedSessionId, setForkedSessionId] = React.useState<string | null>(null);
 
     // --- Refs: WebSocket and timers ---
@@ -303,7 +305,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     stopRequestedRef.current = false;
                     setMessages((prev: IChatMessage[]) => {
                         if (prev.length > 0 && prev[prev.length - 1].role === EMessageRole.USER) {
-                            console.log('[useClaudeChat] Removing unanswered user message after stop');
+                            console.log('[useClaudeChat] Removing unanswered user message after stop!');
                             return prev.slice(0, -1);
                         }
                         return prev;
@@ -339,6 +341,16 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 const wsError: IWsErrorMessage = data as IWsErrorMessage;
                 console.error(`[useClaudeChat] Server error: ${wsError.message}`);
                 setError(wsError.message);
+                setRetryable(true);
+                setStatus(EChatStatus.ERROR);
+                break;
+            }
+
+            case 'project_not_available': {
+                const event: IProjectNotAvailableMessage = data as IProjectNotAvailableMessage;
+                console.warn(`[useClaudeChat] project_not_available → sessionId: ${event.sessionId}, projectDir: ${event.projectDir}`);
+                setError(event.warning ?? `Project directory "${event.projectDir}" is not available on this device.`);
+                setRetryable(false);
                 setStatus(EChatStatus.ERROR);
                 break;
             }
@@ -710,7 +722,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, disconnect, retry};
+    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, disconnect, retry};
 }
 
 export {useClaudeChat};

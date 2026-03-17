@@ -118,6 +118,16 @@ export interface IWsErrorMessage {
     message: string;
 }
 
+/** Backend message: project directory not found on this machine (remote resume) */
+export interface IProjectNotAvailableMessage {
+    type: 'project_not_available';
+    sessionId: string;
+    projectDir: string;
+    warning: string;
+    session: Record<string, unknown>;
+    messages: Record<string, unknown>[];
+}
+
 /** Incremental token delta inside a stream_event content_block_delta */
 export type IStreamDelta =
     | { type: 'thinking_delta'; thinking: string }
@@ -149,7 +159,7 @@ export interface IStreamEvent {
     uuid: string;
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IStreamEvent;
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {
@@ -178,6 +188,7 @@ export interface IUseClaudeChatReturn {
     streamingContent: ContentBlock[] | null;
     contextInfo: IContextInfo | null;
     error: string | null;
+    retryable: boolean;
     forkedSessionId: string | null;
     sendMessage: (text: string, options?: ISendMessageOptions) => void;
     editMessage: (keepUpToIndex: number, newText: string, options?: ISendMessageOptions) => void;

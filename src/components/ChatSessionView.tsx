@@ -28,7 +28,7 @@ import {getSession, refreshSidebar} from "@/actions/session.actions";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
-    const {status, messages, streamingContent, contextInfo, error, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, retry} = useClaudeChat();
+    const {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, retry} = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -274,10 +274,12 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                 <div className={'flex items-center gap-2 px-4 py-2 bg-error/10 border-b border-error/20 text-error text-xs shrink-0'}>
                     <HiOutlineWifi className={'size-4 shrink-0'}/>
                     <span>Connection lost. Unable to reconnect!</span>
-                    <Button variant={'danger'} size={'sm'} onClick={retry} className={'ml-auto flex items-center gap-1 cursor-pointer'}>
-                        <HiOutlineRefresh className={'size-3'}/>
-                        Retry
-                    </Button>
+                    {retryable && (
+                        <Button variant={'danger'} size={'sm'} onClick={retry} className={'ml-auto flex items-center gap-1 cursor-pointer'}>
+                            <HiOutlineRefresh className={'size-3'}/>
+                            Retry
+                        </Button>
+                    )}
                 </div>
             )}
 
@@ -303,7 +305,8 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     </div>
 
                     <div className={'flex items-center gap-2 shrink-0'}>
-                        <Button variant={'ghost'} size={'icon'} onClick={handleRefreshMessages} disabled={isRefreshingMessages || isChattingDisabled} className={'size-7 text-text-muted'} title={'Refresh session'}>
+                        <Button variant={'ghost'} size={'icon'} onClick={handleRefreshMessages} disabled={isRefreshingMessages || isChattingDisabled} className={'size-7 text-text-muted'}
+                                title={'Refresh session'}>
                             <HiOutlineRefresh className={cn('size-3.5', isRefreshingMessages && 'animate-spin')}/>
                         </Button>
                         <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title}/>
@@ -445,10 +448,12 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
                             <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
                             <span className={'flex-1'}>{error}</span>
-                            <Button variant={'link'} size={'sm'} onClick={retry} className={'shrink-0'}>
-                                <HiOutlineRefresh className={'size-3'}/>
-                                Retry
-                            </Button>
+                            {retryable && (
+                                <Button variant={'link'} size={'sm'} onClick={retry} className={'shrink-0'}>
+                                    <HiOutlineRefresh className={'size-3'}/>
+                                    Retry
+                                </Button>
+                            )}
                         </div>
                     )}
 
