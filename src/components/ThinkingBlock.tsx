@@ -44,14 +44,14 @@ function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockP
 
     if (block._stubbed) {
         return (
-            <div className={'my-4 text-xs text-text-muted bg-surface border border-primary/30 rounded-md p-3 font-mono'}>
+            <div className={'my-3 text-xs text-text-muted bg-surface border border-primary/30 rounded-md p-3 font-mono'}>
                 {block.thinking}
             </div>
         );
     }
 
     return (
-        <div className={'group/thinking my-4 border border-primary/30 rounded-lg overflow-hidden'}>
+        <div className={'group/thinking my-3 border border-primary/30 rounded-lg overflow-hidden'}>
             <div className={'flex items-center'}>
                 <Button variant={'ghost'} size={'sm'} onClick={() => setIsOpen((prev: boolean) => !prev)}
                         className={'flex items-center gap-2 flex-1 justify-start p-3 text-xs text-text-muted hover:bg-transparent active:bg-transparent active:scale-100'}>
@@ -75,9 +75,9 @@ function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockP
 
             <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
                 <div className={'p-6'}>
-                    <h2 className={'text-base font-semibold text-text'}>{'Remove thinking content?'}</h2>
+                    <h2 className={'text-base font-semibold text-text'}>Remove thinking content?</h2>
                     <p className={'text-sm text-text-muted mt-2'}>
-                        {`This frees ~${estimatedTokens.toLocaleString()} tokens. The thinking block will be kept as a stub!`}
+                        This frees ~{estimatedTokens.toLocaleString()} tokens. The thinking block will be kept as a stub!
                     </p>
 
                     {error && (

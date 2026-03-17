@@ -163,7 +163,8 @@ export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResul
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {
-    id: string;
+    id: string;         // Unique render identity (crypto.randomUUID()) — safe to use as React key
+    msgId?: string;     // Original Claude API msg_id — preserved for correlation; NOT unique across tool-call cycles
     role: EMessageRole;
     content: string | ContentBlock[];
     timestamp: Date;

@@ -1,11 +1,12 @@
 import React from "react";
 import type {Metadata} from "next";
 import {Inter} from "next/font/google";
+import {NextFontWithVariable} from "next/dist/compiled/@next/font";
 import "./globals.css";
 import {ThemeResolver} from "@/components/ThemeResolver";
 import {DEFAULT_THEME_MODE, DEFAULT_THEME_SCHEME, THEME_MODE_COOKIE, THEME_SCHEME_COOKIE} from "@/types/theme";
 
-const inter = Inter({
+const inter: NextFontWithVariable = Inter({
     variable: '--font-inter',
     subsets: ['latin'],
 });

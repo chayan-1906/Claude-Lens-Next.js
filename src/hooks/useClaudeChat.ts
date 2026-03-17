@@ -109,7 +109,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
         if (content && messageId) {
             console.log(`[useClaudeChat] Finalizing assistant message (id: ${messageId}, blocks: ${content.length})`);
             const completedMessage: IChatMessage = {
-                id: messageId,
+                id: crypto.randomUUID(),
+                msgId: messageId,
                 role: EMessageRole.ASSISTANT,
                 content,
                 timestamp: new Date(),
