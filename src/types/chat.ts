@@ -196,6 +196,7 @@ export interface IUseClaudeChatReturn {
     stopExecution: () => void;
     disconnect: () => void;
     retry: () => void;
+    clearMessages: () => void;
 }
 
 

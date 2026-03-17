@@ -28,7 +28,7 @@ import {getSession, refreshSidebar} from "@/actions/session.actions";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
-    const {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, retry} = useClaudeChat();
+    const {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, retry, clearMessages} = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -187,12 +187,13 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         setIsRefreshingMessages(true);
         const result: IGetSessionResponse = await getSession({sessionId});
         if (result.success && result.messages) {
+            clearMessages();
             setLocalHistoricalMessages(result.messages);
             setHistoricalCutoffIndex(null);
             console.log(`[ChatSessionView] Messages refreshed — ${result.messages.length} messages loaded`);
         }
         setIsRefreshingMessages(false);
-    }, [session?.sessionId]);
+    }, [session?.sessionId, clearMessages]);
 
     const handleStubbed = React.useCallback((messageId: string): void => {
         setLocalHistoricalMessages((prev: IMessage[]) => prev.map((message: IMessage) => {

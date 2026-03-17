@@ -700,6 +700,10 @@ function useClaudeChat(): IUseClaudeChatReturn {
         connectRef.current();
     }, []);
 
+    const clearMessages = React.useCallback((): void => {
+        setMessages([]);
+    }, []);
+
     // --- Cleanup on unmount ---
 
     React.useEffect(() => {
@@ -722,7 +726,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, disconnect, retry};
+    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, disconnect, retry, clearMessages};
 }
 
 export {useClaudeChat};
