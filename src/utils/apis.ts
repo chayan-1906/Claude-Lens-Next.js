@@ -27,6 +27,9 @@ const baseExportApiUrl: string = `${baseApiUrl}/export`;
 /** Base URL for import endpoints */
 const baseImportApiUrl: string = `${baseApiUrl}/import`;
 
+/** Base URL for voice endpoints */
+const baseVoiceApiUrl: string = `${baseApiUrl}/voice`;
+
 /** Base URL for file-picker endpoints */
 const baseFilePickerApiUrl: string = `${baseApiUrl}/file-picker`;
 
@@ -60,6 +63,8 @@ const apis = {
     },
 
     importProjectApi: baseImportApiUrl,
+
+    transcribeApi: `${baseVoiceApiUrl}/transcribe`,
 
     openFolderPickerApi: `${baseFilePickerApiUrl}/folder`,
 };

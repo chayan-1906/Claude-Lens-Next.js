@@ -3,17 +3,26 @@
 import React from "react";
 import {FaSquare} from "react-icons/fa";
 import {HiArrowUp} from "react-icons/hi";
+import {ImSpinner2} from "react-icons/im";
+import {FaMicrophone} from "react-icons/fa6";
 import {cn} from "@/utils/cn";
 import {Button} from "@/components/ui/Button";
+import {useVoiceInput} from "@/hooks/useVoiceInput";
 import type {IChatInputProps} from "@/types/components";
 import {useMarkdownShortcuts} from "@/hooks/useMarkdownShortcuts";
 
 const MAX_TEXTAREA_HEIGHT: number = 200;
+const WAVE_DELAYS: number[] = [0, 0.1, 0.2, 0.1, 0];
 
 function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
     const [text, setText] = React.useState<string>('');
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+    const {state: voiceState, isSpeaking, liveTranscript, transcript, rephrased, errorMessage, startRecording, stopRecording, reset: resetVoice} = useVoiceInput();
+
+    const isRecording: boolean = voiceState === 'recording';
+    const isVoiceProcessing: boolean = voiceState === 'processing';
 
     const adjustHeight = React.useCallback((): void => {
         const textarea: HTMLTextAreaElement | null = textareaRef.current;
@@ -36,11 +45,12 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
         console.log(`[ChatInput] Sending: "${trimmed.slice(0, 50)}..."`);
         onSend(trimmed);
         setText('');
+        resetVoice();
         const textarea: HTMLTextAreaElement | null = textareaRef.current;
         if (textarea) {
             textarea.style.height = 'auto';
         }
-    }, [text, disabled, onSend]);
+    }, [text, disabled, onSend, resetVoice]);
 
     const handleMarkdownKeyDown = useMarkdownShortcuts(textareaRef, text, setText);
 
@@ -92,35 +102,141 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
         }
     }, [isLoading]);
 
+    // Insert rephrased text into textarea when voice transcription completes
+    React.useEffect(() => {
+        if (voiceState === 'done' && rephrased) {
+            setText(rephrased);
+            requestAnimationFrame(adjustHeight);
+            textareaRef.current?.focus();
+        }
+    }, [voiceState, rephrased, adjustHeight]);
+
+    const handleMicClick = React.useCallback((): void => {
+        if (isVoiceProcessing) return;
+        if (isRecording) {
+            stopRecording();
+            return;
+        }
+        resetVoice();
+        startRecording();
+    }, [isVoiceProcessing, isRecording, stopRecording, resetVoice, startRecording]);
+
     const canSend: boolean = text.trim().length > 0 && !disabled;
 
     return (
-        <div className={'flex items-end gap-2 p-3 rounded-t-xl border-x border-t border-border bg-surface'}>
-            <textarea
-                ref={textareaRef}
-                value={text}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                disabled={disabled}
-                placeholder={'Send a message...'}
-                rows={1}
-                className={cn(
-                    'flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-text placeholder:text-text-muted',
-                    'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
-                    'disabled:opacity-50 disabled:cursor-not-allowed',
-                    'overflow-y-auto',
-                )}
-                style={{maxHeight: `${MAX_TEXTAREA_HEIGHT}px`}}
-            />
-            {isLoading ? (
-                <Button variant={'primary'} size={'icon'} onClick={handleStop} disabled={isStopping} className={'shrink-0 size-9 rounded-lg'}>
-                    <FaSquare className={'size-3.5'}/>
-                </Button>
-            ) : (
-                <Button variant={'primary'} size={'icon'} onClick={handleSend} disabled={!canSend} className={'shrink-0 size-9 rounded-lg'}>
-                    <HiArrowUp className={'size-4'}/>
-                </Button>
+        <div className={'flex flex-col rounded-t-xl border-x border-t border-border bg-surface'}>
+            {/* Voice recording overlay: live transcript + wave bars */}
+            {(isRecording || isVoiceProcessing) && (
+                <div className={'px-3 pt-3 pb-1 space-y-2'}>
+                    {/* Live transcript */}
+                    <div className={'min-h-8 px-3 py-2 rounded-lg bg-background border border-border'}>
+                        {isRecording && liveTranscript ? (
+                            <p className={'text-sm text-text-muted italic leading-relaxed'}>{liveTranscript}</p>
+                        ) : isRecording ? (
+                            <p className={'text-sm text-text-muted italic'}>Listening...</p>
+                        ) : (
+                            <p className={'text-sm text-text-muted italic'}>Processing your audio...</p>
+                        )}
+                    </div>
+                    {/* Wave bars — voice activity indicator */}
+                    {isRecording && (
+                        <div className={'flex gap-0.75 items-end justify-center h-6'}>
+                            {WAVE_DELAYS.map((delay: number, i: number) => (
+                                <span
+                                    key={i}
+                                    className={'block w-1.5 rounded-full bg-error'}
+                                    style={{
+                                        height: '4px',
+                                        animationName: isSpeaking ? 'wave-bar' : 'none',
+                                        animationDuration: '0.5s',
+                                        animationTimingFunction: 'ease-in-out',
+                                        animationIterationCount: 'infinite',
+                                        animationDirection: 'alternate',
+                                        animationDelay: `${delay}s`,
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
             )}
+
+            {/* Voice error message */}
+            {voiceState === 'error' && errorMessage && (
+                <div className={'px-3 pt-3 pb-1'}>
+                    <p className={'text-xs text-error'}>{errorMessage}</p>
+                </div>
+            )}
+
+            {/* Voice transcription result: raw vs rephrased */}
+            {voiceState === 'done' && transcript && (
+                <div className={'px-3 pt-3 pb-1'}>
+                    <div className={'grid grid-cols-2 gap-2'}>
+                        <div>
+                            <p className={'text-[10px] font-medium text-text-muted uppercase tracking-widest mb-1'}>Raw Transcript</p>
+                            <div className={'bg-background rounded-lg px-3 py-2 text-xs text-text-muted leading-relaxed border border-border'}>{transcript}</div>
+                        </div>
+                        <div>
+                            <p className={'text-[10px] font-medium text-text-muted uppercase tracking-widest mb-1'}>Rephrased</p>
+                            <div className={'bg-background rounded-lg px-3 py-2 text-xs text-text leading-relaxed border border-border'}>{rephrased}</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Input row: textarea + mic button + send/stop button */}
+            <div className={'flex items-end gap-2 p-3'}>
+                <textarea
+                    ref={textareaRef}
+                    value={text}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    disabled={disabled || isRecording || isVoiceProcessing}
+                    placeholder={'Send a message...'}
+                    rows={1}
+                    className={cn(
+                        'flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-text placeholder:text-text-muted',
+                        'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
+                        'disabled:opacity-50 disabled:cursor-not-allowed',
+                        'overflow-y-auto',
+                    )}
+                    style={{maxHeight: `${MAX_TEXTAREA_HEIGHT}px`}}
+                />
+
+                {/* Mic button */}
+                {!isLoading && (
+                    <div className={'relative flex items-center justify-center shrink-0'}>
+                        {isRecording && (
+                            <span className={'absolute inline-flex size-10 rounded-lg bg-error opacity-25 animate-ping'}/>
+                        )}
+                        <Button
+                            variant={isRecording ? 'danger' : 'ghost'}
+                            size={'icon'}
+                            onClick={handleMicClick}
+                            disabled={disabled || isVoiceProcessing}
+                            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                            className={'relative z-10 shrink-0 size-9 rounded-lg'}
+                        >
+                            {isVoiceProcessing ? (
+                                <ImSpinner2 className={'size-4 animate-spin'}/>
+                            ) : (
+                                <FaMicrophone className={'size-4'}/>
+                            )}
+                        </Button>
+                    </div>
+                )}
+
+                {/* Send / Stop button */}
+                {isLoading ? (
+                    <Button variant={'primary'} size={'icon'} onClick={handleStop} disabled={isStopping} className={'shrink-0 size-9 rounded-lg'}>
+                        <FaSquare className={'size-3.5'}/>
+                    </Button>
+                ) : (
+                    <Button variant={'primary'} size={'icon'} onClick={handleSend} disabled={!canSend} className={'shrink-0 size-9 rounded-lg'}>
+                        <HiArrowUp className={'size-4'}/>
+                    </Button>
+                )}
+            </div>
         </div>
     );
 }

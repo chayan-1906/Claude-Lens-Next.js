@@ -32,12 +32,7 @@ function getFormatForKeyEvent(e: React.KeyboardEvent<HTMLTextAreaElement>): IMar
 }
 
 /** Apply or toggle markdown format around a selection, returning new text and cursor range */
-function applyMarkdownFormat(
-    text: string,
-    selStart: number,
-    selEnd: number,
-    format: IMarkdownFormat,
-): IApplyFormatResult {
+function applyMarkdownFormat(text: string, selStart: number, selEnd: number, format: IMarkdownFormat): IApplyFormatResult {
     const {prefix, suffix}: IMarkdownFormat = format;
     const hasSelection: boolean = selStart !== selEnd;
 
@@ -103,10 +98,14 @@ function useMarkdownShortcuts(
 ): (e: React.KeyboardEvent<HTMLTextAreaElement>) => boolean {
     const handleMarkdownKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>): boolean => {
         const format: IMarkdownFormat | null = getFormatForKeyEvent(e);
-        if (!format) return false;
+        if (!format) {
+            return false;
+        }
 
         const textarea: HTMLTextAreaElement | null = textareaRef.current;
-        if (!textarea) return false;
+        if (!textarea) {
+            return false;
+        }
 
         e.preventDefault();
 

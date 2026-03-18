@@ -1305,3 +1305,11 @@ body {
 	margin-top: 0.75em;
 	margin-bottom: 0.75em;
 }
+
+/* ========================================
+   Voice input — wave bar animation
+   ======================================== */
+@keyframes wave-bar {
+	from { height: 4px; }
+	to { height: 20px; }
+}
