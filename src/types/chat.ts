@@ -159,7 +159,17 @@ export interface IStreamEvent {
     uuid: string;
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent;
+/** Backend message: tool approval request (PreToolUse hook waiting for user decision) */
+export interface IToolApprovalRequestMessage {
+    type: 'tool_approval_request';
+    requestId: string;
+    sessionId: string;
+    toolName: string;
+    toolInput: Record<string, unknown>;
+    toolUseId: string;
+}
+
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {
@@ -183,6 +193,14 @@ export interface IContextInfo {
     tools: string[];
 }
 
+/** Pending tool approval displayed in ChatSessionView */
+export interface IPendingToolApproval {
+    requestId: string;
+    toolName: string;
+    toolInput: Record<string, unknown>;
+    toolUseId: string;
+}
+
 export interface IUseClaudeChatReturn {
     status: EChatStatus;
     messages: IChatMessage[];
@@ -191,9 +209,11 @@ export interface IUseClaudeChatReturn {
     error: string | null;
     retryable: boolean;
     forkedSessionId: string | null;
+    pendingApproval: IPendingToolApproval | null;
     sendMessage: (text: string, options?: ISendMessageOptions) => void;
     editMessage: (keepUpToIndex: number, newText: string, options?: ISendMessageOptions) => void;
     regenerateMessage: (keepUpToIndex: number, resendText: string, options?: ISendMessageOptions) => void;
+    respondToApproval: (requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean) => void;
     stopExecution: () => void;
     disconnect: () => void;
     retry: () => void;
@@ -228,7 +248,15 @@ export interface IPingMessage {
     type: 'ping';
 }
 
-export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage | IStopExecutionMessage;
+/** Client → Server: user's decision on a pending tool approval */
+export interface IToolApprovalResponseMessage {
+    type: 'tool_approval_response';
+    requestId: string;
+    decision: 'allow' | 'deny';
+    reason?: string;
+}
+
+export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage | IStopExecutionMessage | IToolApprovalResponseMessage;
 
 /** Options passed to useClaudeChat.sendMessage */
 export interface ISendMessageOptions {

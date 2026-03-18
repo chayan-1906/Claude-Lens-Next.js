@@ -4,6 +4,7 @@ import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
 import type {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
+import {IPendingToolApproval} from "@/types/chat";
 
 /** ------------- Constants and Type Aliases ------------- */
 
@@ -166,4 +167,26 @@ export interface IChatSessionViewProps {
     isNewChat: boolean;
     session?: ISession;
     historicalMessages?: IMessage[];
+}
+
+export interface IDiffViewProps {
+    toolName: string;
+    filePath: string;
+    oldString?: string;
+    newString?: string;
+    content?: string;     // Write tool — full file content
+    replaceAll?: boolean;
+}
+
+export type DiffLineType = 'added' | 'removed' | 'context';
+
+export interface IDiffLine {
+    type: DiffLineType;
+    text: string;
+    lineNumber: number | null; // null for removed lines in the new-file column
+}
+
+export interface IToolApprovalPromptProps {
+    approval: IPendingToolApproval;
+    onRespond: (requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean) => void;
 }

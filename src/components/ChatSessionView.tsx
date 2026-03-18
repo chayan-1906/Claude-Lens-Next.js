@@ -21,6 +21,7 @@ import {ScrollToBottom} from "@/components/ScrollToBottom";
 import type {IOpenFolderPickerResponse} from "@/types/file";
 import type {IChatSessionViewProps} from "@/types/components";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
+import {ToolApprovalPrompt} from "@/components/ToolApprovalPrompt";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
@@ -28,7 +29,7 @@ import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMes
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
-    const {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, retry, clearMessages} = useClaudeChat();
+    const {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, retry, clearMessages} = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -432,6 +433,11 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 <MessageContent content={streamingContent}/>
                             </div>
                         </div>
+                    )}
+
+                    {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
+                    {pendingApproval && (
+                        <ToolApprovalPrompt approval={pendingApproval} onRespond={respondToApproval}/>
                     )}
 
                     {/* Thinking dots — waiting for first token */}

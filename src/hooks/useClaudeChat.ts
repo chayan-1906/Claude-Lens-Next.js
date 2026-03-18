@@ -12,11 +12,13 @@ import {
     IChatMessage,
     IContextInfo,
     IEditSessionMessage,
+    IPendingToolApproval,
     IResultEvent,
     ISendMessageOptions,
     IStreamEvent,
     IStreamInnerEvent,
     ISystemEvent, ITokenUsage,
+    IToolApprovalRequestMessage,
     IProjectNotAvailableMessage,
     IUseClaudeChatReturn,
     IUserEvent,
@@ -34,6 +36,10 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const [error, setError] = React.useState<string | null>(null);
     const [retryable, setRetryable] = React.useState<boolean>(true);
     const [forkedSessionId, setForkedSessionId] = React.useState<string | null>(null);
+    const [pendingApproval, setPendingApproval] = React.useState<IPendingToolApproval | null>(null);
+
+    // --- Refs: tool approval ---
+    const allowAllRef = React.useRef<boolean>(false);
 
     // --- Refs: WebSocket and timers ---
     const wsRef = React.useRef<WebSocket | null>(null);
@@ -431,6 +437,33 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 break;
             }
 
+            case 'tool_approval_request': {
+                const event: IToolApprovalRequestMessage = data as IToolApprovalRequestMessage;
+                console.log(`[useClaudeChat] tool_approval_request → requestId: ${event.requestId}, tool: ${event.toolName}, file: ${(event.toolInput as Record<string, unknown>).file_path}`);
+
+                // If "Allow All" was previously clicked, auto-approve without showing the prompt
+                if (allowAllRef.current) {
+                    console.log('[useClaudeChat] Allow All active — auto-approving');
+                    const ws: WebSocket | null = wsRef.current;
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: 'tool_approval_response',
+                            requestId: event.requestId,
+                            decision: 'allow',
+                        }));
+                    }
+                    break;
+                }
+
+                setPendingApproval({
+                    requestId: event.requestId,
+                    toolName: event.toolName,
+                    toolInput: event.toolInput,
+                    toolUseId: event.toolUseId,
+                });
+                break;
+            }
+
             default: {
                 console.log(`[useClaudeChat] Unhandled event type: ${(data as Record<string, unknown>).type}`);
                 break;
@@ -682,6 +715,25 @@ function useClaudeChat(): IUseClaudeChatReturn {
         reconnectAttemptsRef.current = 0;
     }, [stopHeartbeat]);
 
+    const respondToApproval = React.useCallback((requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean): void => {
+        const ws: WebSocket | null = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.warn('[useClaudeChat] respondToApproval called but WS not open');
+            return;
+        }
+        console.log(`[useClaudeChat] Sending tool_approval_response (requestId: ${requestId}, decision: ${decision}, allowAll: ${allowAll ?? false})`);
+        ws.send(JSON.stringify({
+            type: 'tool_approval_response',
+            requestId,
+            decision,
+            ...(reason ? {reason} : {}),
+        }));
+        setPendingApproval(null);
+        if (allowAll) {
+            allowAllRef.current = true;
+        }
+    }, []);
+
     const stopExecution = React.useCallback((): void => {
         const ws: WebSocket | null = wsRef.current;
         if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -727,7 +779,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, sendMessage, editMessage, regenerateMessage, stopExecution, disconnect, retry, clearMessages};
+    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, disconnect, retry, clearMessages};
 }
 
 export {useClaudeChat};
