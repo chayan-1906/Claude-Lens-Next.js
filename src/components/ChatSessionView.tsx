@@ -390,11 +390,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         }
 
                         const copyText: string = extractMessageText(message.content);
-                        const hasToolUse: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_use');
-                        const hasToolResult: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_result');
+                        const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
                         return (
                             <div key={message.id} className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}>
-                                <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', (hasToolUse || hasToolResult) ? 'pb-3' : 'py-0', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+                                <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                                     <MessageContent content={message.content}/>
                                 </div>
                                 <div className={'flex items-center gap-2 mt-1 px-1'}>
@@ -429,7 +428,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     {/* Streaming assistant response */}
                     {streamingContent && (
                         <div className={'flex flex-col items-start'}>
-                            <div className={'max-w-[85%] rounded-2xl px-4 py-0 text-sm bg-assistant-bubble text-text'}>
+                            <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm bg-assistant-bubble text-text', streamingContent.some((block: ContentBlock) => block.type !== 'text') ? 'py-3' : 'py-0')}>
                                 <MessageContent content={streamingContent}/>
                             </div>
                         </div>

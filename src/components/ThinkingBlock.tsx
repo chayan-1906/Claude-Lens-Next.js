@@ -44,14 +44,14 @@ function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockP
 
     if (block._stubbed) {
         return (
-            <div className={'my-3 text-xs text-text-muted bg-surface border border-primary/30 rounded-md p-3 font-mono'}>
+            <div className={'text-xs text-text-muted bg-surface border border-primary/30 rounded-md p-3 font-mono'}>
                 {block.thinking}
             </div>
         );
     }
 
     return (
-        <div className={'group/thinking my-3 border border-primary/30 rounded-lg overflow-hidden'}>
+        <div className={'group/thinking border border-primary/30 rounded-lg overflow-hidden'}>
             <div className={'flex items-center'}>
                 <Button variant={'ghost'} size={'sm'} onClick={() => setIsOpen((prev: boolean) => !prev)}
                         className={'flex items-center gap-2 flex-1 justify-start p-3 text-xs text-text-muted hover:bg-transparent active:bg-transparent active:scale-100'}>

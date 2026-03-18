@@ -14,7 +14,7 @@ function formatTokenCount(n: number): string {
 function ContextBar({inputTokens, outputTokens, contextWindow}: IContextBarProps) {
     const [expanded, setExpanded] = React.useState<boolean>(false);
 
-    const consumed: number = inputTokens + outputTokens;
+    const consumed: number = inputTokens;
     const usagePercent: number = contextWindow && contextWindow > 0
         ? Math.round((consumed / contextWindow) * 100)
         : 0;

@@ -254,19 +254,19 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     break;
                 }
 
-                // Update context with final usage (include cache tokens)
+                // Update context — inputTokens is intentionally NOT overwritten here.
+                // The last assistant event carries per-call context usage (input_tokens +
+                // cache_creation + cache_read) which correctly measures context window
+                // consumption. The result event's usage is cumulative across all agentic
+                // turns and would inflate inputTokens beyond the context window.
                 const resultUsage: ITokenUsage | undefined = event.usage;
                 if (resultUsage) {
-                    const resultTotalInput: number = resultUsage.input_tokens
-                        + (resultUsage.cache_creation_input_tokens ?? 0)
-                        + (resultUsage.cache_read_input_tokens ?? 0);
                     setContextInfo((prev: IContextInfo | null) => {
                         if (!prev) return prev;
                         const modelKey: string | undefined = event.modelUsage ? Object.keys(event.modelUsage)[0] : undefined;
                         const modelUsage = modelKey ? event.modelUsage[modelKey] : null;
                         return {
                             ...prev,
-                            inputTokens: resultTotalInput,
                             outputTokens: resultUsage.output_tokens,
                             contextWindow: modelUsage?.contextWindow ?? prev.contextWindow,
                             costUsd: event.total_cost_usd,

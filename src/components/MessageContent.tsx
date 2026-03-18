@@ -20,7 +20,7 @@ function MessageContent({content, sessionId, messageId, onStubbed}: IMessageCont
     }
 
     return (
-        <div className={'flex flex-col'}>
+        <div className={'flex flex-col gap-2'}>
             {content.map((block: ContentBlock, index: number) => {
                 switch (block.type) {
                     case 'thinking':
@@ -68,8 +68,8 @@ function renderStringContent(text: string): React.ReactNode {
                 : parsed.command;
 
             return (
-                <div className={'flex flex-col gap-2 '}>
-                    <span className={'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-mono w-fit'}>
+                <div className={'flex flex-col gap-2 py-3'}>
+                    <span className={'inline-flex items-center px-3 py-2 rounded-full bg-primary/15 text-primary text-xs font-mono font-semibold w-fit'}>
                         ⚡{label}
                     </span>
                     {parsed.remainingText && (
