@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {HiOutlineChevronRight, HiOutlineTrash} from "react-icons/hi";
+import {HiOutlineChevronRight} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
@@ -59,12 +59,12 @@ function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockP
                     <span>Thinking...</span>
                     <span className={'text-text-muted/60'}>~{estimatedTokens.toLocaleString()} tokens</span>
                 </Button>
-                {canStub && (
+                {/*{canStub && (
                     <Button variant={'ghost'} size={'icon'} onClick={() => setIsModalOpen(true)} title={'Remove thinking content'}
                             className={'size-7 opacity-0 group-hover/thinking:opacity-100 text-text-muted hover:text-warning shrink-0 mr-1'}>
                         <HiOutlineTrash className={'size-3.5'}/>
                     </Button>
-                )}
+                )}*/}
             </div>
 
             {isOpen && (
