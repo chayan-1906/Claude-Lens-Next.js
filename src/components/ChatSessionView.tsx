@@ -2,7 +2,7 @@
 
 import React from "react";
 import {useRouter} from "next/navigation";
-import {HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineWifi} from "react-icons/hi";
+import {HiOutlineBeaker, HiOutlineCode, HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import type {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
@@ -228,6 +228,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
     const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
+    const showEmptyState: boolean = isNewChat && hasNoMessages && status === EChatStatus.IDLE;
 
     // Derive token usage from the last historical assistant message as a fallback
     const historicalTokenUsage = React.useMemo((): { input: number; output: number } | null => {
@@ -318,28 +319,83 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                 </div>
             )}
 
-            {/* Project directory input for new chats */}
-            {(isNewChat && !session && messages.length === 0) && (
-                <div className={'px-6 py-4 border-b border-border bg-surface shrink-0'}>
-                    <label className={'block text-xs text-text-muted mb-1.5'}>{'Project directory (optional)'}</label>
-                    <div className={'flex items-center gap-2'}>
-                        <input
-                            type={'text'}
-                            value={projectDir}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectDir(e.target.value)}
-                            placeholder={'/Users/you/projects/my-app'}
-                            className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
-                        />
-                        <Button variant={'secondary'} size={'sm'} onClick={handleBrowse} isLoading={isBrowsing} disabled={isBrowsing}>
-                            <HiOutlineFolder className={'size-4'}/>
-                            Browse...
-                        </Button>
-                    </div>
-                </div>
-            )}
-
             {/* Messages area */}
             <div className={'flex-1 overflow-y-auto px-6 py-4'}>
+                {showEmptyState ? (
+                    <div className={'h-full flex items-center justify-center'}>
+                        <div className={'flex flex-col items-center gap-8 max-w-3xl w-full px-4'}>
+                            {/* Decorative icon */}
+                            <div className={'size-14 rounded-2xl bg-primary/10 flex items-center justify-center'}>
+                                <HiOutlineTerminal className={'size-7 text-primary'}/>
+                            </div>
+
+                            {/* Heading */}
+                            <div className={'text-center space-y-1.5'}>
+                                <h2 className={'text-xl font-semibold text-text'}>What can I help you with?</h2>
+                                <p className={'text-sm text-text-muted'}>Chat with Claude about your code</p>
+                            </div>
+
+                            {/* Project directory input */}
+                            <div className={'w-full'}>
+                                <label className={'block text-xs text-text-muted mb-1.5'}>Project directory (optional)</label>
+                                <div className={'flex items-center gap-2'}>
+                                    <input
+                                        type={'text'}
+                                        value={projectDir}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectDir(e.target.value)}
+                                        placeholder={'/Users/you/projects/my-app'}
+                                        className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
+                                    />
+                                    <Button variant={'primary'} size={'sm'} onClick={handleBrowse} isLoading={isBrowsing} disabled={isBrowsing}>
+                                        <HiOutlineFolder className={'size-4'}/>
+                                        Browse...
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* How it works */}
+                            <p className={'text-xs text-text-muted text-center leading-relaxed'}>
+                                Set a project directory, type a message, and Claude will work directly in your codebase
+                            </p>
+
+                            {/* Capability pills */}
+                            <div className={'flex flex-wrap justify-center gap-2'}>
+                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                    <HiOutlineCode className={'size-3.5 text-primary'}/>
+                                    <span className={'text-xs text-text-muted'}>Read and edit files</span>
+                                </span>
+                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                    <HiOutlineTerminal className={'size-3.5 text-primary'}/>
+                                    <span className={'text-xs text-text-muted'}>Run commands</span>
+                                </span>
+                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                    <HiOutlineSearch className={'size-3.5 text-primary'}/>
+                                    <span className={'text-xs text-text-muted'}>Search codebase</span>
+                                </span>
+                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                    <HiOutlineBeaker className={'size-3.5 text-primary'}/>
+                                    <span className={'text-xs text-text-muted'}>Write tests</span>
+                                </span>
+                            </div>
+
+                            {/* Keyboard shortcut hints */}
+                            <div className={'flex flex-wrap justify-center gap-x-4 gap-y-1'}>
+                                <span className={'text-[11px] text-text-muted'}>
+                                    <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Enter</kbd> to send
+                                </span>
+                                <span className={'text-[11px] text-text-muted'}>
+                                    <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Shift + Enter</kbd> for new line
+                                </span>
+                                <span className={'text-[11px] text-text-muted'}>
+                                    Markdown supported
+                                </span>
+                                <span className={'text-[11px] text-text-muted'}>
+                                    Voice input available
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
                 <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
                     {/* Historical messages — sliced at edit cutoff when user edits from history */}
                     {localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
@@ -465,13 +521,9 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         </div>
                     )}
 
-                    {/* Empty state for new chats */}
-                    {(isNewChat && hasNoMessages && status === EChatStatus.IDLE) && (
-                        <p className={'text-sm text-text-muted text-center py-8'}>Start a new conversation</p>
-                    )}
-
                     <ScrollToBottom trigger={`${messages.length}-${streamingContent?.length ?? 0}`}/>
                 </div>
+                )}
             </div>
 
             {/* Context info + Chat input */}
