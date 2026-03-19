@@ -29,7 +29,23 @@ import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMes
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
-    const {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, retry, clearMessages} = useClaudeChat();
+    const {
+        status,
+        messages,
+        streamingContent,
+        contextInfo,
+        error,
+        retryable,
+        forkedSessionId,
+        pendingApproval,
+        sendMessage,
+        editMessage,
+        regenerateMessage,
+        respondToApproval,
+        stopExecution,
+        retry,
+        clearMessages
+    } = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -262,6 +278,18 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         || outputTokens > 0
         || contextWindow !== null;
 
+    console.log('Context Info:', {
+        historicalInput,
+        contextTokensUsed: session?.contextTokensUsed,
+        historicalTokenUsage,
+        historicalOutput,
+        inputTokens: contextInfo?.inputTokens,
+        outputTokens: contextInfo?.outputTokens,
+        contextWindow: contextInfo?.contextWindow,
+        contextWindowSize: session?.contextWindowSize,
+        hasContextData,
+    });
+
     return (
         <div className={'flex flex-col h-full'}>
             {/* Reconnecting banner — shown immediately when connection drops mid-session */}
@@ -396,71 +424,72 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         </div>
                     </div>
                 ) : (
-                <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
-                    {/* Historical messages — sliced at edit cutoff when user edits from history */}
-                    {localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
-                        const isUser: boolean = message.role === EMessageRole.USER;
+                    <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
+                        {/* Historical messages — sliced at edit cutoff when user edits from history */}
+                        {localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
+                            const isUser: boolean = message.role === EMessageRole.USER;
 
-                        if (editingId === message.uuid) {
+                            if (editingId === message.uuid) {
+                                return (
+                                    <div key={message.uuid} className={'flex flex-col items-end'}>
+                                        <InlineMessageEditor
+                                            initialText={extractMessageText(message.content)}
+                                            disabled={isChattingDisabled}
+                                            onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
+                                            onCancel={() => setEditingId(null)}
+                                        />
+                                    </div>
+                                );
+                            }
+
+                            const showHistoricalRegenerate: boolean = !isUser && canRegenerate;
+
                             return (
-                                <div key={message.uuid} className={'flex flex-col items-end'}>
-                                    <InlineMessageEditor
-                                        initialText={extractMessageText(message.content)}
-                                        disabled={isChattingDisabled}
-                                        onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
-                                        onCancel={() => setEditingId(null)}
-                                    />
-                                </div>
+                                <MessageBubble
+                                    key={message.uuid}
+                                    message={message}
+                                    index={index}
+                                    sessionId={session?.sessionId}
+                                    onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}
+                                    onRegenerate={showHistoricalRegenerate ? handleHistoricalRegenerate : undefined}
+                                    onStubbed={handleStubbed}
+                                />
                             );
-                        }
+                        })}
 
-                        const showHistoricalRegenerate: boolean = !isUser && canRegenerate;
+                        {/* Live messages (user + finalized assistant) */}
+                        {messages.map((message: IChatMessage, index: number) => {
+                            const isUser: boolean = message.role === EMessageRole.USER;
 
-                        return (
-                            <MessageBubble
-                                key={message.uuid}
-                                message={message}
-                                index={index}
-                                sessionId={session?.sessionId}
-                                onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}
-                                onRegenerate={showHistoricalRegenerate ? handleHistoricalRegenerate : undefined}
-                                onStubbed={handleStubbed}
-                            />
-                        );
-                    })}
+                            if (editingId === message.id) {
+                                return (
+                                    <div key={message.id} className={'flex flex-col items-end'}>
+                                        <InlineMessageEditor
+                                            initialText={extractMessageText(message.content)}
+                                            disabled={isChattingDisabled}
+                                            onSave={(newText: string) => handleLiveEditSave(newText, index)}
+                                            onCancel={() => setEditingId(null)}
+                                        />
+                                    </div>
+                                );
+                            }
 
-                    {/* Live messages (user + finalized assistant) */}
-                    {messages.map((message: IChatMessage, index: number) => {
-                        const isUser: boolean = message.role === EMessageRole.USER;
-
-                        if (editingId === message.id) {
+                            const copyText: string = extractMessageText(message.content);
+                            const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
                             return (
-                                <div key={message.id} className={'flex flex-col items-end'}>
-                                    <InlineMessageEditor
-                                        initialText={extractMessageText(message.content)}
-                                        disabled={isChattingDisabled}
-                                        onSave={(newText: string) => handleLiveEditSave(newText, index)}
-                                        onCancel={() => setEditingId(null)}
-                                    />
-                                </div>
-                            );
-                        }
-
-                        const copyText: string = extractMessageText(message.content);
-                        const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
-                        return (
-                            <div key={message.id} className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}>
-                                <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
-                                    <MessageContent content={message.content}/>
-                                </div>
-                                <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                    {/*{(isUser && !isChattingDisabled && editingId === null) && (
+                                <div key={message.id} className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}>
+                                    <div
+                                        className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+                                        <MessageContent content={message.content}/>
+                                    </div>
+                                    <div className={'flex items-center gap-2 mt-1 px-1'}>
+                                        {/*{(isUser && !isChattingDisabled && editingId === null) && (
                                         <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
                                                 className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
                                             <HiOutlinePencil className={'size-3.5'}/>
                                         </Button>
                                     )}*/}
-                                    {/*{(() => {
+                                        {/*{(() => {
                                         const showLiveRegenerate: boolean = !isUser && canRegenerate;
                                         return showLiveRegenerate ? (
                                             <Button variant={'ghost'} size={'icon'} onClick={() => handleLiveRegenerate(index)} title={'Regenerate response'}
@@ -469,60 +498,61 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                             </Button>
                                         ) : null;
                                     })()}*/}
-                                    {copyText && (
-                                        <CopyMessageButton text={copyText}/>
-                                    )}
-                                    {(!isUser && message.model) && (
-                                        <span className={'text-xs text-text-muted italic'}>
+                                        {copyText && (
+                                            <CopyMessageButton text={copyText}/>
+                                        )}
+                                        {(!isUser && message.model) && (
+                                            <span className={'text-xs text-text-muted italic'}>
                                             Prepared using {formatModelName(message.model)}
                                         </span>
-                                    )}
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {/* Streaming assistant response */}
+                        {streamingContent && (
+                            <div className={'flex flex-col items-start'}>
+                                <div
+                                    className={cn('max-w-[85%] rounded-2xl px-4 text-sm bg-assistant-bubble text-text', streamingContent.some((block: ContentBlock) => block.type !== 'text') ? 'py-3' : 'py-0')}>
+                                    <MessageContent content={streamingContent}/>
                                 </div>
                             </div>
-                        );
-                    })}
+                        )}
 
-                    {/* Streaming assistant response */}
-                    {streamingContent && (
-                        <div className={'flex flex-col items-start'}>
-                            <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm bg-assistant-bubble text-text', streamingContent.some((block: ContentBlock) => block.type !== 'text') ? 'py-3' : 'py-0')}>
-                                <MessageContent content={streamingContent}/>
+                        {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
+                        {pendingApproval && (
+                            <ToolApprovalPrompt approval={pendingApproval} onRespond={respondToApproval}/>
+                        )}
+
+                        {/* Thinking dots — waiting for first token */}
+                        {showThinking && (
+                            <div className={'flex items-start'}>
+                                <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
+                                    <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '0ms'}}/>
+                                    <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '150ms'}}/>
+                                    <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '300ms'}}/>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
-                    {pendingApproval && (
-                        <ToolApprovalPrompt approval={pendingApproval} onRespond={respondToApproval}/>
-                    )}
-
-                    {/* Thinking dots — waiting for first token */}
-                    {showThinking && (
-                        <div className={'flex items-start'}>
-                            <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
-                                <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '0ms'}}/>
-                                <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '150ms'}}/>
-                                <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '300ms'}}/>
+                        {/* Error state */}
+                        {status === EChatStatus.ERROR && error && (
+                            <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
+                                <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
+                                <span className={'flex-1'}>{error}</span>
+                                {retryable && (
+                                    <Button variant={'link'} size={'sm'} onClick={retry} className={'shrink-0'}>
+                                        <HiOutlineRefresh className={'size-3'}/>
+                                        Retry
+                                    </Button>
+                                )}
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Error state */}
-                    {status === EChatStatus.ERROR && error && (
-                        <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
-                            <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
-                            <span className={'flex-1'}>{error}</span>
-                            {retryable && (
-                                <Button variant={'link'} size={'sm'} onClick={retry} className={'shrink-0'}>
-                                    <HiOutlineRefresh className={'size-3'}/>
-                                    Retry
-                                </Button>
-                            )}
-                        </div>
-                    )}
-
-                    <ScrollToBottom trigger={`${messages.length}-${streamingContent?.length ?? 0}`}/>
-                </div>
+                        <ScrollToBottom trigger={`${messages.length}-${streamingContent?.length ?? 0}`}/>
+                    </div>
                 )}
             </div>
 

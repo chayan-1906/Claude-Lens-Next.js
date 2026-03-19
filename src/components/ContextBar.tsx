@@ -22,6 +22,8 @@ function ContextBar({inputTokens, outputTokens, contextWindow}: IContextBarProps
 
     const barColor: string = usagePercent < 50 ? 'bg-success' : usagePercent < 80 ? 'bg-warning' : 'bg-error';
 
+    console.log('ContextBar:', {consumed, usagePercent, remaining, inputTokens, contextWindow});
+
     return (
         <div className={'border-t border-border rounded-t-xl bg-surface select-none'}>
             {/* Collapsed view — always visible, single row */}
