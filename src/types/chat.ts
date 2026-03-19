@@ -169,7 +169,12 @@ export interface IToolApprovalRequestMessage {
     toolUseId: string;
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage;
+/** Backend message: confirms the Claude process was killed after stop_execution */
+export interface ISessionStoppedMessage {
+    type: 'session_stopped';
+}
+
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {

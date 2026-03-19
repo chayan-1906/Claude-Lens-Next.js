@@ -141,6 +141,14 @@ function useClaudeChat(): IUseClaudeChatReturn {
     // --- Handle server messages ---
 
     const handleServerMessage = React.useCallback((data: ServerMessage): void => {
+        // Drain/ignore buffered WS events that arrive after the user clicked Stop.
+        // Only process_exit and session_stopped are allowed through — everything else
+        // would re-trigger streaming UI or overwrite the IDLE state.
+        if (stopRequestedRef.current && data.type !== 'process_exit' && data.type !== 'session_stopped') {
+            console.log(`[useClaudeChat] Ignoring post-stop event: ${data.type}`);
+            return;
+        }
+
         switch (data.type) {
             case 'system': {
                 const event: ISystemEvent = data as ISystemEvent;
@@ -336,6 +344,16 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     setStatus((prev: EChatStatus) => prev === EChatStatus.ERROR ? prev : EChatStatus.IDLE);
                     console.log('[useClaudeChat] Status → IDLE (process exited, session deactivated)');
                 }
+                break;
+            }
+
+            case 'session_stopped': {
+                console.log('[useClaudeChat] session_stopped — backend confirmed process killed');
+                // Final cleanup — stopRequestedRef may already be cleared by process_exit
+                // but clear it here too in case session_stopped arrives first
+                stopRequestedRef.current = false;
+                isSessionActiveRef.current = false;
+                setStatus(EChatStatus.IDLE);
                 break;
             }
 
@@ -741,10 +759,17 @@ function useClaudeChat(): IUseClaudeChatReturn {
             console.warn('[useClaudeChat] stopExecution called but WS not open');
             return;
         }
-        console.log('[useClaudeChat] Sending stop_execution');
+        console.log('[useClaudeChat] Sending stop_execution — optimistic UI: stopping immediately');
         stopRequestedRef.current = true;
+
+        // Optimistic UI: immediately stop rendering — don't wait for backend ack
+        finalizeStreamingMessage();
+        setStatus(EChatStatus.IDLE);
+        isSessionActiveRef.current = false;
+        regenerateRetryRef.current = null;
+
         ws.send(JSON.stringify({type: 'stop_execution'}));
-    }, []);
+    }, [finalizeStreamingMessage]);
 
     const retry = React.useCallback((): void => {
         console.log('[useClaudeChat] retry() called — resetting error and reconnecting');
