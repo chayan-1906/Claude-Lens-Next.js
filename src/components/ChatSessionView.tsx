@@ -474,12 +474,13 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 );
                             }
 
+                            const isCommandOutput: boolean = isUser && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
                             const copyText: string = extractMessageText(message.content);
                             const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
                             return (
-                                <div key={message.id} className={cn('flex flex-col group', isUser ? 'items-end' : 'items-start')}>
+                                <div key={message.id} className={cn('flex flex-col group', (isUser && !isCommandOutput) ? 'items-end' : 'items-start')}>
                                     <div
-                                        className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', isUser ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+                                        className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', (isUser && !isCommandOutput) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                                         <MessageContent content={message.content}/>
                                     </div>
                                     <div className={'flex items-center gap-2 mt-1 px-1'}>

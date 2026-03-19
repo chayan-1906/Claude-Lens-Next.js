@@ -3,6 +3,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import Markdown from "react-markdown";
 import {EUserMessageType} from "@/types/message";
+import {stripAnsiCodes} from "@/utils/stripAnsiCodes";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {ThinkingBlock} from "@/components/ThinkingBlock";
 import {ToolCallBlock} from "@/components/ToolCallBlock";
@@ -85,8 +86,8 @@ function renderStringContent(text: string): React.ReactNode {
 
         case EUserMessageType.COMMAND_OUTPUT:
             return (
-                <pre className={'text-xs font-mono whitespace-pre-wrap bg-code-bg rounded-md p-3 text-text-muted overflow-x-auto'}>
-                    {parsed.output}
+                <pre className={'text-xs font-mono whitespace-pre-wrap bg-code-bg rounded-md p-3 my-3 text-text-muted overflow-x-auto'}>
+                    {stripAnsiCodes(parsed.output)}
                 </pre>
             );
 
