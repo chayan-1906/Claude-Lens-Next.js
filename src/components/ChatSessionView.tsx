@@ -49,6 +49,18 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     const [editingId, setEditingId] = React.useState<string | null>(null);
     const [historicalCutoffIndex, setHistoricalCutoffIndex] = React.useState<number | null>(null);
 
+    // History readiness guard — prevents sends before all state is settled after mount.
+    // On client-side navigation (e.g. clicking a session in the sidebar right after import),
+    // props may still be streaming from the server component. This ensures the component
+    // is fully hydrated with historicalMessages before the user can send.
+    const [isHistoryReady, setIsHistoryReady] = React.useState<boolean>(isNewChat);
+
+    React.useEffect(() => {
+        if (!isNewChat && historicalMessages !== undefined) {
+            setIsHistoryReady(true);
+        }
+    }, [isNewChat, historicalMessages]);
+
     // Project directory state for new chats
     const [projectDir, setProjectDir] = React.useState<string>('');
     const [isBrowsing, setIsBrowsing] = React.useState<boolean>(false);
@@ -106,8 +118,8 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         || status === EChatStatus.CONNECTING
         || status === EChatStatus.OFFLINE;
 
-    // Main ChatInput disabled while chatting OR while an edit is in progress
-    const disabled: boolean = isChattingDisabled || editingId !== null;
+    // Main ChatInput disabled while chatting, editing, OR history not yet ready
+    const disabled: boolean = isChattingDisabled || editingId !== null || !isHistoryReady;
 
     const isLoading: boolean = status === EChatStatus.SENDING
         || status === EChatStatus.STREAMING
