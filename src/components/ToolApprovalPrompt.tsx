@@ -10,20 +10,30 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
     const {requestId, toolName, toolInput} = approval;
     const isBash: boolean = toolName === 'Bash';
     const isMcp: boolean = toolName.startsWith('mcp__');
-    const filePath: string = (!isBash && !isMcp) ? ((toolInput.file_path as string) ?? 'unknown file') : '';
+    const isFileOp: boolean = !isBash && !isMcp && ('file_path' in toolInput || 'notebook_path' in toolInput);
+    const isGenericTool: boolean = !isBash && !isMcp && !isFileOp;
+    const filePath: string = isFileOp ? ((toolInput.file_path as string) ?? (toolInput.notebook_path as string) ?? '') : '';
     const bashCommand: string = isBash ? ((toolInput.command as string) ?? '') : '';
     const mcpParts: string[] = isMcp ? toolName.split('__') : [];
     const mcpServerName: string = mcpParts[1] ?? '';
     const mcpToolName: string = mcpParts.slice(2).join('__');
+
+    const headerLabel: string = isBash
+        ? 'Run command?'
+        : isMcp || isGenericTool
+            ? 'Use tool?'
+            : toolName === 'Write'
+                ? 'Create file?'
+                : 'Edit file?';
 
     const handleApprove = React.useCallback((): void => {
         onRespond(requestId, 'allow');
     }, [requestId, onRespond]);
 
     const handleDeny = React.useCallback((): void => {
-        const reason: string = isBash ? 'User denied the command' : isMcp ? 'User denied the tool call' : 'User denied the edit';
+        const reason: string = isBash ? 'User denied the command' : (isMcp || isGenericTool) ? 'User denied the tool call' : 'User denied the edit';
         onRespond(requestId, 'deny', reason);
-    }, [requestId, onRespond, isBash, isMcp]);
+    }, [requestId, onRespond, isBash, isMcp, isGenericTool]);
 
     const handleAllowAll = React.useCallback((): void => {
         onRespond(requestId, 'allow', undefined, true);
@@ -35,14 +45,16 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                 {/* Header */}
                 <div className={'flex items-center gap-2 px-4 py-2.5 border-b border-warning/20 bg-warning/10'}>
                     <span className={'text-sm font-medium text-warning'}>
-                        {isBash ? 'Run command?' : isMcp ? 'Use tool?' : toolName === 'Write' ? 'Create file?' : 'Edit file?'}
+                        {headerLabel}
                     </span>
                     {isMcp ? (
                         <>
                             <span className={'text-xs font-mono text-text-muted truncate flex-1'}>{mcpToolName}</span>
                             <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase'}>{mcpServerName}</span>
                         </>
-                    ) : !isBash ? (
+                    ) : isGenericTool ? (
+                        <span className={'text-xs font-mono text-text-muted truncate flex-1'}>{toolName}</span>
+                    ) : isFileOp ? (
                         <span className={'text-xs text-text-muted font-mono truncate flex-1'}>{filePath}</span>
                     ) : null}
                 </div>
@@ -53,7 +65,7 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                         <div className={'rounded-lg border border-primary/30 overflow-hidden bg-surface'}>
                             <pre className={'px-4 py-3 text-xs font-mono text-text overflow-x-auto'}>{bashCommand}</pre>
                         </div>
-                    ) : isMcp ? (
+                    ) : (isMcp || isGenericTool) ? (
                         <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>
                             <pre className={'px-4 py-3 text-xs font-mono text-text overflow-x-auto max-h-80 overflow-y-auto'}>
                                 {JSON.stringify(toolInput, null, 2)}
