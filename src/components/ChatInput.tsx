@@ -111,14 +111,14 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
         }
     }, [voiceState, rephrased, adjustHeight]);
 
-    const handleMicClick = React.useCallback((): void => {
+    const handleMicClick = React.useCallback(async (): Promise<void> => {
         if (isVoiceProcessing) return;
         if (isRecording) {
             stopRecording();
             return;
         }
         resetVoice();
-        startRecording();
+        await startRecording();
     }, [isVoiceProcessing, isRecording, stopRecording, resetVoice, startRecording]);
 
     const canSend: boolean = text.trim().length > 0 && !disabled && !isRecording;
@@ -191,7 +191,7 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
                     value={text}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
-                    disabled={disabled || isRecording || isVoiceProcessing}
+                    disabled={isRecording || isVoiceProcessing}
                     placeholder={'Send a message...'}
                     rows={1}
                     className={cn(
