@@ -2,6 +2,7 @@
 
 import React from "react";
 import {useRouter} from "next/navigation";
+import {FaArrowDown} from "react-icons/fa";
 import {HiOutlineBeaker, HiOutlineCode, HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
@@ -17,7 +18,6 @@ import {openFolderPicker} from "@/actions/file.actions";
 import type {IGetSessionResponse} from "@/types/session";
 import {MessageBubble} from "@/components/MessageBubble";
 import {MessageContent} from "@/components/MessageContent";
-import {ScrollToBottom} from "@/components/ScrollToBottom";
 import type {IOpenFolderPickerResponse} from "@/types/file";
 import type {IChatSessionViewProps} from "@/types/components";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
@@ -30,26 +30,17 @@ import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMes
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
     const {
-        status,
-        messages,
-        streamingContent,
-        contextInfo,
-        error,
-        retryable,
-        forkedSessionId,
-        pendingApproval,
-        sendMessage,
-        editMessage,
-        regenerateMessage,
-        respondToApproval,
-        stopExecution,
-        retry,
-        clearMessages
+        status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval,
+        sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, retry, clearMessages,
     } = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
     const hasSyncedSidebarRef = React.useRef<boolean>(false);
+
+    // Auto-scroll refs
+    const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
+    const isAtBottomRef = React.useRef<boolean>(true);
 
     // Local copy of historical messages — enables optimistic stub updates without a full page refresh
     const [localHistoricalMessages, setLocalHistoricalMessages] = React.useState<IMessage[]>(historicalMessages ?? []);
@@ -62,6 +53,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     const [projectDir, setProjectDir] = React.useState<string>('');
     const [isBrowsing, setIsBrowsing] = React.useState<boolean>(false);
     const [isRefreshingMessages, setIsRefreshingMessages] = React.useState<boolean>(false);
+    const [showScrollButton, setShowScrollButton] = React.useState<boolean>(false);
 
     console.log(`[ChatSessionView] Render — isNewChat: ${isNewChat}, sessionId: ${session?.sessionId ?? contextInfo?.sessionId ?? 'none'}, status: ${status}, liveMessages: ${messages.length}, streaming: ${streamingContent !== null}, historicalMessages: ${historicalMessages?.length ?? 0}`);
 
@@ -121,10 +113,43 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         || status === EChatStatus.STREAMING
         || status === EChatStatus.TOOL_RUNNING;
 
+    // Auto-scroll: detect whether user is at (or near) the bottom
+    const SCROLL_THRESHOLD: number = 50;
+
+    const handleScroll = React.useCallback((): void => {
+        const el: HTMLDivElement | null = scrollContainerRef.current;
+        if (!el) return;
+        const atBottom: boolean = el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD;
+        isAtBottomRef.current = atBottom;
+        setShowScrollButton(!atBottom);
+    }, []);
+
+    const scrollToBottom = React.useCallback((behavior: ScrollBehavior = 'smooth'): void => {
+        const el: HTMLDivElement | null = scrollContainerRef.current;
+        if (!el) return;
+        el.scrollTo({top: el.scrollHeight, behavior});
+    }, []);
+
+    const handleScrollToBottomClick = React.useCallback((): void => {
+        isAtBottomRef.current = true;
+        setShowScrollButton(false);
+        scrollToBottom('smooth');
+    }, [scrollToBottom]);
+
+    // Auto-scroll on content changes — gated by isAtBottomRef
+    React.useEffect(() => {
+        if (isAtBottomRef.current) {
+            scrollToBottom();
+        }
+    }, [messages.length, streamingContent, scrollToBottom]);
+
     const handleSend = React.useCallback((text: string): void => {
         console.log(`[ChatSessionView] handleSend — text:`, text.slice(0, 50));
+        isAtBottomRef.current = true;
+        setShowScrollButton(false);
+        scrollToBottom('instant');
         sendMessage(text, isNewChat ? {projectDir: projectDir || undefined} : {sessionId: session?.sessionId});
-    }, [sendMessage, isNewChat, session?.sessionId, projectDir]);
+    }, [sendMessage, isNewChat, session?.sessionId, projectDir, scrollToBottom]);
 
     const handleHistoricalEditSave = React.useCallback((newText: string, historicalIndex: number): void => {
         setHistoricalCutoffIndex(historicalIndex);
@@ -348,149 +373,150 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             )}
 
             {/* Messages area */}
-            <div className={'flex-1 overflow-y-auto px-6 py-4'}>
-                {showEmptyState ? (
-                    <div className={'h-full flex items-center justify-center'}>
-                        <div className={'flex flex-col items-center gap-8 max-w-3xl w-full px-4'}>
-                            {/* Decorative icon */}
-                            <div className={'size-14 rounded-2xl bg-primary/10 flex items-center justify-center'}>
-                                <HiOutlineTerminal className={'size-7 text-primary'}/>
-                            </div>
-
-                            {/* Heading */}
-                            <div className={'text-center space-y-1.5'}>
-                                <h2 className={'text-xl font-semibold text-text'}>What can I help you with?</h2>
-                                <p className={'text-sm text-text-muted'}>Chat with Claude about your code</p>
-                            </div>
-
-                            {/* Project directory input */}
-                            <div className={'w-full'}>
-                                <label className={'block text-xs text-text-muted mb-1.5'}>Project directory (optional)</label>
-                                <div className={'flex items-center gap-2'}>
-                                    <input
-                                        type={'text'}
-                                        value={projectDir}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectDir(e.target.value)}
-                                        placeholder={'/Users/you/projects/my-app'}
-                                        className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
-                                    />
-                                    <Button variant={'primary'} size={'sm'} onClick={handleBrowse} isLoading={isBrowsing} disabled={isBrowsing}>
-                                        <HiOutlineFolder className={'size-4'}/>
-                                        Browse...
-                                    </Button>
+            <div className={'relative flex-1 min-h-0'}>
+                <div ref={scrollContainerRef} onScroll={handleScroll} className={'h-full overflow-y-auto px-6 py-4'}>
+                    {showEmptyState ? (
+                        <div className={'h-full flex items-center justify-center'}>
+                            <div className={'flex flex-col items-center gap-8 max-w-3xl w-full px-4'}>
+                                {/* Decorative icon */}
+                                <div className={'size-14 rounded-2xl bg-primary/10 flex items-center justify-center'}>
+                                    <HiOutlineTerminal className={'size-7 text-primary'}/>
                                 </div>
-                            </div>
 
-                            {/* How it works */}
-                            <p className={'text-xs text-text-muted text-center leading-relaxed'}>
-                                Set a project directory, type a message, and Claude will work directly in your codebase
-                            </p>
+                                {/* Heading */}
+                                <div className={'text-center space-y-1.5'}>
+                                    <h2 className={'text-xl font-semibold text-text'}>What can I help you with?</h2>
+                                    <p className={'text-sm text-text-muted'}>Chat with Claude about your code</p>
+                                </div>
 
-                            {/* Capability pills */}
-                            <div className={'flex flex-wrap justify-center gap-2'}>
+                                {/* Project directory input */}
+                                <div className={'w-full'}>
+                                    <label className={'block text-xs text-text-muted mb-1.5'}>Project directory (optional)</label>
+                                    <div className={'flex items-center gap-2'}>
+                                        <input
+                                            type={'text'}
+                                            value={projectDir}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectDir(e.target.value)}
+                                            placeholder={'/Users/you/projects/my-app'}
+                                            className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
+                                        />
+                                        <Button variant={'primary'} size={'sm'} onClick={handleBrowse} isLoading={isBrowsing} disabled={isBrowsing}>
+                                            <HiOutlineFolder className={'size-4'}/>
+                                            Browse...
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* How it works */}
+                                <p className={'text-xs text-text-muted text-center leading-relaxed'}>
+                                    Set a project directory, type a message, and Claude will work directly in your codebase
+                                </p>
+
+                                {/* Capability pills */}
+                                <div className={'flex flex-wrap justify-center gap-2'}>
                                 <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
                                     <HiOutlineCode className={'size-3.5 text-primary'}/>
                                     <span className={'text-xs text-text-muted'}>Read and edit files</span>
                                 </span>
-                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                    <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
                                     <HiOutlineTerminal className={'size-3.5 text-primary'}/>
                                     <span className={'text-xs text-text-muted'}>Run commands</span>
                                 </span>
-                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                    <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
                                     <HiOutlineSearch className={'size-3.5 text-primary'}/>
                                     <span className={'text-xs text-text-muted'}>Search codebase</span>
                                 </span>
-                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                    <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
                                     <HiOutlineBeaker className={'size-3.5 text-primary'}/>
                                     <span className={'text-xs text-text-muted'}>Write tests</span>
                                 </span>
-                            </div>
+                                </div>
 
-                            {/* Keyboard shortcut hints */}
-                            <div className={'flex flex-wrap justify-center gap-x-4 gap-y-1'}>
+                                {/* Keyboard shortcut hints */}
+                                <div className={'flex flex-wrap justify-center gap-x-4 gap-y-1'}>
                                 <span className={'text-[11px] text-text-muted'}>
                                     <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Enter</kbd> to send
                                 </span>
-                                <span className={'text-[11px] text-text-muted'}>
+                                    <span className={'text-[11px] text-text-muted'}>
                                     <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Shift + Enter</kbd> for new line
                                 </span>
-                                <span className={'text-[11px] text-text-muted'}>
+                                    <span className={'text-[11px] text-text-muted'}>
                                     Markdown supported
                                 </span>
-                                <span className={'text-[11px] text-text-muted'}>
+                                    <span className={'text-[11px] text-text-muted'}>
                                     Voice input available
                                 </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ) : (
-                    <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
-                        {/* Historical messages — sliced at edit cutoff when user edits from history */}
-                        {localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
-                            const isUser: boolean = message.role === EMessageRole.USER;
+                    ) : (
+                        <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
+                            {/* Historical messages — sliced at edit cutoff when user edits from history */}
+                            {localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
+                                const isUser: boolean = message.role === EMessageRole.USER;
 
-                            if (editingId === message.uuid) {
+                                if (editingId === message.uuid) {
+                                    return (
+                                        <div key={message.uuid} className={'flex flex-col items-end'}>
+                                            <InlineMessageEditor
+                                                initialText={extractMessageText(message.content)}
+                                                disabled={isChattingDisabled}
+                                                onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
+                                                onCancel={() => setEditingId(null)}
+                                            />
+                                        </div>
+                                    );
+                                }
+
+                                const showHistoricalRegenerate: boolean = !isUser && canRegenerate;
+
                                 return (
-                                    <div key={message.uuid} className={'flex flex-col items-end'}>
-                                        <InlineMessageEditor
-                                            initialText={extractMessageText(message.content)}
-                                            disabled={isChattingDisabled}
-                                            onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
-                                            onCancel={() => setEditingId(null)}
-                                        />
-                                    </div>
+                                    <MessageBubble
+                                        key={message.uuid}
+                                        message={message}
+                                        index={index}
+                                        sessionId={session?.sessionId}
+                                        onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}
+                                        onRegenerate={showHistoricalRegenerate ? handleHistoricalRegenerate : undefined}
+                                        onStubbed={handleStubbed}
+                                    />
                                 );
-                            }
+                            })}
 
-                            const showHistoricalRegenerate: boolean = !isUser && canRegenerate;
+                            {/* Live messages (user + finalized assistant) */}
+                            {messages.map((message: IChatMessage, index: number) => {
+                                const isUser: boolean = message.role === EMessageRole.USER;
 
-                            return (
-                                <MessageBubble
-                                    key={message.uuid}
-                                    message={message}
-                                    index={index}
-                                    sessionId={session?.sessionId}
-                                    onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}
-                                    onRegenerate={showHistoricalRegenerate ? handleHistoricalRegenerate : undefined}
-                                    onStubbed={handleStubbed}
-                                />
-                            );
-                        })}
+                                if (editingId === message.id) {
+                                    return (
+                                        <div key={message.id} className={'flex flex-col items-end'}>
+                                            <InlineMessageEditor
+                                                initialText={extractMessageText(message.content)}
+                                                disabled={isChattingDisabled}
+                                                onSave={(newText: string) => handleLiveEditSave(newText, index)}
+                                                onCancel={() => setEditingId(null)}
+                                            />
+                                        </div>
+                                    );
+                                }
 
-                        {/* Live messages (user + finalized assistant) */}
-                        {messages.map((message: IChatMessage, index: number) => {
-                            const isUser: boolean = message.role === EMessageRole.USER;
-
-                            if (editingId === message.id) {
+                                const isCommandOutput: boolean = isUser && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
+                                const copyText: string = extractMessageText(message.content);
+                                const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
                                 return (
-                                    <div key={message.id} className={'flex flex-col items-end'}>
-                                        <InlineMessageEditor
-                                            initialText={extractMessageText(message.content)}
-                                            disabled={isChattingDisabled}
-                                            onSave={(newText: string) => handleLiveEditSave(newText, index)}
-                                            onCancel={() => setEditingId(null)}
-                                        />
-                                    </div>
-                                );
-                            }
-
-                            const isCommandOutput: boolean = isUser && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
-                            const copyText: string = extractMessageText(message.content);
-                            const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
-                            return (
-                                <div key={message.id} className={cn('flex flex-col group', (isUser && !isCommandOutput) ? 'items-end' : 'items-start')}>
-                                    <div
-                                        className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', (isUser && !isCommandOutput) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
-                                        <MessageContent content={message.content}/>
-                                    </div>
-                                    <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                        {/*{(isUser && !isChattingDisabled && editingId === null) && (
+                                    <div key={message.id} className={cn('flex flex-col group', (isUser && !isCommandOutput) ? 'items-end' : 'items-start')}>
+                                        <div
+                                            className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', (isUser && !isCommandOutput) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+                                            <MessageContent content={message.content}/>
+                                        </div>
+                                        <div className={'flex items-center gap-2 mt-1 px-1'}>
+                                            {/*{(isUser && !isChattingDisabled && editingId === null) && (
                                         <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
                                                 className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
                                             <HiOutlinePencil className={'size-3.5'}/>
                                         </Button>
                                     )}*/}
-                                        {/*{(() => {
+                                            {/*{(() => {
                                         const showLiveRegenerate: boolean = !isUser && canRegenerate;
                                         return showLiveRegenerate ? (
                                             <Button variant={'ghost'} size={'icon'} onClick={() => handleLiveRegenerate(index)} title={'Regenerate response'}
@@ -499,61 +525,68 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                             </Button>
                                         ) : null;
                                     })()}*/}
-                                        {copyText && (
-                                            <CopyMessageButton text={copyText}/>
-                                        )}
-                                        {(!isUser && message.model) && (
-                                            <span className={'text-xs text-text-muted italic'}>
+                                            {copyText && (
+                                                <CopyMessageButton text={copyText}/>
+                                            )}
+                                            {(!isUser && message.model) && (
+                                                <span className={'text-xs text-text-muted italic'}>
                                             Prepared using {formatModelName(message.model)}
                                         </span>
-                                        )}
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {/* Streaming assistant response */}
+                            {streamingContent && (
+                                <div className={'flex flex-col items-start'}>
+                                    <div
+                                        className={cn('max-w-[85%] rounded-2xl px-4 text-sm bg-assistant-bubble text-text', streamingContent.some((block: ContentBlock) => block.type !== 'text') ? 'py-3' : 'py-0')}>
+                                        <MessageContent content={streamingContent}/>
                                     </div>
                                 </div>
-                            );
-                        })}
+                            )}
 
-                        {/* Streaming assistant response */}
-                        {streamingContent && (
-                            <div className={'flex flex-col items-start'}>
-                                <div
-                                    className={cn('max-w-[85%] rounded-2xl px-4 text-sm bg-assistant-bubble text-text', streamingContent.some((block: ContentBlock) => block.type !== 'text') ? 'py-3' : 'py-0')}>
-                                    <MessageContent content={streamingContent}/>
+                            {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
+                            {pendingApproval && (
+                                <ToolApprovalPrompt approval={pendingApproval} onRespond={respondToApproval}/>
+                            )}
+
+                            {/* Thinking dots — waiting for first token */}
+                            {showThinking && (
+                                <div className={'flex items-start'}>
+                                    <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
+                                        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '0ms'}}/>
+                                        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '150ms'}}/>
+                                        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '300ms'}}/>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
-                        {pendingApproval && (
-                            <ToolApprovalPrompt approval={pendingApproval} onRespond={respondToApproval}/>
-                        )}
-
-                        {/* Thinking dots — waiting for first token */}
-                        {showThinking && (
-                            <div className={'flex items-start'}>
-                                <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
-                                    <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '0ms'}}/>
-                                    <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '150ms'}}/>
-                                    <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '300ms'}}/>
+                            {/* Error state */}
+                            {status === EChatStatus.ERROR && error && (
+                                <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
+                                    <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
+                                    <span className={'flex-1'}>{error}</span>
+                                    {retryable && (
+                                        <Button variant={'link'} size={'sm'} onClick={retry} className={'shrink-0'}>
+                                            <HiOutlineRefresh className={'size-3'}/>
+                                            Retry
+                                        </Button>
+                                    )}
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
+                    )}
+                </div>
 
-                        {/* Error state */}
-                        {status === EChatStatus.ERROR && error && (
-                            <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
-                                <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
-                                <span className={'flex-1'}>{error}</span>
-                                {retryable && (
-                                    <Button variant={'link'} size={'sm'} onClick={retry} className={'shrink-0'}>
-                                        <HiOutlineRefresh className={'size-3'}/>
-                                        Retry
-                                    </Button>
-                                )}
-                            </div>
-                        )}
-
-                        <ScrollToBottom trigger={`${messages.length}-${streamingContent?.length ?? 0}`}/>
-                    </div>
+                {/* Scroll to bottom button */}
+                {showScrollButton && (
+                    <Button variant={'ghost'} size={'icon'} onClick={handleScrollToBottomClick}
+                            className={'absolute bottom-4 right-6 size-8 rounded-full bg-surface border border-border shadow-md text-text-muted hover:text-text'} title={'Scroll to bottom'}>
+                        <FaArrowDown className={'size-4'}/>
+                    </Button>
                 )}
             </div>
 
