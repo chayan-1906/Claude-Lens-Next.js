@@ -2,6 +2,7 @@
 
 import React from "react";
 import {NEXT_PUBLIC_BACKEND_WS_URL} from "../../config/config";
+import {generateUUID} from "@/utils/generateUUID";
 import {ContentBlock, EMessageRole, TextBlock, ThinkingBlock, ToolUseBlock} from "@/types/message";
 import {
     BASE_RECONNECT_DELAY_MS,
@@ -115,7 +116,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         if (content && messageId) {
             console.log(`[useClaudeChat] Finalizing assistant message (id: ${messageId}, blocks: ${content.length})`);
             const completedMessage: IChatMessage = {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 msgId: messageId,
                 role: EMessageRole.ASSISTANT,
                 content,
@@ -235,7 +236,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 }
 
                 const userToolResult: IChatMessage = {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     role: EMessageRole.USER,
                     content: event.message.content,
                     timestamp: new Date(),
@@ -610,7 +611,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         setError(null);
 
         const userMessage: IChatMessage = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             role: EMessageRole.USER,
             content: text,
             timestamp: new Date(),

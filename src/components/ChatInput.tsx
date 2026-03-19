@@ -14,8 +14,11 @@ import {useMarkdownShortcuts} from "@/hooks/useMarkdownShortcuts";
 const MAX_TEXTAREA_HEIGHT: number = 200;
 const WAVE_DELAYS: number[] = [0, 0.1, 0.2, 0.1, 0];
 
+// Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
+let draftText: string = '';
+
 function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
-    const [text, setText] = React.useState<string>('');
+    const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
@@ -32,7 +35,9 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
     }, []);
 
     const handleChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>): void => {
-        setText(e.target.value);
+        const value: string = e.target.value;
+        setText(value);
+        draftText = value;
         adjustHeight();
     }, [adjustHeight]);
 
@@ -45,6 +50,7 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
         console.log(`[ChatInput] Sending: "${trimmed.slice(0, 50)}..."`);
         onSend(trimmed);
         setText('');
+        draftText = '';
         resetVoice();
         const textarea: HTMLTextAreaElement | null = textareaRef.current;
         if (textarea) {
@@ -84,8 +90,11 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
     }, []);
 
     React.useEffect(() => {
-        if (!disabled) {
-            textareaRef.current?.focus();
+        if (!disabled && textareaRef.current) {
+            const el: HTMLTextAreaElement = textareaRef.current;
+            el.focus();
+            el.selectionStart = el.value.length;
+            el.selectionEnd = el.value.length;
         }
     }, [disabled]);
 
@@ -106,6 +115,7 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
     React.useEffect(() => {
         if (voiceState === 'done' && rephrased) {
             setText(rephrased);
+            draftText = rephrased;
             requestAnimationFrame(adjustHeight);
             textareaRef.current?.focus();
         }
