@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from "react";
+import React from "react";
 import {transcribeAudio} from "@/actions/voice.actions";
 import type {ISpeechRecognition, ISpeechRecognitionEvent, SpeechRecognitionConstructor, UseVoiceInputReturn, VoiceInputState} from "@/types/voice";
 
@@ -13,21 +13,22 @@ const SPEECH_MULTIPLIER: number = 10;
 const SILENCE_DEBOUNCE_MS: number = 400;
 
 const useVoiceInput = (): UseVoiceInputReturn => {
-    const [state, setState] = useState<VoiceInputState>('idle');
-    const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-    const [liveTranscript, setLiveTranscript] = useState<string>('');
-    const [transcript, setTranscript] = useState<string>('');
-    const [rephrased, setRephrased] = useState<string>('');
-    const [errorMessage, setErrorMessage] = useState<string>('');
+    const [state, setState] = React.useState<VoiceInputState>('idle');
+    const [isSpeaking, setIsSpeaking] = React.useState<boolean>(false);
+    const [liveTranscript, setLiveTranscript] = React.useState<string>('');
+    const [transcript, setTranscript] = React.useState<string>('');
+    const [rephrased, setRephrased] = React.useState<string>('');
+    const [errorMessage, setErrorMessage] = React.useState<string>('');
 
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const chunksRef = useRef<BlobPart[]>([]);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const rafRef = useRef<number | null>(null);
-    const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const recognitionRef = useRef<ISpeechRecognition | null>(null);
+    const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+    const chunksRef = React.useRef<BlobPart[]>([]);
+    const audioContextRef = React.useRef<AudioContext | null>(null);
+    const rafRef = React.useRef<number | null>(null);
+    const silenceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const recognitionRef = React.useRef<ISpeechRecognition | null>(null);
+    const speechGuardIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const startRecording = useCallback(async (): Promise<void> => {
+    const startRecording = React.useCallback(async (): Promise<void> => {
         try {
             const stream: MediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -113,7 +114,7 @@ const useVoiceInput = (): UseVoiceInputReturn => {
             // Prevents posting silent recordings to the backend (Whisper hallucinates
             // words like "Thank you" on silence). Runs independently of the wave VAD.
             let hasSpeech: boolean = false;
-            const speechGuardInterval: ReturnType<typeof setInterval> = setInterval((): void => {
+            speechGuardIntervalRef.current = setInterval((): void => {
                 analyser.getByteFrequencyData(frequencyData);
                 let sum: number = 0;
                 for (let i = 0; i < frequencyData.length; i++) {
@@ -126,8 +127,8 @@ const useVoiceInput = (): UseVoiceInputReturn => {
 
             // --- Web Speech API: live interim transcription ---
             const SpeechRecognitionClass = (
-                (window as Window & {SpeechRecognition?: SpeechRecognitionConstructor}).SpeechRecognition ??
-                (window as Window & {webkitSpeechRecognition?: SpeechRecognitionConstructor}).webkitSpeechRecognition
+                (window as Window & { SpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition ??
+                (window as Window & { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition
             );
 
             if (SpeechRecognitionClass) {
@@ -157,7 +158,8 @@ const useVoiceInput = (): UseVoiceInputReturn => {
                     }
                 };
 
-                recognition.onerror = (): void => {/* silent fail — live transcript is optional */};
+                recognition.onerror = (): void => {/* silent fail — live transcript is optional */
+                };
 
                 recognition.start();
                 recognitionRef.current = recognition;
@@ -191,7 +193,10 @@ const useVoiceInput = (): UseVoiceInputReturn => {
                 recognitionRef.current = null;
                 setLiveTranscript('');
 
-                clearInterval(speechGuardInterval);
+                if (speechGuardIntervalRef.current !== null) {
+                    clearInterval(speechGuardIntervalRef.current);
+                    speechGuardIntervalRef.current = null;
+                }
                 if (!hasSpeech) {
                     stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
                     setErrorMessage('No speech detected. Please try again with a longer recording!');
@@ -237,21 +242,77 @@ const useVoiceInput = (): UseVoiceInputReturn => {
         }
     }, []);
 
-    const stopRecording = useCallback((): void => {
+    const stopRecording = React.useCallback((): void => {
         if (mediaRecorderRef.current?.state === 'recording') {
             mediaRecorderRef.current.stop();
         }
     }, []);
 
-    const reset = useCallback((): void => {
+    const reset = React.useCallback((): void => {
+        // Stop active recording if any — detach handlers first to prevent
+        // onstop from triggering the transcription pipeline
+        if (mediaRecorderRef.current?.state === 'recording') {
+            mediaRecorderRef.current.onstop = null;
+            mediaRecorderRef.current.ondataavailable = null;
+            mediaRecorderRef.current.stop();
+        }
+        // Cancel RAF loop
+        if (rafRef.current !== null) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+        }
+        // Clear silence timer
+        if (silenceTimerRef.current !== null) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+        }
+        // Clear speech guard interval
+        if (speechGuardIntervalRef.current !== null) {
+            clearInterval(speechGuardIntervalRef.current);
+            speechGuardIntervalRef.current = null;
+        }
+        // Stop SpeechRecognition
         recognitionRef.current?.stop();
         recognitionRef.current = null;
+        // Close AudioContext
+        audioContextRef.current?.close();
+        audioContextRef.current = null;
+        // Stop all media stream tracks (release microphone)
+        mediaRecorderRef.current?.stream
+            ?.getTracks()
+            .forEach((track: MediaStreamTrack) => track.stop());
+        // Reset state
         setState('idle');
         setIsSpeaking(false);
         setLiveTranscript('');
         setTranscript('');
         setRephrased('');
         setErrorMessage('');
+    }, []);
+
+    // Cleanup all recording resources on unmount
+    React.useEffect(() => {
+        return (): void => {
+            if (mediaRecorderRef.current?.state === 'recording') {
+                mediaRecorderRef.current.onstop = null;
+                mediaRecorderRef.current.ondataavailable = null;
+                mediaRecorderRef.current.stop();
+            }
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(rafRef.current);
+            }
+            if (silenceTimerRef.current !== null) {
+                clearTimeout(silenceTimerRef.current);
+            }
+            if (speechGuardIntervalRef.current !== null) {
+                clearInterval(speechGuardIntervalRef.current);
+            }
+            audioContextRef.current?.close();
+            recognitionRef.current?.stop();
+            mediaRecorderRef.current?.stream
+                ?.getTracks()
+                .forEach((track: MediaStreamTrack) => track.stop());
+        };
     }, []);
 
     return {state, isSpeaking, liveTranscript, transcript, rephrased, errorMessage, startRecording, stopRecording, reset};

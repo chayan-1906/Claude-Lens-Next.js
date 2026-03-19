@@ -121,7 +121,7 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
         startRecording();
     }, [isVoiceProcessing, isRecording, stopRecording, resetVoice, startRecording]);
 
-    const canSend: boolean = text.trim().length > 0 && !disabled;
+    const canSend: boolean = text.trim().length > 0 && !disabled && !isRecording;
 
     return (
         <div className={'flex flex-col rounded-t-xl border-x border-t border-border bg-surface'}>
