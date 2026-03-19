@@ -2,15 +2,15 @@ import React from "react";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import Markdown from "react-markdown";
-import type {ContentBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 import {EUserMessageType} from "@/types/message";
-import {renderCode} from "@/components/CodeBlock";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {ThinkingBlock} from "@/components/ThinkingBlock";
 import {ToolCallBlock} from "@/components/ToolCallBlock";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import type {IMessageContentProps} from "@/types/components";
+import {renderCode, renderLink} from "@/components/CodeBlock";
 import {ToolResultContentBlock} from "@/components/ToolResultContentBlock";
+import type {ContentBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
 function MessageContent({content, sessionId, messageId, onStubbed}: IMessageContentProps) {
     if (typeof content === 'string') {
@@ -33,7 +33,7 @@ function MessageContent({content, sessionId, messageId, onStubbed}: IMessageCont
                         if (!cleaned) return null;
                         return (
                             <div key={index} className={'markdown-content'}>
-                                <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode}}>
+                                <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode, a: renderLink}}>
                                     {cleaned}
                                 </Markdown>
                             </div>
@@ -74,7 +74,7 @@ function renderStringContent(text: string): React.ReactNode {
                     </span>
                     {parsed.remainingText && (
                         <div className={'markdown-content'}>
-                            <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode}}>
+                            <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode, a: renderLink}}>
                                 {parsed.remainingText}
                             </Markdown>
                         </div>
@@ -99,7 +99,7 @@ function renderStringContent(text: string): React.ReactNode {
             if (!cleaned) return null;
             return (
                 <div className={'markdown-content'}>
-                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode}}>
+                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode, a: renderLink}}>
                         {cleaned}
                     </Markdown>
                 </div>

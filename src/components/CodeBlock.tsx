@@ -67,4 +67,13 @@ function renderCode({className, children, ...props}: React.ComponentProps<'code'
     );
 }
 
-export {CodeBlock, renderCode};
+/** Shared Markdown anchor renderer — opens all links in a new tab with security attributes */
+function renderLink({href, children, ...props}: React.ComponentProps<'a'>) {
+    return (
+        <a href={href} target={'_blank'} rel={'noopener noreferrer'} {...props}>
+            {children}
+        </a>
+    );
+}
+
+export {CodeBlock, renderCode, renderLink};
