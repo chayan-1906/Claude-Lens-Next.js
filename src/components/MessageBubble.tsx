@@ -12,6 +12,7 @@ function MessageBubble({message, onEdit, index, onRegenerate, sessionId, onStubb
     const isUserMessage: boolean = message.role === EMessageRole.USER;
 
     const isCommandOutput: boolean = isUserMessage && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
+    const isToolResult: boolean = isUserMessage && Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_result');
 
     if (isUserMessage && typeof message.content === 'string') {
         const parsed = parseUserMessage(message.content);
@@ -45,8 +46,8 @@ function MessageBubble({message, onEdit, index, onRegenerate, sessionId, onStubb
     const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
 
     return (
-        <div className={cn('flex flex-col group', (isUserMessage && !isCommandOutput) ? 'items-end' : 'items-start')}>
-            <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', (isUserMessage && !isCommandOutput) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+        <div className={cn('flex flex-col group', (isUserMessage && !isCommandOutput && !isToolResult) ? 'items-end' : 'items-start')}>
+            <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', (isUserMessage && !isCommandOutput && !isToolResult) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                 <MessageContent content={message.content} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
             </div>
             <div className={'flex items-center gap-2 mt-1 px-1'}>
