@@ -54,7 +54,7 @@ const apis = {
     deleteTasksApi: (sessionId: string) => `${baseTaskApiUrl}/${sessionId}`,
 
     getAllMemoriesApi: baseMemoryApiUrl,
-    getMemory: (projectDir: string) => `${baseMemoryApiUrl}/${projectDir}`,
+    getMemory: (projectDir: string) => `${baseMemoryApiUrl}/${encodeURIComponent(projectDir)}`,
     deleteMemoryApi: (projectDir: string) => `${baseMemoryApiUrl}/${encodeURIComponent(projectDir)}`,
 
     exportProjectApi: (projectDir: string, sessionId?: string) => {
