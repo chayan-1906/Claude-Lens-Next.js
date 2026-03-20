@@ -1,8 +1,10 @@
 "use client";
+"use no memo"; // useVirtualizer returns mutable refs incompatible with React Compiler auto-memoization
 
 import React from "react";
 import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
+import {useVirtualizer, VirtualItem} from "@tanstack/react-virtual";
 import {HiOutlineBeaker, HiOutlineCode, HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {debug} from "@/utils/debug";
@@ -162,6 +164,20 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         scrollToBottom('smooth');
     }, [scrollToBottom]);
 
+    // Scroll to bottom on mount when historical messages are present (e.g. page refresh).
+    // Double rAF: first frame lets the virtualizer render items, second frame lets
+    // ResizeObserver measure actual heights — so scrollHeight is fully settled.
+    const hasScrolledOnMountRef = React.useRef<boolean>(false);
+    React.useEffect(() => {
+        if (hasScrolledOnMountRef.current || !localHistoricalMessages.length) return;
+        hasScrolledOnMountRef.current = true;
+        requestAnimationFrame((): void => {
+            requestAnimationFrame((): void => {
+                scrollToBottom('auto');
+            });
+        });
+    }, [localHistoricalMessages.length, scrollToBottom]);
+
     // Auto-scroll on content changes — gated by isAtBottomRef
     React.useEffect(() => {
         if (isAtBottomRef.current) {
@@ -307,6 +323,15 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         () => localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined),
         [localHistoricalMessages, historicalCutoffIndex],
     );
+
+    const historicalVirtualizer = useVirtualizer({
+        count: visibleHistoricalMessages.length,
+        getScrollElement: () => scrollContainerRef.current,
+        estimateSize: () => 120,
+        getItemKey: (index: number) => visibleHistoricalMessages[index].uuid,
+        overscan: 5,
+        gap: 16, // matches gap-4 (1rem) between messages
+    });
 
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
     const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
@@ -492,38 +517,42 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         </div>
                     ) : (
                         <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
-                            {/* Historical messages — sliced at edit cutoff when user edits from history */}
-                            {visibleHistoricalMessages.map((message: IMessage, index: number) => {
-                                const isUser: boolean = message.role === EMessageRole.USER;
+                            {/* Historical messages — virtualized, sliced at edit cutoff when user edits from history */}
+                            {visibleHistoricalMessages.length > 0 && (
+                                <div style={{height: historicalVirtualizer.getTotalSize(), position: 'relative', width: '100%'}}>
+                                    {historicalVirtualizer.getVirtualItems().map((virtualItem: VirtualItem) => {
+                                        const message: IMessage = visibleHistoricalMessages[virtualItem.index];
+                                        const index: number = virtualItem.index;
 
-                                if (editingId === message.uuid) {
-                                    return (
-                                        <div key={message.uuid} className={'flex flex-col items-end'}>
-                                            <InlineMessageEditor
-                                                initialText={extractMessageText(message.content)}
-                                                disabled={isChattingDisabled}
-                                                onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
-                                                onCancel={handleCancelEdit}
-                                            />
-                                        </div>
-                                    );
-                                }
+                                        const isUser: boolean = message.role === EMessageRole.USER;
 
-                                const showHistoricalRegenerate: boolean = !isUser && canRegenerate;
-
-                                return (
-                                    <MessageBubble
-                                        key={message.uuid}
-                                        message={message}
-                                        index={index}
-                                        sessionId={session?.sessionId}
-                                        canEdit={isUser && !isChattingDisabled && editingId === null}
-                                        onEdit={handleStartEdit}
-                                        onRegenerate={showHistoricalRegenerate ? handleHistoricalRegenerate : undefined}
-                                        onStubbed={handleStubbed}
-                                    />
-                                );
-                            })}
+                                        return (
+                                            <div key={virtualItem.key} data-index={virtualItem.index} ref={historicalVirtualizer.measureElement} style={{position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`}}>
+                                                {editingId === message.uuid ? (
+                                                    <div className={'flex flex-col items-end'}>
+                                                        <InlineMessageEditor
+                                                            initialText={extractMessageText(message.content)}
+                                                            disabled={isChattingDisabled}
+                                                            onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
+                                                            onCancel={handleCancelEdit}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <MessageBubble
+                                                        message={message}
+                                                        index={index}
+                                                        sessionId={session?.sessionId}
+                                                        canEdit={isUser && !isChattingDisabled && editingId === null}
+                                                        onEdit={handleStartEdit}
+                                                        onRegenerate={!isUser && canRegenerate ? handleHistoricalRegenerate : undefined}
+                                                        onStubbed={handleStubbed}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
                             {/* Live messages (user + finalized assistant) */}
                             {messages.map((message: IChatMessage, index: number) => {
