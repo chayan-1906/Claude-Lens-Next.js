@@ -69,7 +69,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     const [isRefreshingMessages, setIsRefreshingMessages] = React.useState<boolean>(false);
     const [showScrollButton, setShowScrollButton] = React.useState<boolean>(false);
 
-    debug(`[ChatSessionView] Render — isNewChat: ${isNewChat}, sessionId: ${session?.sessionId ?? contextInfo?.sessionId ?? 'none'}, status: ${status}, liveMessages: ${messages.length}, streaming: ${streamingContent !== null}, historicalMessages: ${historicalMessages?.length ?? 0}`);
+    // debug(`[ChatSessionView] Render — isNewChat: ${isNewChat}, sessionId: ${session?.sessionId ?? contextInfo?.sessionId ?? 'none'}, status: ${status}, liveMessages: ${messages.length}, streaming: ${streamingContent !== null}, historicalMessages: ${historicalMessages?.length ?? 0}`);
 
     // Update URL from /c/new → /c/{sessionId} as soon as system event provides the sessionId
     React.useEffect(() => {
@@ -353,12 +353,16 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
     // Show bouncing dots when Claude is actively working and no text response is visible yet.
-    // During TOOL_RUNNING or STREAMING with only thinking/tool_use blocks, the user sees no
-    // visible progress — the dots provide feedback that work is still happening.
+    // TOOL_RUNNING: always show dots — the LLM has finished its response and tools are executing
+    // on the backend. The streaming content is static (text + tool_use blocks); dots provide
+    // feedback that work is still happening behind the scenes.
+    // STREAMING: dots only when no text content has appeared yet (only thinking/tool_use blocks).
+    // Once text starts flowing, the text itself is the activity indicator.
     const hasStreamingText: boolean = streamingContent !== null && streamingContent.some((block: ContentBlock) => block.type === 'text' && (block as TextBlock).text.length > 0);
     const showThinking: boolean =
         ((status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent)
-        || ((status === EChatStatus.TOOL_RUNNING || status === EChatStatus.STREAMING) && !hasStreamingText && messages.length > 0);
+        || (status === EChatStatus.TOOL_RUNNING && messages.length > 0)
+        || (status === EChatStatus.STREAMING && !hasStreamingText && messages.length > 0);
     const showEmptyState: boolean = isNewChat && hasNoMessages && status === EChatStatus.IDLE;
 
     // Derive token usage from the last historical assistant message as a fallback
@@ -393,7 +397,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         || outputTokens > 0
         || contextWindow !== null;
 
-    debug('Context Info:', {
+    /*debug('Context Info:', {
         historicalInput,
         contextTokensUsed: session?.contextTokensUsed,
         historicalTokenUsage,
@@ -403,7 +407,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         contextWindow: contextInfo?.contextWindow,
         contextWindowSize: session?.contextWindowSize,
         hasContextData,
-    });
+    });*/
 
     return (
         <div className={'flex flex-col h-full'}>

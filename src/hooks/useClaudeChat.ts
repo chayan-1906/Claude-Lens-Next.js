@@ -473,8 +473,16 @@ function useClaudeChat(): IUseClaudeChatReturn {
                             delete inputJsonBufferRef.current[inner.index];
                         }
                     }
+                } else if (inner.type === 'message_delta') {
+                    // Transition to TOOL_RUNNING when the LLM finishes with tool_use.
+                    // This is the authoritative stop_reason signal when stream_events are active —
+                    // assistant event snapshots carry stop_reason: null during streaming.
+                    if (inner.delta.stop_reason === 'tool_use') {
+                        console.log('[useClaudeChat] stream_event message_delta → stop_reason: tool_use, Status → TOOL_RUNNING');
+                        setStatus(EChatStatus.TOOL_RUNNING);
+                    }
                 }
-                // message_delta and message_stop are no-ops — result event handles final state
+                // message_stop is a no-op — result event handles final state
                 break;
             }
 
