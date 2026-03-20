@@ -281,7 +281,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 if (event.is_error) {
                     if (!hasNonZeroTokens) {
                         console.log('[useClaudeChat] Status → ERROR (context limit — is_error with zero tokens)');
-                        setError('Context limit reached. Start a new session, or run /compact or /clear in the terminal to continue.');
+                        setError('Context limit reached. Start a new session, or run /compact or /clear in the terminal to continue!');
                     } else {
                         console.log(`[useClaudeChat] Status → ERROR (is_error: true, subtype: ${event.subtype})`);
                         setError(event.result || event.subtype);

@@ -320,7 +320,15 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
     // Memoize sliced historical messages to avoid creating a new array on every render
     const visibleHistoricalMessages: IMessage[] = React.useMemo(
-        () => localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined),
+        () => {
+            const sliced: IMessage[] = localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined);
+            // Filter out "Prompt is too long" assistant messages — shown as an error banner instead
+            return sliced.filter((msg: IMessage) => {
+                if (msg.role !== EMessageRole.ASSISTANT) return true;
+                const text: string = extractMessageText(msg.content).toLowerCase();
+                return !text.includes('prompt is too long');
+            });
+        },
         [localHistoricalMessages, historicalCutoffIndex],
     );
 
@@ -332,6 +340,16 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         overscan: 5,
         gap: 16, // matches gap-4 (1rem) between messages
     });
+
+    // Detect if the last historical assistant message is a context limit error.
+    // Claude CLI reports "Prompt is too long" as the full assistant message content.
+    const isHistoricalContextLimit: boolean = React.useMemo((): boolean => {
+        if (!localHistoricalMessages.length) return false;
+        const last: IMessage = localHistoricalMessages[localHistoricalMessages.length - 1];
+        if (last.role !== EMessageRole.ASSISTANT) return false;
+        const text: string = extractMessageText(last.content).toLowerCase();
+        return text.includes('prompt is too long');
+    }, [localHistoricalMessages]);
 
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
     const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
@@ -555,7 +573,11 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                             )}
 
                             {/* Live messages (user + finalized assistant) */}
-                            {messages.map((message: IChatMessage, index: number) => {
+                            {messages.filter((msg: IChatMessage) => {
+                                if (msg.role !== EMessageRole.ASSISTANT) return true;
+                                const text: string = extractMessageText(msg.content).toLowerCase();
+                                return !text.includes('prompt is too long');
+                            }).map((message: IChatMessage, index: number) => {
                                 const isUser: boolean = message.role === EMessageRole.USER;
 
                                 if (editingId === message.id) {
@@ -643,17 +665,19 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 </div>
                             )}
 
-                            {/* Error state */}
+                            {/* Error state (live) */}
                             {status === EChatStatus.ERROR && error && (
                                 <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
                                     <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
                                     <span className={'flex-1'}>{error}</span>
-                                    {retryable && (
-                                        <Button variant={'link'} size={'sm'} onClick={retry} className={'shrink-0'}>
-                                            <HiOutlineRefresh className={'size-3'}/>
-                                            Retry
-                                        </Button>
-                                    )}
+                                </div>
+                            )}
+
+                            {/* Context limit banner (historical) — shown when the last message was "Prompt is too long" */}
+                            {isHistoricalContextLimit && status !== EChatStatus.ERROR && (
+                                <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
+                                    <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
+                                    <span className={'flex-1'}>Context limit reached. Start a new session, or run /compact or /clear in the terminal to continue!</span>
                                 </div>
                             )}
                         </div>
