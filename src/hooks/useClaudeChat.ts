@@ -224,8 +224,12 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     setStatus(EChatStatus.STREAMING);
                 }
 
-                // Context is NOT updated here — only the result event updates context info.
-                // assistant.message.usage is per-API-call and misleading mid-stream.
+                // Track per-call usage for accurate context display.
+                // result.usage is cumulative across all turns — this captures the actual context
+                // for the latest API call, which represents the true current context size.
+                if (event.message.usage) {
+                    lastAssistantUsageRef.current = event.message.usage;
+                }
                 break;
             }
 
@@ -258,25 +262,33 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 finalizeStreamingMessage();
                 console.log(`[useClaudeChat] result → subtype: ${event.subtype}, is_error: ${event.is_error}, turns: ${event.num_turns}, cost: $${event.total_cost_usd?.toFixed(4)}, duration: ${event.duration_ms}ms, tokens: in=${event.usage?.input_tokens} out=${event.usage?.output_tokens}`);
 
-                // Update context from result event — the single source of truth.
-                // Skip when all tokens are 0 (rejected API call, e.g. "Prompt is too long")
-                // to avoid overwriting valid previous values with zeros.
+                // Context update: use the LAST assistant event's per-call usage for accurate context.
+                // result.usage is cumulative across all API calls/turns in the interaction —
+                // e.g. 2 turns of ~120k each → result.usage shows 240k, but actual context is 120k.
+                // The last assistant event's usage reflects the true current context size.
+                const contextUsage: ITokenUsage | null = lastAssistantUsageRef.current;
                 const resultUsage: ITokenUsage | undefined = event.usage;
-                const totalInput: number = resultUsage
+                const contextInput: number = contextUsage
+                    ? contextUsage.input_tokens + (contextUsage.cache_creation_input_tokens ?? 0) + (contextUsage.cache_read_input_tokens ?? 0)
+                    : 0;
+                // Use cumulative result.usage only for the zero-token guard (rejected API calls)
+                const cumulativeInput: number = resultUsage
                     ? resultUsage.input_tokens + (resultUsage.cache_creation_input_tokens ?? 0) + (resultUsage.cache_read_input_tokens ?? 0)
                     : 0;
-                const hasNonZeroTokens: boolean = totalInput > 0 || (resultUsage?.output_tokens ?? 0) > 0;
-                console.log(`[useClaudeChat] result context → totalInput: ${totalInput}, hasNonZeroTokens: ${hasNonZeroTokens}, modelUsage keys: ${event.modelUsage ? Object.keys(event.modelUsage).join(',') : 'none'}`);
+                const hasNonZeroTokens: boolean = cumulativeInput > 0 || (resultUsage?.output_tokens ?? 0) > 0;
+                console.log(`[useClaudeChat] result context → contextInput: ${contextInput} (last call), cumulativeInput: ${cumulativeInput} (all turns), hasNonZeroTokens: ${hasNonZeroTokens}, modelUsage keys: ${event.modelUsage ? Object.keys(event.modelUsage).join(',') : 'none'}`);
 
-                if (resultUsage && hasNonZeroTokens) {
+                lastAssistantUsageRef.current = null;
+
+                if (hasNonZeroTokens && contextInput > 0) {
                     setContextInfo((prev: IContextInfo | null) => {
                         if (!prev) return prev;
                         const modelKey: string | undefined = event.modelUsage ? Object.keys(event.modelUsage)[0] : undefined;
                         const modelData = modelKey ? event.modelUsage[modelKey] : null;
                         return {
                             ...prev,
-                            inputTokens: totalInput,
-                            outputTokens: resultUsage.output_tokens,
+                            inputTokens: contextInput,
+                            outputTokens: contextUsage?.output_tokens ?? 0,
                             contextWindow: modelData?.contextWindow ?? prev.contextWindow,
                             costUsd: event.total_cost_usd,
                         };
