@@ -342,7 +342,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         if (!localHistoricalMessages.length) return null;
         for (let i: number = localHistoricalMessages.length - 1; i >= 0; i--) {
             const msg: IMessage = localHistoricalMessages[i];
-            if (msg.role === EMessageRole.ASSISTANT && msg.tokenUsage) {
+            if (msg.role === EMessageRole.ASSISTANT && msg.tokenUsage && msg.tokenUsage.input > 0) {
                 return msg.tokenUsage;
             }
         }

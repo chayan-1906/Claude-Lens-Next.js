@@ -250,16 +250,16 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 console.log(`[useClaudeChat] result → subtype: ${event.subtype}, is_error: ${event.is_error}, turns: ${event.num_turns}, cost: $${event.total_cost_usd?.toFixed(4)}, duration: ${event.duration_ms}ms, tokens: in=${event.usage?.input_tokens} out=${event.usage?.output_tokens}`);
 
                 // Update context from result event — the single source of truth.
-                // Always update BEFORE error handling so the bar reflects latest data
-                // even when context limit or other errors occur.
-                // totalInput = input_tokens + cache_creation + cache_read = actual context consumed.
-                // contextWindow comes from modelUsage and reflects the current account's limit
-                // (Pro=200k, Team=10M) — NOT hardcoded.
+                // Skip when all tokens are 0 (rejected API call, e.g. "Prompt is too long")
+                // to avoid overwriting valid previous values with zeros.
                 const resultUsage: ITokenUsage | undefined = event.usage;
-                if (resultUsage) {
-                    const totalInput: number = resultUsage.input_tokens
-                        + (resultUsage.cache_creation_input_tokens ?? 0)
-                        + (resultUsage.cache_read_input_tokens ?? 0);
+                const totalInput: number = resultUsage
+                    ? resultUsage.input_tokens + (resultUsage.cache_creation_input_tokens ?? 0) + (resultUsage.cache_read_input_tokens ?? 0)
+                    : 0;
+                const hasNonZeroTokens: boolean = totalInput > 0 || (resultUsage?.output_tokens ?? 0) > 0;
+                console.log(`[useClaudeChat] result context → totalInput: ${totalInput}, hasNonZeroTokens: ${hasNonZeroTokens}, modelUsage keys: ${event.modelUsage ? Object.keys(event.modelUsage).join(',') : 'none'}`);
+
+                if (resultUsage && hasNonZeroTokens) {
                     setContextInfo((prev: IContextInfo | null) => {
                         if (!prev) return prev;
                         const modelKey: string | undefined = event.modelUsage ? Object.keys(event.modelUsage)[0] : undefined;
@@ -274,9 +274,18 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     });
                 }
 
-                if (event.is_error && event.subtype !== 'success') {
-                    console.log(`[useClaudeChat] Status → ERROR (result is_error: true, subtype: ${event.subtype})`);
-                    setError(event.subtype);
+                // Handle errors — is_error: true is the authoritative signal.
+                // Claude CLI reports "Prompt is too long" as is_error: true, subtype: 'success',
+                // with all-zero tokens. The error text appears in the assistant message content,
+                // NOT in event.result. Detect context limit via is_error + zero tokens.
+                if (event.is_error) {
+                    if (!hasNonZeroTokens) {
+                        console.log('[useClaudeChat] Status → ERROR (context limit — is_error with zero tokens)');
+                        setError('Context limit reached. Start a new session, or run /compact or /clear in the terminal to continue.');
+                    } else {
+                        console.log(`[useClaudeChat] Status → ERROR (is_error: true, subtype: ${event.subtype})`);
+                        setError(event.result || event.subtype);
+                    }
                     setStatus(EChatStatus.ERROR);
                     break;
                 }
