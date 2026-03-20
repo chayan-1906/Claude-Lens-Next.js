@@ -28,8 +28,11 @@ export interface ITokenUsage {
 export interface IModelUsageEntry {
     inputTokens: number;
     outputTokens: number;
-    costUSD: number;
+    cacheReadInputTokens: number;
+    cacheCreationInputTokens: number;
     contextWindow: number;
+    maxOutputTokens: number;
+    costUSD: number;
 }
 
 

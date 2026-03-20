@@ -350,7 +350,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     }, [localHistoricalMessages]);
 
     // When contextInfo exists but tokens are still 0 (system event fired, no usage data yet),
-    // hold the historical values until live token data arrives from the assistant event.
+    // hold the historical values until live token data arrives from the result event.
     const historicalInput: number = session?.contextTokensUsed ?? historicalTokenUsage?.input ?? 0;
     const historicalOutput: number = historicalTokenUsage?.output ?? 0;
     const inputTokens: number = contextInfo && contextInfo.inputTokens > 0

@@ -215,21 +215,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     setStatus(EChatStatus.STREAMING);
                 }
 
-                // Update token usage (include cache tokens in input count)
-                if (event.message.usage) {
-                    const usage: ITokenUsage = event.message.usage;
-                    const totalInput: number = usage.input_tokens
-                        + (usage.cache_creation_input_tokens ?? 0)
-                        + (usage.cache_read_input_tokens ?? 0);
-                    setContextInfo((prev: IContextInfo | null) => {
-                        if (!prev) return prev;
-                        return {
-                            ...prev,
-                            inputTokens: totalInput,
-                            outputTokens: usage.output_tokens,
-                        };
-                    });
-                }
+                // Context is NOT updated here — only the result event updates context info.
+                // assistant.message.usage is per-API-call and misleading mid-stream.
                 break;
             }
 
@@ -262,31 +249,36 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 finalizeStreamingMessage();
                 console.log(`[useClaudeChat] result → subtype: ${event.subtype}, is_error: ${event.is_error}, turns: ${event.num_turns}, cost: $${event.total_cost_usd?.toFixed(4)}, duration: ${event.duration_ms}ms, tokens: in=${event.usage?.input_tokens} out=${event.usage?.output_tokens}`);
 
+                // Update context from result event — the single source of truth.
+                // Always update BEFORE error handling so the bar reflects latest data
+                // even when context limit or other errors occur.
+                // totalInput = input_tokens + cache_creation + cache_read = actual context consumed.
+                // contextWindow comes from modelUsage and reflects the current account's limit
+                // (Pro=200k, Team=10M) — NOT hardcoded.
+                const resultUsage: ITokenUsage | undefined = event.usage;
+                if (resultUsage) {
+                    const totalInput: number = resultUsage.input_tokens
+                        + (resultUsage.cache_creation_input_tokens ?? 0)
+                        + (resultUsage.cache_read_input_tokens ?? 0);
+                    setContextInfo((prev: IContextInfo | null) => {
+                        if (!prev) return prev;
+                        const modelKey: string | undefined = event.modelUsage ? Object.keys(event.modelUsage)[0] : undefined;
+                        const modelData = modelKey ? event.modelUsage[modelKey] : null;
+                        return {
+                            ...prev,
+                            inputTokens: totalInput,
+                            outputTokens: resultUsage.output_tokens,
+                            contextWindow: modelData?.contextWindow ?? prev.contextWindow,
+                            costUsd: event.total_cost_usd,
+                        };
+                    });
+                }
+
                 if (event.is_error && event.subtype !== 'success') {
                     console.log(`[useClaudeChat] Status → ERROR (result is_error: true, subtype: ${event.subtype})`);
                     setError(event.subtype);
                     setStatus(EChatStatus.ERROR);
                     break;
-                }
-
-                // Update context — inputTokens is intentionally NOT overwritten here.
-                // The last assistant event carries per-call context usage (input_tokens +
-                // cache_creation + cache_read) which correctly measures context window
-                // consumption. The result event's usage is cumulative across all agentic
-                // turns and would inflate inputTokens beyond the context window.
-                const resultUsage: ITokenUsage | undefined = event.usage;
-                if (resultUsage) {
-                    setContextInfo((prev: IContextInfo | null) => {
-                        if (!prev) return prev;
-                        const modelKey: string | undefined = event.modelUsage ? Object.keys(event.modelUsage)[0] : undefined;
-                        const modelUsage = modelKey ? event.modelUsage[modelKey] : null;
-                        return {
-                            ...prev,
-                            outputTokens: resultUsage.output_tokens,
-                            contextWindow: modelUsage?.contextWindow ?? prev.contextWindow,
-                            costUsd: event.total_cost_usd,
-                        };
-                    });
                 }
 
                 console.log('[useClaudeChat] Status → IDLE (turn complete)');

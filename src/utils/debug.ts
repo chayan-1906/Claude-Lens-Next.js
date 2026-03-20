@@ -1,5 +1,5 @@
-// const isDev: boolean = process.env.NODE_ENV === 'development';
-const isDev: boolean = false;
+const isDev: boolean = process.env.NODE_ENV === 'development';
+// const isDev: boolean = false;
 
 function debug(...args: unknown[]): void {
     if (isDev) {
