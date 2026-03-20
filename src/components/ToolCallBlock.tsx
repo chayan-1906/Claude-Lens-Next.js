@@ -7,7 +7,7 @@ import {Button} from "@/components/ui/Button";
 import type {IToolCallBlockProps} from "@/types/components";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 
-function ToolCallBlock({name, input}: IToolCallBlockProps) {
+const ToolCallBlock = React.memo(function ToolCallBlock({name, input}: IToolCallBlockProps) {
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
 
     return (
@@ -29,6 +29,6 @@ function ToolCallBlock({name, input}: IToolCallBlockProps) {
             )}
         </div>
     );
-}
+});
 
 export {ToolCallBlock};

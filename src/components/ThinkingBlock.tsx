@@ -8,7 +8,7 @@ import {Button} from "@/components/ui/Button";
 import {stubToolResults} from "@/actions/message.actions";
 import type {IThinkingBlockProps} from "@/types/components";
 
-function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockProps) {
+const ThinkingBlock = React.memo(function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockProps) {
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
     const [isStubbing, setIsStubbing] = React.useState<boolean>(false);
@@ -96,6 +96,6 @@ function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockP
             </Modal>
         </div>
     );
-}
+});
 
 export {ThinkingBlock};

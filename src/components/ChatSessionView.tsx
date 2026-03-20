@@ -5,6 +5,7 @@ import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
 import {HiOutlineBeaker, HiOutlineCode, HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
+import {debug} from "@/utils/debug";
 import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
@@ -66,14 +67,14 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     const [isRefreshingMessages, setIsRefreshingMessages] = React.useState<boolean>(false);
     const [showScrollButton, setShowScrollButton] = React.useState<boolean>(false);
 
-    console.log(`[ChatSessionView] Render — isNewChat: ${isNewChat}, sessionId: ${session?.sessionId ?? contextInfo?.sessionId ?? 'none'}, status: ${status}, liveMessages: ${messages.length}, streaming: ${streamingContent !== null}, historicalMessages: ${historicalMessages?.length ?? 0}`);
+    debug(`[ChatSessionView] Render — isNewChat: ${isNewChat}, sessionId: ${session?.sessionId ?? contextInfo?.sessionId ?? 'none'}, status: ${status}, liveMessages: ${messages.length}, streaming: ${streamingContent !== null}, historicalMessages: ${historicalMessages?.length ?? 0}`);
 
     // Update URL from /c/new → /c/{sessionId} as soon as system event provides the sessionId
     React.useEffect(() => {
         if (isNewChat && contextInfo?.sessionId && !hasUpdatedUrlRef.current) {
             hasUpdatedUrlRef.current = true;
             const newUrl: string = routes.sessionPath(contextInfo.sessionId);
-            console.log(`[ChatSessionView] Updating URL → ${newUrl}`);
+            debug(`[ChatSessionView] Updating URL → ${newUrl}`);
             window.history.replaceState(null, '', newUrl);
         }
     }, [isNewChat, contextInfo?.sessionId]);
@@ -83,11 +84,11 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         const hasAssistantMessage: boolean = messages.some((m: IChatMessage) => m.role === EMessageRole.ASSISTANT);
         if (isNewChat && hasAssistantMessage && status === EChatStatus.IDLE && !hasSyncedSidebarRef.current) {
             hasSyncedSidebarRef.current = true;
-            console.log('[ChatSessionView] First response complete — refreshing sidebar (2s delay for auto-sync)');
+            debug('[ChatSessionView] First response complete — refreshing sidebar (2s delay for auto-sync)');
             const timeoutId: ReturnType<typeof setTimeout> = setTimeout(async (): Promise<void> => {
                 await refreshSidebar();
                 window.dispatchEvent(new CustomEvent('session-created'));
-                console.log('[ChatSessionView] Sidebar refreshed!');
+                debug('[ChatSessionView] Sidebar refreshed!');
             }, 2000);
             return (): void => {
                 clearTimeout(timeoutId);
@@ -105,7 +106,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     React.useEffect(() => {
         if (!forkedSessionId || status !== EChatStatus.IDLE || hasRedirectedForkRef.current) return;
         hasRedirectedForkRef.current = true;
-        console.log(`[ChatSessionView] edit_session complete — navigating to forked session ${forkedSessionId} (5s delay for sync)`);
+        debug(`[ChatSessionView] edit_session complete — navigating to forked session ${forkedSessionId} (5s delay for sync)`);
         setTimeout((): void => {
             router.replace(routes.sessionPath(forkedSessionId));
         }, 5000);
@@ -126,13 +127,27 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
     // Auto-scroll: detect whether user is at (or near) the bottom
     const SCROLL_THRESHOLD: number = 50;
+    const scrollRafRef = React.useRef<number | null>(null);
 
     const handleScroll = React.useCallback((): void => {
-        const el: HTMLDivElement | null = scrollContainerRef.current;
-        if (!el) return;
-        const atBottom: boolean = el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD;
-        isAtBottomRef.current = atBottom;
-        setShowScrollButton(!atBottom);
+        if (scrollRafRef.current !== null) return;
+        scrollRafRef.current = requestAnimationFrame((): void => {
+            scrollRafRef.current = null;
+            const el: HTMLDivElement | null = scrollContainerRef.current;
+            if (!el) return;
+            const atBottom: boolean = el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD;
+            isAtBottomRef.current = atBottom;
+            setShowScrollButton(!atBottom);
+        });
+    }, []);
+
+    // Cancel pending rAF on unmount
+    React.useEffect(() => {
+        return (): void => {
+            if (scrollRafRef.current !== null) {
+                cancelAnimationFrame(scrollRafRef.current);
+            }
+        };
     }, []);
 
     const scrollToBottom = React.useCallback((behavior: ScrollBehavior = 'smooth'): void => {
@@ -155,12 +170,21 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     }, [messages.length, streamingContent, pendingApproval, scrollToBottom]);
 
     const handleSend = React.useCallback((text: string): void => {
-        console.log(`[ChatSessionView] handleSend — text:`, text.slice(0, 50));
+        debug(`[ChatSessionView] handleSend — text:`, text.slice(0, 50));
         isAtBottomRef.current = true;
         setShowScrollButton(false);
         scrollToBottom('instant');
         sendMessage(text, isNewChat ? {projectDir: projectDir || undefined} : {sessionId: session?.sessionId});
     }, [sendMessage, isNewChat, session?.sessionId, projectDir, scrollToBottom]);
+
+    // Stable callbacks for edit actions — prevents new closure per message in .map()
+    const handleStartEdit = React.useCallback((uuid: string): void => {
+        setEditingId(uuid);
+    }, []);
+
+    const handleCancelEdit = React.useCallback((): void => {
+        setEditingId(null);
+    }, []);
 
     const handleHistoricalEditSave = React.useCallback((newText: string, historicalIndex: number): void => {
         setHistoricalCutoffIndex(historicalIndex);
@@ -243,7 +267,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             clearMessages();
             setLocalHistoricalMessages(result.messages);
             setHistoricalCutoffIndex(null);
-            console.log(`[ChatSessionView] Messages refreshed — ${result.messages.length} messages loaded`);
+            debug(`[ChatSessionView] Messages refreshed — ${result.messages.length} messages loaded`);
         }
         setIsRefreshingMessages(false);
     }, [session?.sessionId, clearMessages]);
@@ -277,6 +301,12 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             };
         }));
     }, []);
+
+    // Memoize sliced historical messages to avoid creating a new array on every render
+    const visibleHistoricalMessages: IMessage[] = React.useMemo(
+        () => localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined),
+        [localHistoricalMessages, historicalCutoffIndex],
+    );
 
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
     const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
@@ -314,7 +344,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         || outputTokens > 0
         || contextWindow !== null;
 
-    console.log('Context Info:', {
+    debug('Context Info:', {
         historicalInput,
         contextTokensUsed: session?.contextTokensUsed,
         historicalTokenUsage,
@@ -463,7 +493,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     ) : (
                         <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
                             {/* Historical messages — sliced at edit cutoff when user edits from history */}
-                            {localHistoricalMessages.slice(0, historicalCutoffIndex ?? undefined).map((message: IMessage, index: number) => {
+                            {visibleHistoricalMessages.map((message: IMessage, index: number) => {
                                 const isUser: boolean = message.role === EMessageRole.USER;
 
                                 if (editingId === message.uuid) {
@@ -473,7 +503,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                                 initialText={extractMessageText(message.content)}
                                                 disabled={isChattingDisabled}
                                                 onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
-                                                onCancel={() => setEditingId(null)}
+                                                onCancel={handleCancelEdit}
                                             />
                                         </div>
                                     );
@@ -487,7 +517,8 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                         message={message}
                                         index={index}
                                         sessionId={session?.sessionId}
-                                        onEdit={(isUser && !isChattingDisabled && editingId === null) ? () => setEditingId(message.uuid) : undefined}
+                                        canEdit={isUser && !isChattingDisabled && editingId === null}
+                                        onEdit={handleStartEdit}
                                         onRegenerate={showHistoricalRegenerate ? handleHistoricalRegenerate : undefined}
                                         onStubbed={handleStubbed}
                                     />
@@ -505,7 +536,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                                 initialText={extractMessageText(message.content)}
                                                 disabled={isChattingDisabled}
                                                 onSave={(newText: string) => handleLiveEditSave(newText, index)}
-                                                onCancel={() => setEditingId(null)}
+                                                onCancel={handleCancelEdit}
                                             />
                                         </div>
                                     );

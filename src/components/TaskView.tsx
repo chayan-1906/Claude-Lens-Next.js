@@ -9,8 +9,6 @@ import type {ITaskViewProps} from "@/types/components";
 import {renderCode, renderLink} from "@/components/CodeBlock";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {DeleteTasksButton} from "@/components/DeleteTasksButton";
-import {CopyMessageButton} from "./CopyMessageButton";
-import {DeleteTasksButton} from "./DeleteTasksButton";
 
 const STATUS_CONFIG: Record<ETaskStatus, { label: string; className: string }> = {
     [ETaskStatus.PENDING]: {label: 'Pending', className: 'bg-surface text-text-muted border border-border'},

@@ -9,7 +9,7 @@ import {stubToolResults} from "@/actions/message.actions";
 import type {IToolResultContentBlockProps} from "@/types/components";
 import {normalizeToolResultContent} from "@/utils/extractMessageText";
 
-function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolResultContentBlockProps) {
+const ToolResultContentBlock = React.memo(function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolResultContentBlockProps) {
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
     const [isStubbing, setIsStubbing] = React.useState<boolean>(false);
@@ -96,6 +96,6 @@ function ToolResultContentBlock({block, sessionId, messageId, onStubbed}: IToolR
             </Modal>
         </div>
     );
-}
+});
 
 export {ToolResultContentBlock};

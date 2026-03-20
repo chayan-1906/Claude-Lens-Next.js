@@ -1,3 +1,4 @@
+import React from "react";
 import {cn} from "@/utils/cn";
 import {MessageContent} from "./MessageContent";
 import {IMessageBubbleProps} from "@/types/components";
@@ -8,7 +9,7 @@ import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ContentBlock, EMessageRole, EUserMessageType} from "@/types/message";
 
-function MessageBubble({message, onEdit, index, onRegenerate, sessionId, onStubbed}: IMessageBubbleProps) {
+const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, onStubbed}: IMessageBubbleProps) {
     const isUserMessage: boolean = message.role === EMessageRole.USER;
 
     const isCommandOutput: boolean = isUserMessage && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
@@ -28,8 +29,10 @@ function MessageBubble({message, onEdit, index, onRegenerate, sessionId, onStubb
         }
     }
 
-    // System-generated messages — render as non-interactive, centered, muted text
+    // Compute once — used for interrupt/synthetic detection and copy button
     const contentText: string = extractMessageText(message.content);
+
+    // System-generated messages — render as non-interactive, centered, muted text
     const isInterruptMessage: boolean = isUserMessage && contentText === '[Request interrupted by user]';
     const isSyntheticMessage: boolean = !isUserMessage && message.aiModel === '<synthetic>';
 
@@ -41,7 +44,6 @@ function MessageBubble({message, onEdit, index, onRegenerate, sessionId, onStubb
         );
     }
 
-    const copyText: string = extractMessageText(message.content);
     const showCopyButton: boolean = typeof message.content === 'string' || message.content.some((block: ContentBlock) => block.type === 'text' || block.type === 'thinking');
     const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
 
@@ -58,13 +60,13 @@ function MessageBubble({message, onEdit, index, onRegenerate, sessionId, onStubb
                         <HiOutlineRefresh className={'size-3.5'}/>
                     </Button>
                 )}*/}
-                {/*{(isUserMessage && onEdit) && (
-                    <Button variant={'ghost'} size={'icon'} onClick={onEdit} title={'Edit message'} className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
+                {/*{(isUserMessage && canEdit && onEdit) && (
+                    <Button variant={'ghost'} size={'icon'} onClick={() => onEdit(message.uuid)} title={'Edit message'} className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
                         <HiOutlinePencil className={'size-3.5'}/>
                     </Button>
                 )}*/}
                 {showCopyButton && (
-                    <CopyMessageButton text={copyText}/>
+                    <CopyMessageButton text={contentText}/>
                 )}
                 {(!isUserMessage && message.aiModel) && (
                     <span className={'text-xs text-text-muted italic'}>
@@ -74,6 +76,6 @@ function MessageBubble({message, onEdit, index, onRegenerate, sessionId, onStubb
             </div>
         </div>
     );
-}
+});
 
 export {MessageBubble};

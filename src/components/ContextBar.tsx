@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
+import {HiOutlineChevronDown, HiOutlineChevronUp} from "react-icons/hi";
 import {cn} from "@/utils/cn";
+import {debug} from "@/utils/debug";
 import {Button} from "@/components/ui/Button";
 import type {IContextBarProps} from "@/types/components";
-import {HiOutlineChevronDown, HiOutlineChevronUp} from "react-icons/hi";
 
 function formatTokenCount(n: number): string {
     if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
@@ -22,7 +23,7 @@ function ContextBar({inputTokens, outputTokens, contextWindow}: IContextBarProps
 
     const barColor: string = usagePercent < 50 ? 'bg-success' : usagePercent < 80 ? 'bg-warning' : 'bg-error';
 
-    console.log('ContextBar:', {consumed, usagePercent, remaining, inputTokens, contextWindow});
+    debug('ContextBar:', {consumed, usagePercent, remaining, inputTokens, contextWindow});
 
     return (
         <div className={'border-t border-border rounded-t-xl bg-surface select-none'}>

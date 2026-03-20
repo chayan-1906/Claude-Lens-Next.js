@@ -1,19 +1,39 @@
 import React from "react";
+import dynamic from "next/dynamic";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import Markdown from "react-markdown";
 import {EUserMessageType} from "@/types/message";
 import {stripAnsiCodes} from "@/utils/stripAnsiCodes";
 import {stripSystemTags} from "@/utils/stripSystemTags";
-import {ThinkingBlock} from "@/components/ThinkingBlock";
-import {ToolCallBlock} from "@/components/ToolCallBlock";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import type {IMessageContentProps} from "@/types/components";
 import {renderCode, renderLink} from "@/components/CodeBlock";
-import {ToolResultContentBlock} from "@/components/ToolResultContentBlock";
 import type {ContentBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
-function MessageContent({content, sessionId, messageId, onStubbed}: IMessageContentProps) {
+// Lazy load heavy sub-components via next/dynamic — only loaded when the block type is actually rendered
+const lazyLoadingFallback = (
+    <div className={'flex items-center gap-1.5 px-3 py-2'}>
+        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '0ms'}}/>
+        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '150ms'}}/>
+        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '300ms'}}/>
+    </div>
+);
+
+const ThinkingBlock = dynamic(
+    () => import("@/components/ThinkingBlock").then((m) => m.ThinkingBlock),
+    {loading: () => lazyLoadingFallback},
+);
+const ToolCallBlock = dynamic(
+    () => import("@/components/ToolCallBlock").then((m) => m.ToolCallBlock),
+    {loading: () => lazyLoadingFallback},
+);
+const ToolResultContentBlock = dynamic(
+    () => import("@/components/ToolResultContentBlock").then((m) => m.ToolResultContentBlock),
+    {loading: () => lazyLoadingFallback},
+);
+
+const MessageContent = React.memo(function MessageContent({content, sessionId, messageId, onStubbed}: IMessageContentProps) {
     if (typeof content === 'string') {
         return (
             renderStringContent(content)
@@ -57,7 +77,7 @@ function MessageContent({content, sessionId, messageId, onStubbed}: IMessageCont
             })}
         </div>
     );
-}
+});
 
 function renderStringContent(text: string): React.ReactNode {
     const parsed: ParsedUserMessage = parseUserMessage(text);
