@@ -27,7 +27,7 @@ import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
-import {ContentBlock, EMessageRole, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
+import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
@@ -352,7 +352,13 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     }, [localHistoricalMessages]);
 
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
-    const showThinking: boolean = (status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent;
+    // Show bouncing dots when Claude is actively working and no text response is visible yet.
+    // During TOOL_RUNNING or STREAMING with only thinking/tool_use blocks, the user sees no
+    // visible progress — the dots provide feedback that work is still happening.
+    const hasStreamingText: boolean = streamingContent !== null && streamingContent.some((block: ContentBlock) => block.type === 'text' && (block as TextBlock).text.length > 0);
+    const showThinking: boolean =
+        ((status === EChatStatus.SENDING || status === EChatStatus.CONNECTING) && !streamingContent)
+        || ((status === EChatStatus.TOOL_RUNNING || status === EChatStatus.STREAMING) && !hasStreamingText && messages.length > 0);
     const showEmptyState: boolean = isNewChat && hasNoMessages && status === EChatStatus.IDLE;
 
     // Derive token usage from the last historical assistant message as a fallback
@@ -545,7 +551,8 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                         const isUser: boolean = message.role === EMessageRole.USER;
 
                                         return (
-                                            <div key={virtualItem.key} data-index={virtualItem.index} ref={historicalVirtualizer.measureElement} style={{position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`}}>
+                                            <div key={virtualItem.key} data-index={virtualItem.index} ref={historicalVirtualizer.measureElement}
+                                                 style={{position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`}}>
                                                 {editingId === message.uuid ? (
                                                     <div className={'flex flex-col items-end'}>
                                                         <InlineMessageEditor
