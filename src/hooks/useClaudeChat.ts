@@ -262,7 +262,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 finalizeStreamingMessage();
                 console.log(`[useClaudeChat] result → subtype: ${event.subtype}, is_error: ${event.is_error}, turns: ${event.num_turns}, cost: $${event.total_cost_usd?.toFixed(4)}, duration: ${event.duration_ms}ms, tokens: in=${event.usage?.input_tokens} out=${event.usage?.output_tokens}`);
 
-                if (event.is_error) {
+                if (event.is_error && event.subtype !== 'success') {
                     console.log(`[useClaudeChat] Status → ERROR (result is_error: true, subtype: ${event.subtype})`);
                     setError(event.subtype);
                     setStatus(EChatStatus.ERROR);

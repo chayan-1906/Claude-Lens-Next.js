@@ -6,26 +6,25 @@ import {FaArrowDown} from "react-icons/fa";
 import {HiOutlineBeaker, HiOutlineCode, HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
-import type {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
-import {EMessageRole} from "@/types/message";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
 import {ContextBar} from "@/components/ContextBar";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
+import {IGetSessionResponse} from "@/types/session";
+import {IOpenFolderPickerResponse} from "@/types/file";
 import {EChatStatus, IChatMessage} from "@/types/chat";
 import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
-import type {IGetSessionResponse} from "@/types/session";
+import {IChatSessionViewProps} from "@/types/components";
 import {MessageBubble} from "@/components/MessageBubble";
 import {MessageContent} from "@/components/MessageContent";
-import type {IOpenFolderPickerResponse} from "@/types/file";
-import type {IChatSessionViewProps} from "@/types/components";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ToolApprovalPrompt} from "@/components/ToolApprovalPrompt";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
+import {ContentBlock, EMessageRole, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
@@ -515,37 +514,43 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 const isCommandOutput: boolean = isUser && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
                                 const isToolResult: boolean = isUser && Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_result');
                                 const isSystemUserMessage: boolean = isCommandOutput || isToolResult;
+                                const isSyntheticMessage: boolean = !isUser && (message.model === '<synthetic>' || message.model === 'synthetic');
                                 const copyText: string = extractMessageText(message.content);
                                 const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
+                                const bubbleStyle: string = isSyntheticMessage
+                                    ? 'bg-warning/10 border border-warning/20 text-warning'
+                                    : (isUser && !isSystemUserMessage) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text';
                                 return (
                                     <div key={message.id} className={cn('flex flex-col group', (isUser && !isSystemUserMessage) ? 'items-end' : 'items-start')}>
-                                        <div
-                                            className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', (isUser && !isSystemUserMessage) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+                                        <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', bubbleStyle)}>
                                             <MessageContent content={message.content}/>
                                         </div>
                                         <div className={'flex items-center gap-2 mt-1 px-1'}>
                                             {/*{(isUser && !isChattingDisabled && editingId === null) && (
-                                        <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
-                                                className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
-                                            <HiOutlinePencil className={'size-3.5'}/>
-                                        </Button>
-                                    )}*/}
-                                            {/*{(() => {
-                                        const showLiveRegenerate: boolean = !isUser && canRegenerate;
-                                        return showLiveRegenerate ? (
-                                            <Button variant={'ghost'} size={'icon'} onClick={() => handleLiveRegenerate(index)} title={'Regenerate response'}
-                                                    className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
-                                                <HiOutlineRefresh className={'size-3.5'}/>
-                                            </Button>
-                                        ) : null;
-                                    })()}*/}
+                                                <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
+                                                        className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
+                                                    <HiOutlinePencil className={'size-3.5'}/>
+                                                </Button>
+                                            )}
+                                            {(() => {
+                                                const showLiveRegenerate: boolean = !isUser && canRegenerate;
+                                                return showLiveRegenerate ? (
+                                                    <Button variant={'ghost'} size={'icon'} onClick={() => handleLiveRegenerate(index)} title={'Regenerate response'}
+                                                            className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
+                                                        <HiOutlineRefresh className={'size-3.5'}/>
+                                                    </Button>
+                                                ) : null;
+                                            })()}*/}
                                             {copyText && (
                                                 <CopyMessageButton text={copyText}/>
                                             )}
-                                            {(!isUser && message.model) && (
+                                            {(!isUser && message.model && !isSyntheticMessage) && (
                                                 <span className={'text-xs text-text-muted italic'}>
                                             Prepared using {formatModelName(message.model)}
                                         </span>
+                                            )}
+                                            {isSyntheticMessage && (
+                                                <span className={'text-xs text-warning/70 italic'}>System notice</span>
                                             )}
                                         </div>
                                     </div>
