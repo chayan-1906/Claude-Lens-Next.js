@@ -604,7 +604,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                     : (isUser && !isSystemUserMessage) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text';
                                 return (
                                     <div key={message.id} className={cn('flex flex-col group', (isUser && !isSystemUserMessage) ? 'items-end' : 'items-start')}>
-                                        <div className={cn('max-w-[85%] rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', bubbleStyle)}>
+                                        <div className={cn('max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', bubbleStyle)}>
                                             <MessageContent content={message.content}/>
                                         </div>
                                         <div className={'flex items-center gap-2 mt-1 px-1'}>
@@ -643,7 +643,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                             {streamingContent && (
                                 <div className={'flex flex-col items-start'}>
                                     <div
-                                        className={cn('max-w-[85%] rounded-2xl px-4 text-sm bg-assistant-bubble text-text', streamingContent.some((block: ContentBlock) => block.type !== 'text') ? 'py-3' : 'py-0')}>
+                                        className={cn('max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm bg-assistant-bubble text-text', streamingContent.some((block: ContentBlock) => block.type !== 'text') ? 'py-3' : 'py-0')}>
                                         <MessageContent content={streamingContent}/>
                                     </div>
                                 </div>

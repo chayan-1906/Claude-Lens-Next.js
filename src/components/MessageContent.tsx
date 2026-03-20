@@ -1,7 +1,6 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import Markdown from "react-markdown";
 import {EUserMessageType} from "@/types/message";
 import {stripAnsiCodes} from "@/utils/stripAnsiCodes";
@@ -54,7 +53,7 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                         if (!cleaned) return null;
                         return (
                             <div key={index} className={'markdown-content'}>
-                                <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode, a: renderLink}}>
+                                <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
                                     {cleaned}
                                 </Markdown>
                             </div>
@@ -95,7 +94,7 @@ function renderStringContent(text: string): React.ReactNode {
                     </span>
                     {parsed.remainingText && (
                         <div className={'markdown-content'}>
-                            <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode, a: renderLink}}>
+                            <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
                                 {parsed.remainingText}
                             </Markdown>
                         </div>
@@ -120,7 +119,7 @@ function renderStringContent(text: string): React.ReactNode {
             if (!cleaned) return null;
             return (
                 <div className={'markdown-content'}>
-                    <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={{code: renderCode, a: renderLink}}>
+                    <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
                         {cleaned}
                     </Markdown>
                 </div>
