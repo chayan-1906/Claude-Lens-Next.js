@@ -66,6 +66,9 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const streamEventActiveRef = React.useRef<boolean>(false);
     // Accumulates input_json_delta strings per block index for tool_use blocks.
     const inputJsonBufferRef = React.useRef<Record<number, string>>({});
+    // Tracks the latest assistant event's per-call usage — used for accurate context display.
+    // result.usage is cumulative across all turns; this ref holds the LAST call's actual context.
+    const lastAssistantUsageRef = React.useRef<ITokenUsage | null>(null);
 
     // --- Refs: regenerate retry ---
     // Stores the pending regenerate payload so process_exit can auto-retry via resume_session
@@ -151,7 +154,13 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
         switch (data.type) {
             case 'system': {
-                const event: ISystemEvent = data as ISystemEvent;
+                const event = data as ISystemEvent & { subtype?: string };
+                // Only 'init' carries session_id, model, tools — other subtypes
+                // (task_started, task_progress, etc.) are informational and safe to ignore.
+                if (event.subtype && event.subtype !== 'init') {
+                    console.log(`[useClaudeChat] system → subtype: ${event.subtype} (ignored)`);
+                    break;
+                }
                 console.log(`[useClaudeChat] system → session_id: ${event.session_id}, model: ${event.model}, tools: [${event.tools.join(', ')}]`);
                 setContextInfo({
                     sessionId: event.session_id,
@@ -583,8 +592,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
             try {
                 const data: ServerMessage = JSON.parse(event.data as string);
                 handleServerMessageRef.current(data);
-            } catch {
-                console.error('[useClaudeChat] Failed to parse server message:', event.data);
+            } catch (error: unknown) {
+                console.error('[useClaudeChat] Error handling server message:', error, event.data);
             }
         };
 

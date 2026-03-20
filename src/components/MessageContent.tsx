@@ -2,13 +2,12 @@ import React from "react";
 import dynamic from "next/dynamic";
 import remarkGfm from "remark-gfm";
 import Markdown from "react-markdown";
-import {EUserMessageType} from "@/types/message";
 import {stripAnsiCodes} from "@/utils/stripAnsiCodes";
+import {IMessageContentProps} from "@/types/components";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
-import type {IMessageContentProps} from "@/types/components";
 import {renderCode, renderLink} from "@/components/CodeBlock";
-import type {ContentBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
+import {ContentBlock, EUserMessageType, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
 // Lazy load heavy sub-components via next/dynamic — only loaded when the block type is actually rendered
 const lazyLoadingFallback = (
