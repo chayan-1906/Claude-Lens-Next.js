@@ -13,7 +13,6 @@ import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
 import {ContextBar} from "@/components/ContextBar";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
-import {IGetSessionResponse} from "@/types/session";
 import {IOpenFolderPickerResponse} from "@/types/file";
 import {EChatStatus, IChatMessage} from "@/types/chat";
 import {formatModelName} from "@/utils/formatModelName";
@@ -21,8 +20,10 @@ import {openFolderPicker} from "@/actions/file.actions";
 import {IChatSessionViewProps} from "@/types/components";
 import {MessageBubble} from "@/components/MessageBubble";
 import {MessageContent} from "@/components/MessageContent";
+import {IGetSessionResponse, ISession} from "@/types/session";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ToolApprovalPrompt} from "@/components/ToolApprovalPrompt";
+import {RenameSessionModal} from "@/components/RenameSessionModal";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
@@ -62,6 +63,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             setIsHistoryReady(true);
         }
     }, [isNewChat, historicalMessages]);
+
+    // Local session state — enables optimistic title/description updates after rename
+    const [localSession, setLocalSession] = React.useState<ISession | undefined>(session);
+    const [isRenameModalOpen, setIsRenameModalOpen] = React.useState<boolean>(false);
 
     // Project directory state for new chats
     const [projectDir, setProjectDir] = React.useState<string>('');
@@ -318,6 +323,11 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         }));
     }, []);
 
+    const handleSessionRenamed = React.useCallback((updatedSession: ISession): void => {
+        setLocalSession(updatedSession);
+        window.dispatchEvent(new CustomEvent('session-renamed', {detail: {session: updatedSession}}));
+    }, []);
+
     // Memoize sliced historical messages to avoid creating a new array on every render
     const visibleHistoricalMessages: IMessage[] = React.useMemo(
         () => {
@@ -434,22 +444,28 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             )}
 
             {/* Header (existing sessions only) */}
-            {session && (
+            {localSession && (
                 <div className={'flex px-6 py-3 items-center justify-between border-b border-border shrink-0'}>
-                    <div className={'flex flex-col justify-center'}>
+                    <div className={'flex flex-col justify-center min-w-0'}>
                         <div className={'flex gap-2 items-end'}>
-                            <h1 className={'text-sm font-semibold truncate text-primary'}>{session.title}</h1>
-                            <p className={'text-xs text-primary/80 font-semibold'}>({session.rawProjectDir})</p>
+                            <h1 className={'text-sm font-semibold truncate text-primary cursor-pointer hover:underline'} onClick={() => setIsRenameModalOpen(true)} title={'Click to rename session'}>
+                                {localSession.title}
+                            </h1>
+                            <p className={'text-xs text-primary/80 font-semibold'}>({localSession.rawProjectDir})</p>
                         </div>
 
+                        {localSession.description && (
+                            <p className={'text-xs text-text-muted truncate mt-0.5'}>{localSession.description}</p>
+                        )}
+
                         <div className={'flex items-center gap-1 text-xs text-primary'}>
-                            {session.aiModel && (
-                                <span>{session.aiModel}</span>
+                            {localSession.aiModel && (
+                                <span>{localSession.aiModel}</span>
                             )}
-                            {(session.aiModel && session.gitBranch) && (
+                            {(localSession.aiModel && localSession.gitBranch) && (
                                 <span>•</span>
-                            )}{session.gitBranch && (
-                            <span>{session.gitBranch}</span>
+                            )}{localSession.gitBranch && (
+                            <span>{localSession.gitBranch}</span>
                         )}
                         </div>
                     </div>
@@ -459,11 +475,16 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 title={'Refresh session'}>
                             <HiOutlineRefresh className={cn('size-3.5', isRefreshingMessages && 'animate-spin')}/>
                         </Button>
-                        <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title}/>
+                        <DeleteSessionButton sessionId={localSession.sessionId} sessionTitle={localSession.title}/>
                         <span
                             className={cn('size-2.5 rounded-full', status === EChatStatus.CONNECTING ? 'bg-warning' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success')}/>
                     </div>
                 </div>
+            )}
+
+            {/* Rename Session Modal */}
+            {localSession && (
+                <RenameSessionModal isOpen={isRenameModalOpen} onOpenChange={setIsRenameModalOpen} session={localSession} onSaved={handleSessionRenamed}/>
             )}
 
             {/* Messages area */}
@@ -666,7 +687,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                             )}
 
                             {/* Thinking dots — waiting for first token */}
-                            {!showThinking && (
+                            {showThinking && (
                                 <div className={'flex items-start'}>
                                     <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
                                         <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>

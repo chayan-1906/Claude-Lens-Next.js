@@ -5,7 +5,7 @@ import {apis} from "@/utils/apis";
 import {IMessage} from "@/types/message";
 import {getActiveBranch} from "@/utils/getActiveBranch";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IDeleteSessionParams, IDeleteSessionResponse, IGetAllSessionsParams, IGetAllSessionsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession} from "@/types/session";
+import {IDeleteSessionParams, IDeleteSessionResponse, IGetAllSessionsParams, IGetAllSessionsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession, IUpdateSessionParams, IUpdateSessionResponse} from "@/types/session";
 
 async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetAllSessionsResponse> {
     "use cache";
@@ -97,6 +97,55 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
     }
 }
 
+async function updateSession({sessionId, title, description}: IUpdateSessionParams): Promise<IUpdateSessionResponse> {
+    try {
+        const body: Record<string, string> = {};
+        if (title !== undefined) body.title = title;
+        if (description !== undefined) body.description = description;
+
+        const response: Response = await fetch(apis.updateSessionApi(sessionId), {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body),
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to update session!';
+            console.error('Updating session failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'INVALID_SESSIONID') {
+                errorMessage = `Invalid sessionId: ${sessionId}!`;
+            } else if (errorCode === 'INVALID_TITLE') {
+                errorMessage = 'Title must be non-empty and at most 100 characters!';
+            } else if (errorCode === 'INVALID_DESCRIPTION') {
+                errorMessage = 'Description must be at most 500 characters!';
+            } else if (errorCode === 'SESSION_NOT_FOUND') {
+                errorMessage = `No session found with sessionId: ${sessionId}!`;
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        updateTag('sessions');
+        return {
+            success: true,
+            message: data.message,
+            session: data.session as ISession,
+        };
+    } catch (error: unknown) {
+        console.error('Update session error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
 async function deleteSession({sessionId}: IDeleteSessionParams): Promise<IDeleteSessionResponse> {
     try {
         const response: Response = await fetch(apis.deleteSessionApi(sessionId), {
@@ -146,4 +195,4 @@ async function refreshSidebar(): Promise<void> {
     updateTag('memories');
 }
 
-export {getAllSessions, getSession, deleteSession, refreshSidebar};
+export {getAllSessions, getSession, deleteSession, updateSession, refreshSidebar};

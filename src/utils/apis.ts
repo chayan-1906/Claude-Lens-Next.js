@@ -56,6 +56,7 @@ const apis = {
 
     getAllSessionsApi: baseSessionApiUrl,
     getSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
+    updateSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     deleteSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     stubToolResultsApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}/messages/stub`,
 

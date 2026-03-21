@@ -3,10 +3,9 @@
 import React from "react";
 import {HiOutlineCloudUpload} from "react-icons/hi";
 import {Modal} from "@/components/ui/Modal";
-import type {SyncTarget} from "@/types/sync";
-import {ALL_SYNC_TARGETS, type ISyncResponse} from "@/types/sync";
 import {Button} from "@/components/ui/Button";
 import {getLocalProjects, syncData} from "@/actions/sync.actions";
+import {ALL_SYNC_TARGETS, ISyncResponse, SyncTarget} from "@/types/sync";
 
 function SyncButton() {
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);

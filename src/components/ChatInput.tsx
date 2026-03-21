@@ -65,12 +65,33 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
             requestAnimationFrame(adjustHeight);
             return;
         }
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter') {
+            if (e.shiftKey) {
+                // Shift+Enter — browser natively inserts newline, just let it through
+                return;
+            }
+            if (e.metaKey || e.ctrlKey || e.altKey) {
+                // Cmd/Ctrl/Alt+Enter — manually insert newline (browser doesn't do this natively)
+                e.preventDefault();
+                const textarea: HTMLTextAreaElement = e.currentTarget;
+                const start: number = textarea.selectionStart;
+                const end: number = textarea.selectionEnd;
+                const newValue: string = text.slice(0, start) + '\n' + text.slice(end);
+                setText(newValue);
+                draftText = newValue;
+                requestAnimationFrame((): void => {
+                    textarea.selectionStart = start + 1;
+                    textarea.selectionEnd = start + 1;
+                    adjustHeight();
+                });
+                return;
+            }
+            // Bare Enter — send message
             e.preventDefault();
             console.log('[ChatInput] Enter pressed (sending)!');
             handleSend();
         }
-    }, [handleMarkdownKeyDown, adjustHeight, handleSend]);
+    }, [handleMarkdownKeyDown, adjustHeight, handleSend, text]);
 
     // Capture keystrokes anywhere on the page and redirect to textarea
     React.useEffect(() => {

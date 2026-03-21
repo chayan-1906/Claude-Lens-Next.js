@@ -54,7 +54,7 @@ function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProp
                     <p className={'text-sm text-text-muted mt-2'}>
                         {'Are you sure you want to delete '}
                         <span className={'font-medium text-text'}>{sessionTitle}</span>
-                        {'? This will permanently remove the session, its messages, and associated tasks'}
+                        ? This will permanently remove the session, its messages, and associated tasks
                     </p>
 
                     {error && (

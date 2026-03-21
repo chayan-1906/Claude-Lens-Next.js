@@ -16,6 +16,7 @@ export interface ISession {
     rawProjectDir: string;
     gitBranch?: string;
     slug?: string;
+    description?: string;
     source: ESessionSource;
     contextTokensUsed?: number;
     contextWindowSize?: number;
@@ -50,6 +51,10 @@ export interface IGetSessionResponse extends IApiResponse {
     messages?: IMessage[];
 }
 
+export interface IUpdateSessionResponse extends IApiResponse {
+    session?: ISession;
+}
+
 export interface IDeleteSessionResponse extends IApiResponse {
     deletedSessions?: number;
     deletedMessages?: number;
@@ -69,6 +74,12 @@ export interface IGetAllSessionsParams {
 
 export interface IGetSessionParams {
     sessionId: string;
+}
+
+export interface IUpdateSessionParams {
+    sessionId: string;
+    title?: string;
+    description?: string;
 }
 
 export interface IDeleteSessionParams {

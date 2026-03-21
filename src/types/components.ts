@@ -214,3 +214,10 @@ export interface IConfigFormModalProps {
     editingConfig: IMongoConfig | null;
     onSaved: () => void;
 }
+
+export interface IRenameSessionModalProps {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    session: ISession;
+    onSaved: (updatedSession: ISession) => void;
+}

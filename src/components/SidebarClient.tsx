@@ -281,6 +281,29 @@ function SidebarClient({projects}: ISidebarClientProps) {
         return () => window.removeEventListener('session-deleted', handler);
     }, []);
 
+    /** Update sessionsMap entry when a session is renamed via RenameSessionModal */
+    React.useEffect(() => {
+        const handler = (e: Event): void => {
+            const {session: updatedSession} = (e as CustomEvent<{ session: ISession }>).detail;
+            console.log('[SidebarClient] received session-renamed event:', {sessionId: updatedSession.sessionId, title: updatedSession.title});
+            setSessionsMap((prev: Record<string, ISession[]>) => {
+                const next: Record<string, ISession[]> = {...prev};
+                for (const key of Object.keys(next)) {
+                    const index: number = next[key].findIndex((s: ISession) => s.sessionId === updatedSession.sessionId);
+                    if (index !== -1) {
+                        next[key] = [...next[key]];
+                        next[key][index] = {...next[key][index], title: updatedSession.title, description: updatedSession.description};
+                        break;
+                    }
+                }
+                return next;
+            });
+        };
+
+        window.addEventListener('session-renamed', handler);
+        return () => window.removeEventListener('session-renamed', handler);
+    }, []);
+
     /** Clear tasksMap entry when tasks are deleted via DeleteTasksButton */
     React.useEffect(() => {
         const handler = (e: Event): void => {
