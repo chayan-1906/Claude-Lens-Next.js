@@ -34,7 +34,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     const router = useRouter();
     const {
         status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval,
-        sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, retry, clearMessages,
+        sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, retry, clearMessages, clearError,
     } = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
@@ -286,12 +286,13 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         const result: IGetSessionResponse = await getSession({sessionId});
         if (result.success && result.messages) {
             clearMessages();
+            clearError();
             setLocalHistoricalMessages(result.messages);
             setHistoricalCutoffIndex(null);
             debug(`[ChatSessionView] Messages refreshed — ${result.messages.length} messages loaded`);
         }
         setIsRefreshingMessages(false);
-    }, [session?.sessionId, clearMessages]);
+    }, [session?.sessionId, clearMessages, clearError]);
 
     const handleStubbed = React.useCallback((messageId: string): void => {
         setLocalHistoricalMessages((prev: IMessage[]) => prev.map((message: IMessage) => {
@@ -353,13 +354,20 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
     // Detect if the last historical assistant message is a context limit error.
     // Claude CLI reports "Prompt is too long" as the full assistant message content.
+    // Guard: if session-level usage data shows < 95% context consumed (e.g. after a model
+    // switch enlarged the context window, or /compact freed tokens), the error is stale.
     const isHistoricalContextLimit: boolean = React.useMemo((): boolean => {
         if (!localHistoricalMessages.length) return false;
         const last: IMessage = localHistoricalMessages[localHistoricalMessages.length - 1];
         if (last.role !== EMessageRole.ASSISTANT) return false;
         const text: string = extractMessageText(last.content).toLowerCase();
-        return text.includes('prompt is too long');
-    }, [localHistoricalMessages]);
+        if (!text.includes('prompt is too long')) return false;
+        // Usage ratio guard — stale "Prompt is too long" after model switch / compact
+        const used: number | undefined = session?.contextTokensUsed;
+        const window: number | undefined = session?.contextWindowSize;
+        if (used !== undefined && window !== undefined && window > 0 && used / window < 0.95) return false;
+        return true;
+    }, [localHistoricalMessages, session?.contextTokensUsed, session?.contextWindowSize]);
 
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
     // Show bouncing dots when Claude is actively working and no text response is visible yet.
@@ -697,21 +705,21 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 </div>
                             )}
 
-                            {/* Error state (live) */}
+                            {/* Error state (live) — disabled until context tracking is redesigned
                             {status === EChatStatus.ERROR && error && (
                                 <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
                                     <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
                                     <span className={'flex-1'}>{error}</span>
                                 </div>
-                            )}
+                            )} */}
 
-                            {/* Context limit banner (historical) — shown when the last message was "Prompt is too long" */}
+                            {/* Context limit banner (historical) — disabled until context tracking is redesigned
                             {isHistoricalContextLimit && status !== EChatStatus.ERROR && (
                                 <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
                                     <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
                                     <span className={'flex-1'}>Context limit reached. Start a new session, or run /compact or /clear in the terminal to continue!</span>
                                 </div>
-                            )}
+                            )} */}
                         </div>
                     )}
                 </div>
@@ -727,9 +735,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
             {/* Context info + Chat input */}
             <div className={'max-w-3xl mx-auto w-full'}>
+                {/* ContextBar — disabled until context tracking is redesigned
                 {hasContextData && (
                     <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow}/>
-                )}
+                )} */}
                 <ChatInput onSend={handleSend} onStop={stopExecution} disabled={disabled} isLoading={isLoading}/>
             </div>
         </div>

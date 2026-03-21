@@ -220,18 +220,19 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
                 <textarea
                     ref={textareaRef}
                     value={text}
+                    inputMode={'text'}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     disabled={isRecording || isVoiceProcessing}
                     placeholder={'Send a message...'}
-                    rows={1}
+                    // rows={1}
                     className={cn(
-                        'flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-text placeholder:text-text-muted',
+                        'flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-text font-medium placeholder:text-text-muted',
                         'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
                         'disabled:opacity-50 disabled:cursor-not-allowed',
-                        'overflow-y-auto',
+                        'overflow-y-auto max-h-64',
                     )}
-                    style={{maxHeight: `${MAX_TEXTAREA_HEIGHT}px`}}
+                    // style={{maxHeight: `${MAX_TEXTAREA_HEIGHT}px`}}
                 />
 
                 {/* Mic button */}

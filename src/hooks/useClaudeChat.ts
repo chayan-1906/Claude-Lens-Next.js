@@ -813,6 +813,11 @@ function useClaudeChat(): IUseClaudeChatReturn {
         setMessages([]);
     }, []);
 
+    const clearError = React.useCallback((): void => {
+        setError(null);
+        setStatus((prev: EChatStatus) => prev === EChatStatus.ERROR ? EChatStatus.IDLE : prev);
+    }, []);
+
     // --- Cleanup on unmount ---
 
     React.useEffect(() => {
@@ -835,7 +840,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, disconnect, retry, clearMessages};
+    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, disconnect, retry, clearMessages, clearError};
 }
 
 export {useClaudeChat};
