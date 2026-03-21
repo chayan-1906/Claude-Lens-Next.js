@@ -666,12 +666,12 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                             )}
 
                             {/* Thinking dots — waiting for first token */}
-                            {showThinking && (
+                            {!showThinking && (
                                 <div className={'flex items-start'}>
                                     <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
-                                        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '0ms'}}/>
-                                        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '150ms'}}/>
-                                        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '300ms'}}/>
+                                        <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>
+                                        <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '120ms'}}/>
+                                        <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '240ms'}}/>
                                     </div>
                                 </div>
                             )}

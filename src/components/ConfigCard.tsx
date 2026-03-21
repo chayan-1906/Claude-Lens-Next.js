@@ -14,7 +14,7 @@ function truncateUri(uri: string): string {
 function formatLastConnected(isoDate?: string): string {
     if (!isoDate) return 'Never';
     const date: Date = new Date(isoDate);
-    return date.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'});
+    return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'});
 }
 
 function ConfigCard({config, isActive, onEdit, onDelete, onActivate, onTest, isActivating}: IConfigCardProps) {
@@ -54,11 +54,18 @@ function ConfigCard({config, isActive, onEdit, onDelete, onActivate, onTest, isA
 
             {/* Actions */}
             <div className={'flex items-center gap-2 flex-wrap'}>
-                {!isActive && (
-                    <Button variant={'primary'} size={'sm'} onClick={() => onActivate(config)} isLoading={isActivating} disabled={isActivating}>
-                        Connect
-                    </Button>
-                )}
+                {isActive
+                    ? (
+                        <Button variant={'outline'} size={'sm'} onClick={() => onActivate(config)} isLoading={isActivating} disabled={isActivating}>
+                            Reconnect
+                        </Button>
+                    )
+                    : (
+                        <Button variant={'primary'} size={'sm'} onClick={() => onActivate(config)} isLoading={isActivating} disabled={isActivating}>
+                            Connect
+                        </Button>
+                    )
+                }
                 <Button variant={'outline'} size={'sm'} onClick={() => onTest(config)}>
                     Test
                 </Button>

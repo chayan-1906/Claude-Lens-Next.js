@@ -1144,6 +1144,17 @@ body {
 	font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+@keyframes claude-dot {
+	0%, 80%, 100% {
+		transform: translateY(0);
+		opacity: 0.5;
+	}
+	40% {
+		transform: translateY(-4px);
+		opacity: 1;
+	}
+}
+
 /* ========================================
    Markdown content typography
    ======================================== */
@@ -1312,6 +1323,11 @@ body {
    Voice input — wave bar animation
    ======================================== */
 @keyframes wave-bar {
-	from { height: 4px; }
-	to { height: 20px; }
+	from {
+		height: 4px;
+	}
+	to {
+		height: 20px;
+	}
 }
+

@@ -21,6 +21,7 @@ import type {
     IGetConfigProjectsResponse,
     IMongoConfig,
 } from "@/types/setup";
+import {refreshSidebar} from "@/actions/session.actions";
 
 async function getSetupStatus(): Promise<IGetSetupStatusResponse> {
     try {
@@ -249,6 +250,7 @@ async function activateConfiguration({configId}: IActivateConfigurationParams): 
         }
 
         await setSetupConfiguredCookie();
+        await refreshSidebar();
 
         return {
             success: true,

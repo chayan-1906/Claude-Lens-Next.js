@@ -93,7 +93,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId}: ISetupFormPro
             return;
         }
 
-        router.refresh();
+        router.push(routes.homePath);
         setActivatingId(null);
     }, [router]);
 
