@@ -121,7 +121,8 @@ async function deleteSession({sessionId}: IDeleteSessionParams): Promise<IDelete
             };
         }
 
-        updateTag('sessions');
+        // updateTag('sessions');
+        // updateTag('projects');
         return {
             success: true,
             message: data.message,

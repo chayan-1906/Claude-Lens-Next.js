@@ -2,12 +2,12 @@
 
 import React from "react";
 import {useRouter} from "next/navigation";
-import {routes} from "@/utils/routes";
 import {HiOutlineTrash} from "react-icons/hi";
+import {routes} from "@/utils/routes";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
-import {deleteSession} from "@/actions/session.actions";
 import type {IDeleteSessionButtonProps} from "@/types/components";
+import {deleteSession, refreshSidebar} from "@/actions/session.actions";
 
 function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProps) {
     const router = useRouter();
@@ -31,7 +31,14 @@ function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProp
         window.dispatchEvent(new CustomEvent('session-deleted', {detail: {sessionId}}));
         setIsModalOpen(false);
         setIsDeleting(false);
-        router.push(routes.homePath);
+        // Navigate away first, then invalidate caches + refresh after a delay
+        // so the re-render targets the home page — not the deleted session's
+        // page (which would call getSession and produce SESSION_NOT_FOUND)
+        router.replace(routes.homePath);
+        setTimeout(async (): Promise<void> => {
+            await refreshSidebar();
+            router.refresh();
+        }, 500);
     }, [sessionId, router]);
 
     return (
