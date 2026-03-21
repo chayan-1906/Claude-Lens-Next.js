@@ -21,7 +21,7 @@ async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetA
         if (params.limit) searchParams.set('limit', String(params.limit));
 
         const queryString: string = searchParams.toString();
-        const url: string = `${apis.getAllSessionssApi}${queryString ? `?${queryString}` : ''}`;
+        const url: string = `${apis.getAllSessionsApi}${queryString ? `?${queryString}` : ''}`;
 
         const response: Response = await fetch(url);
         const data: ApiResponseClass = await parseApiResponse(response);

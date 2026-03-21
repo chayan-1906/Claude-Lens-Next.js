@@ -1,4 +1,5 @@
 import type {Metadata} from "next";
+import {connection} from "next/server";
 import {SetupForm} from "@/components/SetupForm";
 import {getConfigurations} from "@/actions/setup.actions";
 import type {IGetConfigurationsResponse, IMongoConfig} from "@/types/setup";
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 async function SetupPage() {
+    await connection();
     const {configurations, activeConfigId}: IGetConfigurationsResponse = await getConfigurations();
     const hasConfigs: boolean = (configurations?.length ?? 0) > 0;
 
