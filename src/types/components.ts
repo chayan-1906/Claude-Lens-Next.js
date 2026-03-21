@@ -3,8 +3,9 @@ import type {ITask} from "@/types/task";
 import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
-import type {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
+import type {IMongoConfig} from "@/types/setup";
 import {IPendingToolApproval} from "@/types/chat";
+import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
 /** ------------- Constants and Type Aliases ------------- */
 
@@ -190,4 +191,26 @@ export interface IDiffLine {
 export interface IToolApprovalPromptProps {
     approval: IPendingToolApproval;
     onRespond: (requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean) => void;
+}
+
+export interface ISetupFormProps {
+    initialConfigurations: IMongoConfig[];
+    initialActiveConfigId: string;
+}
+
+export interface IConfigCardProps {
+    config: IMongoConfig;
+    isActive: boolean;
+    onEdit: (config: IMongoConfig) => void;
+    onDelete: (config: IMongoConfig) => void;
+    onActivate: (config: IMongoConfig) => void;
+    onTest: (config: IMongoConfig) => void;
+    isActivating: boolean;
+}
+
+export interface IConfigFormModalProps {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    editingConfig: IMongoConfig | null;
+    onSaved: () => void;
 }

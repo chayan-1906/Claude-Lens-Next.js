@@ -6,6 +6,9 @@ const baseApiUrl: string = `${BACKEND_URL}/api/v1`;
 /** Base URL for setup endpoints */
 const baseSetupApiUrl: string = `${baseApiUrl}/setup`;
 
+/** Base URL for configuration endpoints */
+const baseConfigurationsApiUrl: string = `${baseSetupApiUrl}/configurations`;
+
 /** Base URL for sync endpoints */
 const baseSyncApiUrl: string = `${baseApiUrl}/sync`;
 
@@ -36,7 +39,14 @@ const baseFilePickerApiUrl: string = `${baseApiUrl}/file-picker`;
 /** Backend API endpoint URLs */
 const apis = {
     getSetupStatusApi: `${baseSetupApiUrl}/status`,
-    setupApi: baseSetupApiUrl,
+
+    getConfigurationsApi: baseConfigurationsApiUrl,
+    addConfigurationApi: baseConfigurationsApiUrl,
+    editConfigurationApi: (configId: string) => `${baseConfigurationsApiUrl}/${configId}`,
+    deleteConfigurationApi: (configId: string) => `${baseConfigurationsApiUrl}/${configId}`,
+    testConfigurationApi: (configId: string) => `${baseConfigurationsApiUrl}/${configId}/test`,
+    activateConfigurationApi: (configId: string) => `${baseConfigurationsApiUrl}/${configId}/activate`,
+    getConfigProjectsApi: (configId: string) => `${baseConfigurationsApiUrl}/${configId}/projects`,
 
     getLocalProjectsApi: `${baseSyncApiUrl}/projects`,
     syncApi: baseSyncApiUrl,

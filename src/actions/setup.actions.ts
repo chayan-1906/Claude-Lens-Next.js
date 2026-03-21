@@ -1,12 +1,26 @@
 "use server";
 
 import {cookies} from "next/headers";
-import {redirect} from "next/navigation";
 import {apis} from "@/utils/apis";
-import {routes} from "@/utils/routes";
 import {SETUP_CONFIGURED_COOKIE} from "@/types/setup";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import type {IGetSetupStatusResponse, ISetupParams, ISetupResponse} from "@/types/setup";
+import type {
+    IGetSetupStatusResponse,
+    IGetConfigurationsResponse,
+    IAddConfigurationParams,
+    IAddConfigurationResponse,
+    IEditConfigurationParams,
+    IEditConfigurationResponse,
+    IDeleteConfigurationParams,
+    IDeleteConfigurationResponse,
+    ITestConfigurationParams,
+    ITestConfigurationResponse,
+    IActivateConfigurationParams,
+    IActivateConfigurationResponse,
+    IGetConfigProjectsParams,
+    IGetConfigProjectsResponse,
+    IMongoConfig,
+} from "@/types/setup";
 
 async function getSetupStatus(): Promise<IGetSetupStatusResponse> {
     try {
@@ -39,21 +53,54 @@ async function getSetupStatus(): Promise<IGetSetupStatusResponse> {
     }
 }
 
-async function setup({mongoUri}: ISetupParams): Promise<ISetupResponse> {
+async function getConfigurations(): Promise<IGetConfigurationsResponse> {
     try {
-        const response: Response = await fetch(apis.setupApi, {
+        const response: Response = await fetch(apis.getConfigurationsApi);
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = 'Failed to fetch configurations!';
+            console.error('Getting configurations failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            configurations: data.configurations as IMongoConfig[],
+            activeConfigId: data.activeConfigId as string,
+        };
+    } catch (error: unknown) {
+        console.error('Get configurations error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function addConfiguration({name, uri, description, color}: IAddConfigurationParams): Promise<IAddConfigurationResponse> {
+    try {
+        const response: Response = await fetch(apis.addConfigurationApi, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({mongoUri}),
+            body: JSON.stringify({name, uri, description, color}),
         });
         const data: ApiResponseClass = await parseApiResponse(response);
 
         if (!response.ok || !data.success) {
             const errorCode: string | number = data.error?.code || '';
-            let errorMessage: string = 'Failed to setup MongoDB connection!';
-            console.error('Setup failed:', {code: errorCode, message: data.error?.message});
+            let errorMessage: string = 'Failed to add configuration!';
+            console.error('Add configuration failed:', {code: errorCode, message: data.error?.message});
 
-            if (errorCode === 'MONGO_URI_MISSING') {
+            if (errorCode === 'NAME_MISSING') {
+                errorMessage = 'Name is required!';
+            } else if (errorCode === 'URI_MISSING') {
                 errorMessage = 'MongoDB URI is required!';
             } else if (errorCode === 'INVALID_MONGO_URI') {
                 errorMessage = data.error?.message || 'Invalid MongoDB URI. Please check and try again!';
@@ -65,16 +112,185 @@ async function setup({mongoUri}: ISetupParams): Promise<ISetupResponse> {
             };
         }
 
-        await setSetupConfiguredCookie();
+        return {
+            success: true,
+            message: data.message,
+            configuration: data.configuration as IMongoConfig,
+        };
     } catch (error: unknown) {
-        console.error('Setup error:', error);
+        console.error('Add configuration error:', error);
         return {
             success: false,
             error: 'Something went wrong. Please try again!',
         };
     }
+}
 
-    redirect(routes.homePath);
+async function editConfiguration({configId, name, uri, description, color}: IEditConfigurationParams): Promise<IEditConfigurationResponse> {
+    try {
+        const response: Response = await fetch(apis.editConfigurationApi(configId), {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name, uri, description, color}),
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to update configuration!';
+            console.error('Edit configuration failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'INVALID_MONGO_URI') {
+                errorMessage = data.error?.message || 'Invalid MongoDB URI. Please check and try again!';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            configuration: data.configuration as IMongoConfig,
+        };
+    } catch (error: unknown) {
+        console.error('Edit configuration error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function deleteConfiguration({configId}: IDeleteConfigurationParams): Promise<IDeleteConfigurationResponse> {
+    try {
+        const response: Response = await fetch(apis.deleteConfigurationApi(configId), {
+            method: 'DELETE',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to delete configuration!';
+            console.error('Delete configuration failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'ACTIVE_CONFIG_DELETE') {
+                errorMessage = 'Cannot delete the active configuration! Switch to another one first.';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+        };
+    } catch (error: unknown) {
+        console.error('Delete configuration error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function testConfiguration({configId}: ITestConfigurationParams): Promise<ITestConfigurationResponse> {
+    try {
+        const response: Response = await fetch(apis.testConfigurationApi(configId), {
+            method: 'POST',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = data.error?.message || 'Connection test failed!';
+            console.error('Test configuration failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+        };
+    } catch (error: unknown) {
+        console.error('Test configuration error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function activateConfiguration({configId}: IActivateConfigurationParams): Promise<IActivateConfigurationResponse> {
+    try {
+        const response: Response = await fetch(apis.activateConfigurationApi(configId), {
+            method: 'POST',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = data.error?.message || 'Failed to activate configuration!';
+            console.error('Activate configuration failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        await setSetupConfiguredCookie();
+
+        return {
+            success: true,
+            message: data.message,
+        };
+    } catch (error: unknown) {
+        console.error('Activate configuration error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function getConfigProjects({configId}: IGetConfigProjectsParams): Promise<IGetConfigProjectsResponse> {
+    try {
+        const response: Response = await fetch(apis.getConfigProjectsApi(configId));
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = data.error?.message || 'Failed to fetch projects!';
+            console.error('Get config projects failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            projects: data.projects as { rawProjectDir: string; projectDir: string }[],
+        };
+    } catch (error: unknown) {
+        console.error('Get config projects error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
 }
 
 async function setSetupConfiguredCookie(): Promise<void> {
@@ -87,4 +303,14 @@ async function setSetupConfiguredCookie(): Promise<void> {
     });
 }
 
-export {getSetupStatus, setup, setSetupConfiguredCookie};
+export {
+    getSetupStatus,
+    getConfigurations,
+    addConfiguration,
+    editConfiguration,
+    deleteConfiguration,
+    testConfiguration,
+    activateConfiguration,
+    getConfigProjects,
+    setSetupConfiguredCookie,
+};
