@@ -177,7 +177,13 @@ export interface ISessionStoppedMessage {
     type: 'session_stopped';
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage;
+/** Backend message: JSONL sync completed — human user message + parentUuid backfill now in MongoDB */
+export interface ISyncCompleteMessage {
+    type: 'sync_complete';
+    sessionId: string | null;
+}
+
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {

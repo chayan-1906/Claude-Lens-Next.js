@@ -147,7 +147,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         // Drain/ignore buffered WS events that arrive after the user clicked Stop.
         // Only process_exit and session_stopped are allowed through — everything else
         // would re-trigger streaming UI or overwrite the IDLE state.
-        if (stopRequestedRef.current && data.type !== 'process_exit' && data.type !== 'session_stopped') {
+        if (stopRequestedRef.current && data.type !== 'process_exit' && data.type !== 'session_stopped' && data.type !== 'sync_complete') {
             console.log(`[useClaudeChat] Ignoring post-stop event: ${data.type}`);
             return;
         }
@@ -376,6 +376,15 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 stopRequestedRef.current = false;
                 isSessionActiveRef.current = false;
                 setStatus(EChatStatus.IDLE);
+                break;
+            }
+
+            case 'sync_complete': {
+                // Backend finished JSONL sync — human user message + parentUuid backfill
+                // are now in MongoDB. Dispatch event so ChatSessionView can refetch.
+                const syncEvent = data as { type: 'sync_complete'; sessionId: string | null };
+                console.log(`[useClaudeChat] sync_complete → sessionId: ${syncEvent.sessionId}`);
+                window.dispatchEvent(new CustomEvent('sync-complete', {detail: {sessionId: syncEvent.sessionId}}));
                 break;
             }
 

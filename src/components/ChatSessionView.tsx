@@ -40,6 +40,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
     const hasSyncedSidebarRef = React.useRef<boolean>(false);
+    const hasPostSyncRefetchedRef = React.useRef<boolean>(false);
 
     // Auto-scroll refs
     const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -293,6 +294,46 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         }
         setIsRefreshingMessages(false);
     }, [session?.sessionId, clearMessages, clearError]);
+
+    // Refetch messages from MongoDB when backend sends sync_complete.
+    // This ensures the human-typed user message (only in JSONL, not in stream output)
+    // and backfilled parentUuid values are picked up after JSONL sync finishes.
+    React.useEffect(() => {
+        const onSyncComplete = (e: Event): void => {
+            const detail = (e as CustomEvent).detail as { sessionId: string | null };
+            if (detail.sessionId && detail.sessionId === session?.sessionId) {
+                hasPostSyncRefetchedRef.current = true;
+                debug(`[ChatSessionView] sync-complete received — refetching messages for ${detail.sessionId}`);
+                handleRefreshMessages();
+            }
+        };
+        window.addEventListener('sync-complete', onSyncComplete);
+        return (): void => {
+            window.removeEventListener('sync-complete', onSyncComplete);
+        };
+    }, [session?.sessionId, handleRefreshMessages]);
+
+    // Fallback: if historical messages exist but the first message is NOT a user message,
+    // the human-typed user message is missing (JSONL sync hasn't added it yet).
+    // Refetch after 5s to pick it up. This works regardless of WebSocket state or
+    // chat status — it's purely a data completeness check.
+    React.useEffect(() => {
+        if (localHistoricalMessages.length > 0 && !hasPostSyncRefetchedRef.current) {
+            const firstMessage: IMessage = localHistoricalMessages[0];
+            if (firstMessage.role !== EMessageRole.USER) {
+                const timerId: ReturnType<typeof setTimeout> = setTimeout((): void => {
+                    if (!hasPostSyncRefetchedRef.current) {
+                        hasPostSyncRefetchedRef.current = true;
+                        debug('[ChatSessionView] First message is not user — refetching (JSONL sync may have added it)');
+                        handleRefreshMessages();
+                    }
+                }, 3000);
+                return (): void => {
+                    clearTimeout(timerId);
+                };
+            }
+        }
+    }, [localHistoricalMessages, handleRefreshMessages]);
 
     const handleStubbed = React.useCallback((messageId: string): void => {
         setLocalHistoricalMessages((prev: IMessage[]) => prev.map((message: IMessage) => {
