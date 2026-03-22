@@ -379,6 +379,15 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 break;
             }
 
+            case 'model_switched': {
+                const switchEvent = data as { type: 'model_switched'; model: string };
+                console.log(`[useClaudeChat] model_switched → model: ${switchEvent.model}`);
+                // The re-spawned process will emit a new system event with updated model info.
+                // Mark session active so follow-up messages use send_message instead of re-spawning.
+                isSessionActiveRef.current = true;
+                break;
+            }
+
             case 'sync_complete': {
                 // Backend finished JSONL sync — human user message + parentUuid backfill
                 // are now in MongoDB. Dispatch event so ChatSessionView can refetch.
@@ -556,11 +565,11 @@ function useClaudeChat(): IUseClaudeChatReturn {
             console.log(`[useClaudeChat] Sending edit_session (sessionId: ${options.sessionId}, editAtUuid: ${options.editAtUuid ?? 'none'}, text: "${text.slice(0, 50)}...")`);
         } else if (!isSessionActiveRef.current) {
             if (options?.sessionId) {
-                clientMessage = {type: 'resume_session', sessionId: options.sessionId, text};
-                console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, text: "${text.slice(0, 50)}...")`);
+                clientMessage = {type: 'resume_session', sessionId: options.sessionId, text, model: options?.model, effort: options?.effort};
+                console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, model: ${options?.model ?? 'default'}, text: "${text.slice(0, 50)}...")`);
             } else {
-                clientMessage = {type: 'new_session', text, projectDir: options?.projectDir};
-                console.log(`[useClaudeChat] Sending new_session (projectDir: ${options?.projectDir ?? 'none'}, text: "${text.slice(0, 50)}...")`);
+                clientMessage = {type: 'new_session', text, projectDir: options?.projectDir, model: options?.model, effort: options?.effort};
+                console.log(`[useClaudeChat] Sending new_session (projectDir: ${options?.projectDir ?? 'none'}, model: ${options?.model ?? 'default'}, text: "${text.slice(0, 50)}...")`);
             }
             isSessionActiveRef.current = true;
         } else {
@@ -810,6 +819,25 @@ function useClaudeChat(): IUseClaudeChatReturn {
         ws.send(JSON.stringify({type: 'stop_execution'}));
     }, [finalizeStreamingMessage]);
 
+    const switchModel = React.useCallback((model: string, effort?: string): void => {
+        const ws: WebSocket | null = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.warn('[useClaudeChat] switchModel called but WS not open');
+            return;
+        }
+        if (!isSessionActiveRef.current) {
+            console.warn('[useClaudeChat] switchModel called but no active session');
+            return;
+        }
+        console.log(`[useClaudeChat] Sending switch_model → model: ${model}, effort: ${effort ?? 'default'}`);
+
+        // Finalize any in-progress streaming before the process is killed
+        finalizeStreamingMessage();
+        setStatus(EChatStatus.SENDING);
+
+        ws.send(JSON.stringify({type: 'switch_model', model, effort}));
+    }, [finalizeStreamingMessage]);
+
     const retry = React.useCallback((): void => {
         console.log('[useClaudeChat] retry() called — resetting error and reconnecting');
         setError(null);
@@ -849,7 +877,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, disconnect, retry, clearMessages, clearError};
+    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, stopExecution, disconnect, retry, clearMessages, clearError};
 }
 
 export {useClaudeChat};

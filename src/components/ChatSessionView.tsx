@@ -5,13 +5,12 @@ import React from "react";
 import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
 import {useVirtualizer, VirtualItem} from "@tanstack/react-virtual";
-import {HiOutlineBeaker, HiOutlineCode, HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
+import {HiOutlineBeaker, HiOutlineCode, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {debug} from "@/utils/debug";
 import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
-import {ContextBar} from "@/components/ContextBar";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
 import {IOpenFolderPickerResponse} from "@/types/file";
 import {EChatStatus, IChatMessage} from "@/types/chat";
@@ -27,6 +26,7 @@ import {RenameSessionModal} from "@/components/RenameSessionModal";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
+import {ModelSelector} from "@/components/ModelSelector";
 import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
@@ -34,7 +34,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     const router = useRouter();
     const {
         status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval,
-        sendMessage, editMessage, regenerateMessage, respondToApproval, stopExecution, retry, clearMessages, clearError,
+        sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, stopExecution, retry, clearMessages, clearError,
     } = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
@@ -68,6 +68,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // Local session state — enables optimistic title/description updates after rename
     const [localSession, setLocalSession] = React.useState<ISession | undefined>(session);
     const [isRenameModalOpen, setIsRenameModalOpen] = React.useState<boolean>(false);
+
+    // Model/effort selection state
+    const [selectedModel, setSelectedModel] = React.useState<string>('sonnet');
+    const [selectedEffort, setSelectedEffort] = React.useState<string>('medium');
 
     // Project directory state for new chats
     const [projectDir, setProjectDir] = React.useState<string>('');
@@ -196,8 +200,23 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         isAtBottomRef.current = true;
         setShowScrollButton(false);
         scrollToBottom('instant');
-        sendMessage(text, isNewChat ? {projectDir: projectDir || undefined} : {sessionId: session?.sessionId});
-    }, [sendMessage, isNewChat, session?.sessionId, projectDir, scrollToBottom]);
+        const modelOpts: { model?: string; effort?: string } = {
+            model: selectedModel || undefined,
+            effort: selectedEffort || undefined,
+        };
+        sendMessage(text, isNewChat
+            ? {projectDir: projectDir || undefined, ...modelOpts}
+            : {sessionId: session?.sessionId, ...modelOpts},
+        );
+    }, [sendMessage, isNewChat, session?.sessionId, projectDir, selectedModel, selectedEffort, scrollToBottom]);
+
+    const handleSwitchModel = React.useCallback((model: string): void => {
+        setSelectedModel(model);
+        // Only switch mid-conversation if a session is already active
+        if (contextInfo?.sessionId) {
+            switchModel(model, selectedEffort || undefined);
+        }
+    }, [contextInfo?.sessionId, selectedEffort, switchModel]);
 
     // Stable callbacks for edit actions — prevents new closure per message in .map()
     const handleStartEdit = React.useCallback((uuid: string): void => {
@@ -774,12 +793,15 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                 )}
             </div>
 
-            {/* Context info + Chat input */}
-            <div className={'max-w-3xl mx-auto w-full'}>
-                {/* ContextBar — disabled until context tracking is redesigned
-                {hasContextData && (
+            {/* Model selector + Chat input */}
+            <div className={'max-w-3xl mx-auto w-full gap-4'}>
+                {/* ContextBar — disabled until context tracking is redesigned */}
+                {/*{hasContextData && (
                     <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow}/>
-                )} */}
+                )}*/}
+                <div className={'flex items-center justify-between py-1.5'}>
+                    <ModelSelector selectedModel={selectedModel} selectedEffort={selectedEffort} onModelChange={handleSwitchModel} onEffortChange={setSelectedEffort} disabled={isLoading}/>
+                </div>
                 <ChatInput onSend={handleSend} onStop={stopExecution} disabled={disabled} isLoading={isLoading}/>
             </div>
         </div>

@@ -183,7 +183,13 @@ export interface ISyncCompleteMessage {
     sessionId: string | null;
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage;
+/** Backend message: confirms the model was switched mid-conversation */
+export interface IModelSwitchedMessage {
+    type: 'model_switched';
+    model: string;
+}
+
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage | IModelSwitchedMessage;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {
@@ -228,6 +234,7 @@ export interface IUseClaudeChatReturn {
     editMessage: (keepUpToIndex: number, newText: string, options?: ISendMessageOptions) => void;
     regenerateMessage: (keepUpToIndex: number, resendText: string, options?: ISendMessageOptions) => void;
     respondToApproval: (requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean) => void;
+    switchModel: (model: string, effort?: string) => void;
     stopExecution: () => void;
     disconnect: () => void;
     retry: () => void;
@@ -243,6 +250,8 @@ export interface INewSessionMessage {
     type: 'new_session';
     text: string;
     projectDir?: string;
+    model?: string;
+    effort?: string;
 }
 
 /** Client → Server: resume an existing session */
@@ -250,6 +259,8 @@ export interface IResumeSessionMessage {
     type: 'resume_session';
     sessionId: string;
     text: string;
+    model?: string;
+    effort?: string;
 }
 
 /** Client → Server: send follow-up message to active session */
@@ -271,7 +282,14 @@ export interface IToolApprovalResponseMessage {
     reason?: string;
 }
 
-export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage | IStopExecutionMessage | IToolApprovalResponseMessage;
+/** Client → Server: switch model mid-conversation (kill + re-spawn with --resume --model) */
+export interface ISwitchModelMessage {
+    type: 'switch_model';
+    model: string;
+    effort?: string;
+}
+
+export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage | IStopExecutionMessage | ISwitchModelMessage | IToolApprovalResponseMessage;
 
 /** Options passed to useClaudeChat.sendMessage */
 export interface ISendMessageOptions {
@@ -279,6 +297,8 @@ export interface ISendMessageOptions {
     projectDir?: string;
     isEditSession?: boolean;  // true = send edit_session instead of resume/new/send_message
     editAtUuid?: string;      // UUID of last context message before the edit point (edit_session only)
+    model?: string;           // model alias (opus/sonnet/haiku) for new_session or resume_session
+    effort?: string;          // effort level (low/medium/high/max) — model-dependent
 }
 
 /** Client → Server: fork or reconstruct a session at an edit/regenerate point */

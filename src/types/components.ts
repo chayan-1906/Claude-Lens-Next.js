@@ -221,3 +221,16 @@ export interface IRenameSessionModalProps {
     session: ISession;
     onSaved: (updatedSession: ISession) => void;
 }
+
+export interface IModelConfig {
+    value: string;
+    label: string;
+}
+
+export interface IModelSelectorProps {
+    selectedModel: string;
+    selectedEffort: string;
+    onModelChange: (model: string) => void;
+    onEffortChange: (effort: string) => void;
+    disabled?: boolean;
+}
