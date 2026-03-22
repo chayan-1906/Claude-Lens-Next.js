@@ -26,7 +26,6 @@ import {RenameSessionModal} from "@/components/RenameSessionModal";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
-import {ModelSelector} from "@/components/ModelSelector";
 import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
@@ -72,6 +71,20 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     // Model/effort selection state
     const [selectedModel, setSelectedModel] = React.useState<string>('sonnet');
     const [selectedEffort, setSelectedEffort] = React.useState<string>('medium');
+
+    // Init model/effort from the last assistant message of the session (on mount for existing sessions)
+    React.useEffect(() => {
+        if (!historicalMessages || historicalMessages.length === 0) return;
+        const lastAssistant: IMessage | undefined = [...historicalMessages].reverse().find(
+            (m: IMessage) => m.role === EMessageRole.ASSISTANT && m.aiModel,
+        );
+        if (!lastAssistant?.aiModel) return;
+        const modelId: string = lastAssistant.aiModel.toLowerCase();
+        if (modelId.includes('haiku')) setSelectedModel('haiku');
+        else if (modelId.includes('opus')) setSelectedModel('opus');
+        else if (modelId.includes('sonnet')) setSelectedModel('sonnet');
+        if (lastAssistant.effortLevel) setSelectedEffort(lastAssistant.effortLevel);
+    }, []); // run once on mount — historicalMessages is stable at this point
 
     // Project directory state for new chats
     const [projectDir, setProjectDir] = React.useState<string>('');
@@ -793,16 +806,22 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                 )}
             </div>
 
-            {/* Model selector + Chat input */}
+            {/* Chat input */}
             <div className={'max-w-3xl mx-auto w-full gap-4'}>
                 {/* ContextBar — disabled until context tracking is redesigned */}
                 {/*{hasContextData && (
                     <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow}/>
                 )}*/}
-                <div className={'flex items-center justify-between py-1.5'}>
-                    <ModelSelector selectedModel={selectedModel} selectedEffort={selectedEffort} onModelChange={handleSwitchModel} onEffortChange={setSelectedEffort} disabled={isLoading}/>
-                </div>
-                <ChatInput onSend={handleSend} onStop={stopExecution} disabled={disabled} isLoading={isLoading}/>
+                <ChatInput
+                    onSend={handleSend}
+                    onStop={stopExecution}
+                    disabled={disabled}
+                    isLoading={isLoading}
+                    selectedModel={selectedModel}
+                    selectedEffort={selectedEffort}
+                    onModelChange={handleSwitchModel}
+                    onEffortChange={setSelectedEffort}
+                />
             </div>
         </div>
     );

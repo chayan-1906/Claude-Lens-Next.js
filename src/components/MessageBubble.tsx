@@ -49,7 +49,7 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
 
     return (
         <div className={cn('flex flex-col group', (isUserMessage && !isCommandOutput && !isToolResult) ? 'items-end' : 'items-start')}>
-            <div className={cn('max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', (isUserMessage && !isCommandOutput && !isToolResult) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+            <div className={cn('max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm', hasNonTextBlock ? 'pt-3' : 'py-0', (isUserMessage && !isCommandOutput && !isToolResult) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
                 <MessageContent content={message.content} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
             </div>
             <div className={'flex items-center gap-2 mt-1 px-1'}>

@@ -11,10 +11,12 @@ import {ContentBlock, EUserMessageType, ParsedUserMessage, ToolResultBlock} from
 
 // Lazy load heavy sub-components via next/dynamic — only loaded when the block type is actually rendered
 const lazyLoadingFallback = (
-    <div className={'flex items-center gap-1.5 px-3 py-2'}>
-        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '0ms'}}/>
-        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '150ms'}}/>
-        <span className={'size-1.5 rounded-full bg-text-muted animate-bounce'} style={{animationDelay: '300ms'}}/>
+    <div className={'flex items-start'}>
+        <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
+            <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>
+            <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '120ms'}}/>
+            <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '240ms'}}/>
+        </div>
     </div>
 );
 
@@ -39,7 +41,7 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
     }
 
     return (
-        <div className={'flex flex-col gap-2'}>
+        <div className={'flex flex-col'}>
             {content.map((block: ContentBlock, index: number) => {
                 switch (block.type) {
                     case 'thinking':

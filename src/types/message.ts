@@ -65,6 +65,7 @@ export interface IMessage {
     role: EMessageRole;
     content: string | ContentBlock[];
     aiModel?: string;
+    effortLevel?: string;
     timestamp: string;
     tokenUsage?: {
         input: number;

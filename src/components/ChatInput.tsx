@@ -2,11 +2,12 @@
 
 import React from "react";
 import {FaSquare} from "react-icons/fa";
-import {HiArrowUp} from "react-icons/hi";
+import {HiArrowUp, HiOutlinePlus} from "react-icons/hi";
 import {ImSpinner2} from "react-icons/im";
 import {FaMicrophone} from "react-icons/fa6";
 import {cn} from "@/utils/cn";
 import {Button} from "@/components/ui/Button";
+import {ModelSelector} from "@/components/ModelSelector";
 import {useVoiceInput} from "@/hooks/useVoiceInput";
 import type {IChatInputProps} from "@/types/components";
 import {useMarkdownShortcuts} from "@/hooks/useMarkdownShortcuts";
@@ -17,7 +18,7 @@ const WAVE_DELAYS: number[] = [0, 0.1, 0.2, 0.1, 0];
 // Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
 let draftText: string = '';
 
-function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
+function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, onModelChange, onEffortChange}: IChatInputProps) {
     const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
@@ -154,6 +155,47 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
 
     const canSend: boolean = text.trim().length > 0 && !disabled && !isRecording;
 
+    // Single action button — one of: Stop stream | Voice spinner | Stop recording | Send | Mic
+    const renderActionButton = (): React.ReactElement => {
+        if (isLoading) {
+            return (
+                <Button variant={'primary'} size={'icon'} onClick={handleStop} disabled={isStopping} className={'shrink-0 size-8 rounded-lg'}>
+                    <FaSquare className={'size-3'}/>
+                </Button>
+            );
+        }
+        if (isVoiceProcessing) {
+            return (
+                <Button variant={'ghost'} size={'icon'} disabled className={'shrink-0 size-8 rounded-lg'}>
+                    <ImSpinner2 className={'size-4 animate-spin'}/>
+                </Button>
+            );
+        }
+        if (isRecording) {
+            return (
+                <div className={'relative flex items-center justify-center shrink-0'}>
+                    <span className={'absolute inline-flex size-8 rounded-lg bg-error opacity-25 animate-ping'}/>
+                    <Button variant={'danger'} size={'icon'} onClick={handleMicClick} className={'relative z-10 size-8 rounded-lg'}>
+                        <FaMicrophone className={'size-3.5'}/>
+                    </Button>
+                </div>
+            );
+        }
+        if (canSend) {
+            return (
+                <Button variant={'primary'} size={'icon'} onClick={handleSend} className={'shrink-0 size-8 rounded-lg'}>
+                    <HiArrowUp className={'size-4'}/>
+                </Button>
+            );
+        }
+        // Default: idle mic
+        return (
+            <Button variant={'ghost'} size={'icon'} onClick={handleMicClick} disabled={disabled} aria-label={'Start recording'} className={'shrink-0 size-8 rounded-lg'}>
+                <FaMicrophone className={'size-3.5'}/>
+            </Button>
+        );
+    };
+
     return (
         <div className={'flex flex-col rounded-t-xl border-x border-t border-border bg-surface'}>
             {/* Voice recording overlay: live transcript + wave bars */}
@@ -215,8 +257,8 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
                 </div>
             )}
 
-            {/* Input row: textarea + mic button + send/stop button */}
-            <div className={'flex items-end gap-2 p-3'}>
+            {/* Textarea */}
+            <div className={'px-3 pt-3'}>
                 <textarea
                     ref={textareaRef}
                     value={text}
@@ -225,49 +267,33 @@ function ChatInput({onSend, onStop, disabled, isLoading}: IChatInputProps) {
                     onKeyDown={handleKeyDown}
                     disabled={isRecording || isVoiceProcessing}
                     placeholder={'Send a message...'}
-                    // rows={1}
                     className={cn(
-                        'flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-text font-medium placeholder:text-text-muted',
+                        'w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-text font-medium placeholder:text-text-muted',
                         'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
                         'disabled:opacity-50 disabled:cursor-not-allowed',
                         'overflow-y-auto max-h-64',
                     )}
-                    // style={{maxHeight: `${MAX_TEXTAREA_HEIGHT}px`}}
                 />
+            </div>
 
-                {/* Mic button */}
-                {!isLoading && (
-                    <div className={'relative flex items-center justify-center shrink-0'}>
-                        {isRecording && (
-                            <span className={'absolute inline-flex size-10 rounded-lg bg-error opacity-25 animate-ping'}/>
-                        )}
-                        <Button
-                            variant={isRecording ? 'danger' : 'ghost'}
-                            size={'icon'}
-                            onClick={handleMicClick}
-                            disabled={disabled || isVoiceProcessing}
-                            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-                            className={'relative z-10 shrink-0 size-9 rounded-lg'}
-                        >
-                            {isVoiceProcessing ? (
-                                <ImSpinner2 className={'size-4 animate-spin'}/>
-                            ) : (
-                                <FaMicrophone className={'size-4'}/>
-                            )}
-                        </Button>
-                    </div>
-                )}
+            {/* Bottom toolbar: [+] left | [ModelSelector] [ActionButton] right */}
+            <div className={'flex items-center justify-between px-3 py-2'}>
+                {/* Left: plus icon (placeholder for future attachments) */}
+                <Button variant={'ghost'} size={'icon'} disabled className={'size-7 rounded-lg opacity-40'} aria-label={'Add attachment'}>
+                    <HiOutlinePlus className={'size-4'}/>
+                </Button>
 
-                {/* Send / Stop button */}
-                {isLoading ? (
-                    <Button variant={'primary'} size={'icon'} onClick={handleStop} disabled={isStopping} className={'shrink-0 size-9 rounded-lg'}>
-                        <FaSquare className={'size-3.5'}/>
-                    </Button>
-                ) : (
-                    <Button variant={'primary'} size={'icon'} onClick={handleSend} disabled={!canSend} className={'shrink-0 size-9 rounded-lg'}>
-                        <HiArrowUp className={'size-4'}/>
-                    </Button>
-                )}
+                {/* Right: model + effort selectors + action button */}
+                <div className={'flex items-center gap-2'}>
+                    <ModelSelector
+                        selectedModel={selectedModel}
+                        selectedEffort={selectedEffort}
+                        onModelChange={onModelChange}
+                        onEffortChange={onEffortChange}
+                        disabled={isLoading}
+                    />
+                    {renderActionButton()}
+                </div>
             </div>
         </div>
     );
