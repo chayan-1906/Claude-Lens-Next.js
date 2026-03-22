@@ -484,7 +484,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                     {/* Chat link */}
                                                     <Button variant={'ghost'} size={'sm'} className={cn(
                                                         'justify-start w-full gap-1.5 text-xs transition-colors hover:bg-border active:scale-100',
-                                                        isChatActive ? 'bg-border text-primary font-medium' : 'text-text-muted',
+                                                        isChatActive ? 'bg-border text-primary font-medium' : 'text-text-muted hover:text-text',
                                                     )}>
                                                         <Link href={chatHref} title={'Chat'} className={'flex items-center gap-1.5 w-full'}>
                                                             <HiOutlineChatAlt2 className={'size-3.5 shrink-0'}/>

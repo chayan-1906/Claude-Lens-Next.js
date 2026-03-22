@@ -217,11 +217,14 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             model: selectedModel || undefined,
             effort: selectedEffort || undefined,
         };
-        sendMessage(text, isNewChat
+        // Prefer session prop sessionId; fall back to contextInfo sessionId (covers /c/new
+        // where replaceState updated the URL but the prop never changed after pause)
+        const resolvedSessionId: string | undefined = session?.sessionId ?? contextInfo?.sessionId;
+        sendMessage(text, isNewChat && !resolvedSessionId
             ? {projectDir: projectDir || undefined, ...modelOpts}
-            : {sessionId: session?.sessionId, ...modelOpts},
+            : {sessionId: resolvedSessionId, ...modelOpts},
         );
-    }, [sendMessage, isNewChat, session?.sessionId, projectDir, selectedModel, selectedEffort, scrollToBottom]);
+    }, [sendMessage, isNewChat, session?.sessionId, contextInfo?.sessionId, projectDir, selectedModel, selectedEffort, scrollToBottom]);
 
     const handleSwitchModel = React.useCallback((model: string): void => {
         setSelectedModel(model);
