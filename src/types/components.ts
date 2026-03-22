@@ -53,6 +53,7 @@ export interface IMessageBubbleProps {
     message: IMessage;
     index: number;
     sessionId?: string;
+    isSubAgentPrompt?: boolean;
     canEdit?: boolean;
     onEdit?: (uuid: string) => void;
     onRegenerate?: (clickedIndex: number) => void;

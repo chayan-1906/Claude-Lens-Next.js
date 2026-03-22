@@ -23,7 +23,7 @@ const ToolCallBlock = React.memo(function ToolCallBlock({name, input}: IToolCall
                         <CopyMessageButton text={JSON.stringify(input, null, 2)}/>
                     </div>
                     <pre className={'text-xs font-mono text-text-muted whitespace-pre-wrap bg-code-bg rounded-md p-3 pr-10 overflow-x-auto'}>
-                        {JSON.stringify(input, null, 2)}
+                        {JSON.stringify(input, null, 2) || '{}'}
                     </pre>
                 </div>
             )}

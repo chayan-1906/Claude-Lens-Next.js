@@ -13,9 +13,9 @@ import {ContentBlock, EUserMessageType, ParsedUserMessage, ToolResultBlock} from
 const lazyLoadingFallback = (
     <div className={'flex items-start'}>
         <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
-            <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>
-            <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '120ms'}}/>
-            <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '240ms'}}/>
+            <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>
+            <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '120ms'}}/>
+            <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '240ms'}}/>
         </div>
     </div>
 );
@@ -41,7 +41,7 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
     }
 
     return (
-        <div className={'flex flex-col'}>
+        <div className={'flex flex-col [&:has(>_:nth-child(1))]:gap-2'}>
             {content.map((block: ContentBlock, index: number) => {
                 switch (block.type) {
                     case 'thinking':
@@ -53,7 +53,7 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                         const cleaned: string = stripSystemTags(block.text);
                         if (!cleaned) return null;
                         return (
-                            <div key={index} className={'markdown-content'}>
+                            <div key={index} className={'markdown-content py-2'}>
                                 <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
                                     {cleaned}
                                 </Markdown>

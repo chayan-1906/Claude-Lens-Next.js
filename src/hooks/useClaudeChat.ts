@@ -37,7 +37,9 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const [error, setError] = React.useState<string | null>(null);
     const [retryable, setRetryable] = React.useState<boolean>(true);
     const [forkedSessionId, setForkedSessionId] = React.useState<string | null>(null);
-    const [pendingApproval, setPendingApproval] = React.useState<IPendingToolApproval | null>(null);
+    const [approvalQueue, setApprovalQueue] = React.useState<IPendingToolApproval[]>([]);
+    // Derived — always the head of the queue; consumers see no API change
+    const pendingApproval: IPendingToolApproval | null = approvalQueue[0] ?? null;
 
     // --- Refs: tool approval ---
     const allowAllRef = React.useRef<boolean>(false);
@@ -335,6 +337,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
                 finalizeStreamingMessage();
                 isSessionActiveRef.current = false;
+                setApprovalQueue([]);
 
                 // If the user explicitly stopped execution and no assistant response was
                 // produced, remove the trailing user message so live state matches what
@@ -375,6 +378,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 // but clear it here too in case session_stopped arrives first
                 stopRequestedRef.current = false;
                 isSessionActiveRef.current = false;
+                setApprovalQueue([]);
                 setStatus(EChatStatus.IDLE);
                 break;
             }
@@ -522,12 +526,15 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     break;
                 }
 
-                setPendingApproval({
-                    requestId: event.requestId,
-                    toolName: event.toolName,
-                    toolInput: event.toolInput,
-                    toolUseId: event.toolUseId,
-                });
+                setApprovalQueue((prev: IPendingToolApproval[]) => [
+                    ...prev,
+                    {
+                        requestId: event.requestId,
+                        toolName: event.toolName,
+                        toolInput: event.toolInput,
+                        toolUseId: event.toolUseId,
+                    },
+                ]);
                 break;
             }
 
@@ -795,7 +802,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
             decision,
             ...(reason ? {reason} : {}),
         }));
-        setPendingApproval(null);
+        // Remove only the head — the next queued approval (if any) becomes visible
+        setApprovalQueue((prev: IPendingToolApproval[]) => prev.slice(1));
         if (allowAll) {
             allowAllRef.current = true;
         }
@@ -815,6 +823,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
         setStatus(EChatStatus.IDLE);
         isSessionActiveRef.current = false;
         regenerateRetryRef.current = null;
+        // Drain any queued approvals — the process is being killed, they are stale
+        setApprovalQueue([]);
 
         ws.send(JSON.stringify({type: 'stop_execution'}));
     }, [finalizeStreamingMessage]);

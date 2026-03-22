@@ -1,5 +1,6 @@
 import React from "react";
 import {cn} from "@/utils/cn";
+import {HiOutlineChevronDoubleRight} from "react-icons/hi";
 import {MessageContent} from "./MessageContent";
 import {IMessageBubbleProps} from "@/types/components";
 import {formatModelName} from "@/utils/formatModelName";
@@ -9,7 +10,7 @@ import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ContentBlock, EMessageRole, EUserMessageType} from "@/types/message";
 
-const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, onStubbed}: IMessageBubbleProps) {
+const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, isSubAgentPrompt = false, onStubbed}: IMessageBubbleProps) {
     const isUserMessage: boolean = message.role === EMessageRole.USER;
 
     const isCommandOutput: boolean = isUserMessage && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
@@ -47,11 +48,27 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
     const showCopyButton: boolean = typeof message.content === 'string' || message.content.some((block: ContentBlock) => block.type === 'text' || block.type === 'thinking');
     const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
 
+    const isPlainUserMessage: boolean = isUserMessage && !isCommandOutput && !isToolResult && !isSubAgentPrompt;
+
     return (
-        <div className={cn('flex flex-col group', (isUserMessage && !isCommandOutput && !isToolResult) ? 'items-end' : 'items-start')}>
-            <div className={cn('max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm', hasNonTextBlock ? 'pt-3' : 'py-0', (isUserMessage && !isCommandOutput && !isToolResult) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text')}>
+        <div className={cn('flex flex-col group', isPlainUserMessage ? 'items-end' : 'items-start')}>
+            <div className={cn(
+                'max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm',
+                (isSubAgentPrompt || hasNonTextBlock) ? 'py-3' : 'py-0',
+                isSubAgentPrompt
+                    ? 'border border-primary/25 bg-primary/4 text-text'
+                    : isPlainUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text',
+            )}>
+                {isSubAgentPrompt && (
+                    <div className={'flex items-center gap-1.5 pb-1'}>
+                        <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
+                        <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
+                    </div>
+                )}
                 <MessageContent content={message.content} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
             </div>
+
+            {/* Timestamp */}
             <div className={'flex items-center gap-2 mt-1 px-1'}>
                 <span className={'text-[10px] text-text-muted'} suppressHydrationWarning title={new Date(message.timestamp).toLocaleString()}>{formatRelativeDate(message.timestamp)}</span>
                 {/*{(!isUserMessage && onRegenerate) && (

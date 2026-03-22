@@ -88,7 +88,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
     const [loadingTasks, setLoadingTasks] = React.useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
 
-  const {sortedProjects, displayNames} = React.useMemo(() => {
+    const {sortedProjects, displayNames} = React.useMemo(() => {
         const names: Map<string, string> = computeProjectDisplayNames(projects);
         const sorted: IProject[] = [...projects].sort((a: IProject, b: IProject) =>
             (names.get(a.rawProjectDir) ?? '').toLowerCase().localeCompare(
@@ -427,7 +427,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                         {/* Project header */}
                         <div className={'flex items-center'}>
                             <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleProject(projectDir)}
-                                    className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text'}>
+                                    className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text hover:bg-border transition-colors active:scale-100'}>
                                 <HiOutlineChevronRight className={cn('size-3 shrink-0 transition-transform', isExpanded && 'rotate-90')}/>
                                 <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
                                 <span className={'truncate font-medium'} title={projectDir}>{projectName}</span>
@@ -463,10 +463,10 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                             <div className={'flex items-center'}>
                                                 <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSession(session.sessionId)} title={session.title}
                                                         className={cn(
-                                                            'flex items-center justify-start gap-1.5 flex-1 min-w-0 px-3 py-1.5 rounded-md text-xs transition-colors truncate',
+                                                            'flex items-center justify-start gap-1.5 flex-1 min-w-0 px-3 py-1.5 rounded-md text-xs transition-colors hover:bg-border truncate active:scale-100',
                                                             isChatActive
-                                                                ? 'bg-primary/10 text-primary font-medium'
-                                                                : 'text-text-muted hover:bg-border hover:text-text',
+                                                                ? 'bg-border text-primary font-medium'
+                                                                : 'text-text-muted hover:text-text',
                                                         )}
                                                 >
                                                     <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform', isSessionExpanded && 'rotate-90')}/>
@@ -482,21 +482,21 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                             {isSessionExpanded && (
                                                 <div className={'ml-4 flex flex-col gap-0.5 mt-0.5'}>
                                                     {/* Chat link */}
-                                                    <Link href={chatHref} title={'Chat'}
-                                                          className={cn(
-                                                              'flex items-center gap-1.5 px-3 py-1 rounded-md text-xs transition-colors',
-                                                              isChatActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-border hover:text-text',
-                                                          )}
-                                                    >
-                                                        <HiOutlineChatAlt2 className={'size-3.5 shrink-0'}/>
-                                                        <span>{'Chat'}</span>
-                                                    </Link>
+                                                    <Button variant={'ghost'} size={'sm'} className={cn(
+                                                        'justify-start w-full gap-1.5 text-xs transition-colors hover:bg-border active:scale-100',
+                                                        isChatActive ? 'bg-border text-primary font-medium' : 'text-text-muted',
+                                                    )}>
+                                                        <Link href={chatHref} title={'Chat'} className={'flex items-center gap-1.5 w-full'}>
+                                                            <HiOutlineChatAlt2 className={'size-3.5 shrink-0'}/>
+                                                            <span>Chat</span>
+                                                        </Link>
+                                                    </Button>
 
                                                     {/* Tasks toggle */}
                                                     <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSessionTasks(session.sessionId)}
-                                                            className={'flex items-center justify-start gap-1.5 w-full px-3 py-1 rounded-md text-xs text-text-muted hover:bg-border hover:text-text transition-colors'}>
+                                                            className={'flex items-center justify-start gap-1.5 w-full px-3 py-1 rounded-md text-xs text-text-muted hover:bg-border hover:text-text transition-colors active:scale-100'}>
                                                         <HiOutlineClipboardList className={'size-3.5 shrink-0'}/>
-                                                        <span>{'Tasks'}</span>
+                                                        <span>Tasks</span>
                                                         <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform ml-auto', isTasksExpanded && 'rotate-90')}/>
                                                     </Button>
 
@@ -504,10 +504,10 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                     {isTasksExpanded && (
                                                         <div className={'ml-4 flex flex-col gap-0.5'}>
                                                             {isTasksLoading && (
-                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>{'Loading...'}</p>
+                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>Loading tasks...</p>
                                                             )}
                                                             {(!isTasksLoading && tasks.length === 0) && (
-                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>{'No tasks'}</p>
+                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>No tasks</p>
                                                             )}
                                                             {tasks.map((task: ITask) => {
                                                                 const statusInfo = TASK_STATUS_ICON[task.status] ?? TASK_STATUS_ICON.pending;
@@ -517,9 +517,9 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                                 return (
                                                                     <Link key={task.taskId} href={taskHref} title={task.description}
                                                                           className={cn(
-                                                                              'flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] transition-colors truncate',
+                                                                              'flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] transition-colors truncate active:scale-100',
                                                                               isTaskActive
-                                                                                  ? 'bg-primary/10 text-primary font-medium'
+                                                                                  ? 'bg-border text-primary font-medium'
                                                                                   : 'text-text-muted hover:bg-border hover:text-text',
                                                                           )}
                                                                     >
@@ -540,9 +540,9 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                 {memories.length > 0 && (
                                     <Link href={routes.memoryPath(memories[0].projectDir)}
                                           className={cn(
-                                              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors truncate',
+                                              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors truncate active:scale-100',
                                               pathname === routes.memoryPath(memories[0].projectDir)
-                                                  ? 'bg-primary/10 text-primary font-medium'
+                                                  ? 'bg-border text-primary font-medium'
                                                   : 'text-text-muted hover:bg-border hover:text-text',
                                           )}
                                     >

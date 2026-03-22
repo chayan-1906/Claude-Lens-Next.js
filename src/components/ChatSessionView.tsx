@@ -5,7 +5,7 @@ import React from "react";
 import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
 import {useVirtualizer, VirtualItem} from "@tanstack/react-virtual";
-import {HiOutlineBeaker, HiOutlineCode, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
+import {HiOutlineBeaker, HiOutlineChevronDoubleRight, HiOutlineCode, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {debug} from "@/utils/debug";
 import {routes} from "@/utils/routes";
@@ -27,7 +27,7 @@ import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
-import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock} from "@/types/message";
+import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
 
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
@@ -656,6 +656,14 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
                                         const isUser: boolean = message.role === EMessageRole.USER;
 
+                                        // Sub-agent prompt: a user message that follows an assistant message containing an Agent tool_use.
+                                        // These are AI-generated delegation instructions, not human-typed messages.
+                                        const prevMessage: IMessage | undefined = index > 0 ? visibleHistoricalMessages[index - 1] : undefined;
+                                        const isSubAgentPrompt: boolean = isUser
+                                            && prevMessage?.role === EMessageRole.ASSISTANT
+                                            && Array.isArray(prevMessage.content)
+                                            && prevMessage.content.some((block: ContentBlock) => block.type === 'tool_use' && (block as ToolUseBlock).name === 'Agent');
+
                                         return (
                                             <div key={virtualItem.key} data-index={virtualItem.index} ref={historicalVirtualizer.measureElement}
                                                  style={{position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`}}>
@@ -673,6 +681,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                                         message={message}
                                                         index={index}
                                                         sessionId={session?.sessionId}
+                                                        isSubAgentPrompt={isSubAgentPrompt}
                                                         canEdit={isUser && !isChattingDisabled && editingId === null}
                                                         onEdit={handleStartEdit}
                                                         onRegenerate={!isUser && canRegenerate ? handleHistoricalRegenerate : undefined}
@@ -690,7 +699,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 if (msg.role !== EMessageRole.ASSISTANT) return true;
                                 const text: string = extractMessageText(msg.content).toLowerCase();
                                 return !text.includes('prompt is too long');
-                            }).map((message: IChatMessage, index: number) => {
+                            }).map((message: IChatMessage, index: number, filteredMessages: IChatMessage[]) => {
                                 const isUser: boolean = message.role === EMessageRole.USER;
 
                                 if (editingId === message.id) {
@@ -708,16 +717,30 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
 
                                 const isCommandOutput: boolean = isUser && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
                                 const isToolResult: boolean = isUser && Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_result');
+                                // Sub-agent prompt: user message following an assistant message with Agent tool_use
+                                const prevLiveMessage: IChatMessage | undefined = index > 0 ? filteredMessages[index - 1] : undefined;
+                                const isSubAgentPrompt: boolean = isUser
+                                    && prevLiveMessage?.role === EMessageRole.ASSISTANT
+                                    && Array.isArray(prevLiveMessage.content)
+                                    && prevLiveMessage.content.some((block: ContentBlock) => block.type === 'tool_use' && (block as ToolUseBlock).name === 'Agent');
                                 const isSystemUserMessage: boolean = isCommandOutput || isToolResult;
+                                const isPlainUserMessage: boolean = isUser && !isSystemUserMessage && !isSubAgentPrompt;
                                 const isSyntheticMessage: boolean = !isUser && (message.model === '<synthetic>' || message.model === 'synthetic');
                                 const copyText: string = extractMessageText(message.content);
                                 const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
                                 const bubbleStyle: string = isSyntheticMessage
                                     ? 'bg-warning/10 border border-warning/20 text-warning'
-                                    : (isUser && !isSystemUserMessage) ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text';
+                                    : isSubAgentPrompt ? 'border border-primary/25 bg-primary/[0.04] text-text'
+                                    : isPlainUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text';
                                 return (
-                                    <div key={message.id} className={cn('flex flex-col group', (isUser && !isSystemUserMessage) ? 'items-end' : 'items-start')}>
+                                    <div key={message.id} className={cn('flex flex-col group', isPlainUserMessage ? 'items-end' : 'items-start')}>
                                         <div className={cn('max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', bubbleStyle)}>
+                                            {isSubAgentPrompt && (
+                                                <div className={'flex items-center gap-1.5 pt-3 pb-1'}>
+                                                    <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
+                                                    <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
+                                                </div>
+                                            )}
                                             <MessageContent content={message.content}/>
                                         </div>
                                         <div className={'flex items-center gap-2 mt-1 px-1'}>
@@ -771,9 +794,9 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                             {showThinking && (
                                 <div className={'flex items-start'}>
                                     <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
-                                        <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>
-                                        <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '120ms'}}/>
-                                        <span className={'size-1.5 rounded-full bg-text-muted'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '240ms'}}/>
+                                        <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>
+                                        <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '120ms'}}/>
+                                        <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '240ms'}}/>
                                     </div>
                                 </div>
                             )}
