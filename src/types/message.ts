@@ -52,6 +52,13 @@ export type ToolResultBlock = {
 
 export type ContentBlock = ThinkingBlock | TextBlock | ToolUseBlock | ToolResultBlock | ImageBlock | DocumentBlock;
 
+export type IAttachmentMeta = {
+    name: string;
+    mimeType: string;
+    size: number;
+    r2Url: string;
+}
+
 export enum EMessageRole {
     USER = 'user',
     ASSISTANT = 'assistant',
@@ -83,6 +90,7 @@ export interface IMessage {
     aiModel?: string;
     effortLevel?: string;
     timestamp: string;
+    attachments?: IAttachmentMeta[];
     tokenUsage?: {
         input: number;
         output: number;

@@ -48,11 +48,11 @@ function DeleteProjectButton({projectDir, projectName}: IDeleteProjectButtonProp
 
             <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen}>
                 <div className={'p-6'}>
-                    <h2 className={'text-base font-semibold text-text'}>{'Delete Project'}</h2>
+                    <h2 className={'text-base font-semibold text-text'}>Delete Project</h2>
                     <p className={'text-sm text-text-muted mt-2'}>
                         {'Are you sure you want to delete '}
                         <span className={'font-medium text-text'}>{projectName}</span>
-                        {'? This will permanently remove all sessions, messages, tasks, and memories for this project.'}
+                        ? This will permanently remove all sessions, attachments, messages, tasks, and memories for this project
                     </p>
 
                     {error && (
@@ -61,10 +61,10 @@ function DeleteProjectButton({projectDir, projectName}: IDeleteProjectButtonProp
 
                     <div className={'flex items-center justify-end gap-2 mt-5'}>
                         <Button variant={'ghost'} size={'sm'} onClick={() => setIsModalOpen(false)} disabled={isDeleting}>
-                            {'Cancel'}
+                            Cancel
                         </Button>
                         <Button variant={'danger'} size={'sm'} onClick={handleDelete} isLoading={isDeleting}>
-                            {'Delete'}
+                            Delete
                         </Button>
                     </div>
                 </div>

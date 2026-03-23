@@ -19,6 +19,7 @@ export interface IDeleteProjectResponse extends IApiResponse {
     deletedMessages?: number;
     deletedTasks?: number;
     deletedMemories?: number;
+    deletedAttachments?: number;
 }
 
 

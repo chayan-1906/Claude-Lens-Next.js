@@ -54,7 +54,7 @@ function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProp
                     <p className={'text-sm text-text-muted mt-2'}>
                         {'Are you sure you want to delete '}
                         <span className={'font-medium text-text'}>{sessionTitle}</span>
-                        ? This will permanently remove the session, its messages, and associated tasks
+                        ? This will permanently remove the session, its messages, attachments, and associated tasks
                     </p>
 
                     {error && (
@@ -63,10 +63,10 @@ function DeleteSessionButton({sessionId, sessionTitle}: IDeleteSessionButtonProp
 
                     <div className={'flex items-center justify-end gap-2 mt-5'}>
                         <Button variant={'ghost'} size={'sm'} onClick={() => setIsModalOpen(false)} disabled={isDeleting}>
-                            {'Cancel'}
+                            Cancel
                         </Button>
                         <Button variant={'danger'} size={'sm'} onClick={handleDelete} isLoading={isDeleting}>
-                            {'Delete'}
+                            Delete
                         </Button>
                     </div>
                 </div>

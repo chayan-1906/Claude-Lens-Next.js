@@ -58,7 +58,7 @@ export interface IUpdateSessionResponse extends IApiResponse {
 export interface IDeleteSessionResponse extends IApiResponse {
     deletedSessions?: number;
     deletedMessages?: number;
-    deletedTasks?: number;
+    deletedTasks?: number;deletedAttachments?: number;
 }
 
 
