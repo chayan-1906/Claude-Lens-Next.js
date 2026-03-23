@@ -2,6 +2,7 @@
 "use no memo"; // useVirtualizer returns mutable refs incompatible with React Compiler auto-memoization
 
 import React from "react";
+import Image from "next/image";
 import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
 import {useVirtualizer, VirtualItem} from "@tanstack/react-virtual";
@@ -13,7 +14,6 @@ import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
 import {IOpenFolderPickerResponse} from "@/types/file";
-import {EChatStatus, IChatMessage} from "@/types/chat";
 import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
 import {IChatSessionViewProps} from "@/types/components";
@@ -23,6 +23,7 @@ import {IGetSessionResponse, ISession} from "@/types/session";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ToolApprovalPrompt} from "@/components/ToolApprovalPrompt";
 import {RenameSessionModal} from "@/components/RenameSessionModal";
+import {EChatStatus, IAttachment, IChatMessage} from "@/types/chat";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
@@ -208,8 +209,8 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         }
     }, [messages.length, streamingContent, pendingApproval, scrollToBottom]);
 
-    const handleSend = React.useCallback((text: string): void => {
-        debug(`[ChatSessionView] handleSend — text:`, text.slice(0, 50));
+    const handleSend = React.useCallback((text: string, attachments?: IAttachment[]): void => {
+        debug(`[ChatSessionView] handleSend — text:`, text.slice(0, 50), `attachments:`, attachments?.length ?? 0);
         isAtBottomRef.current = true;
         setShowScrollButton(false);
         scrollToBottom('instant');
@@ -220,9 +221,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         // Prefer session prop sessionId; fall back to contextInfo sessionId (covers /c/new
         // where replaceState updated the URL but the prop never changed after pause)
         const resolvedSessionId: string | undefined = session?.sessionId ?? contextInfo?.sessionId;
+        const attachmentOpts: { attachments?: IAttachment[] } = attachments?.length ? {attachments} : {};
         sendMessage(text, isNewChat && !resolvedSessionId
-            ? {projectDir: projectDir || undefined, ...modelOpts}
-            : {sessionId: resolvedSessionId, ...modelOpts},
+            ? {projectDir: projectDir || undefined, ...modelOpts, ...attachmentOpts}
+            : {sessionId: resolvedSessionId, ...modelOpts, ...attachmentOpts},
         );
     }, [sendMessage, isNewChat, session?.sessionId, contextInfo?.sessionId, projectDir, selectedModel, selectedEffort, scrollToBottom]);
 
@@ -730,18 +732,42 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                 const isPlainUserMessage: boolean = isUser && !isSystemUserMessage && !isSubAgentPrompt;
                                 const isSyntheticMessage: boolean = !isUser && (message.model === '<synthetic>' || message.model === 'synthetic');
                                 const copyText: string = extractMessageText(message.content);
-                                const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
+                                const hasAttachments: boolean = !!(message.attachments && message.attachments.length > 0);
+                                const hasNonTextBlock: boolean = hasAttachments || (Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text'));
                                 const bubbleStyle: string = isSyntheticMessage
                                     ? 'bg-warning/10 border border-warning/20 text-warning'
                                     : isSubAgentPrompt ? 'border border-primary/25 bg-primary/[0.04] text-text'
-                                    : isPlainUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text';
+                                        : isPlainUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text';
                                 return (
                                     <div key={message.id} className={cn('flex flex-col group', isPlainUserMessage ? 'items-end' : 'items-start')}>
-                                        <div className={cn('max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', bubbleStyle)}>
+                                        <div className={cn('flex flex-col gap-1 max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', bubbleStyle)}>
                                             {isSubAgentPrompt && (
                                                 <div className={'flex items-center gap-1.5 pt-3 pb-1'}>
                                                     <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
                                                     <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
+                                                </div>
+                                            )}
+                                            {/* Attachment thumbnails (user messages with files) */}
+                                            {(message.attachments && message.attachments.length > 0) && (
+                                                <div className={'flex flex-wrap gap-5'}>
+                                                    {message.attachments.map((attachment: IAttachment, attachIdx: number) => (
+                                                        attachment.mimeType.startsWith('image/') ? (
+                                                            <Image
+                                                                key={attachIdx}
+                                                                src={`data:${attachment.mimeType};base64,${attachment.data}`}
+                                                                alt={attachment.name}
+                                                                width={200}
+                                                                height={200}
+                                                                className={'rounded-lg max-w-48 max-h-48 object-contain'}
+                                                                unoptimized
+                                                                loading={'lazy'}
+                                                            />
+                                                        ) : (
+                                                            <div key={attachIdx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2'}>
+                                                                <span className={'text-xs font-medium text-text'}>{attachment.name}</span>
+                                                            </div>
+                                                        )
+                                                    ))}
                                                 </div>
                                             )}
                                             <MessageContent content={message.content}/>

@@ -3,6 +3,14 @@ import {EMessageRole} from "./message";
 
 /** ------------- Constants and Type Aliases ------------- */
 
+/** A file attachment sent with a message (base64-encoded) */
+export interface IAttachment {
+    name: string;
+    mimeType: string;
+    data: string;   // base64-encoded file bytes
+    size: number;
+}
+
 export const MAX_RECONNECT_ATTEMPTS: number = 5;
 export const HEARTBEAT_INTERVAL_MS: number = 30_000;
 export const BASE_RECONNECT_DELAY_MS: number = 1_000;
@@ -200,6 +208,7 @@ export interface IChatMessage {
     timestamp: Date;
     model?: string;
     uuid?: string;  // JSONL UUID from IAssistantEvent.uuid — set for assistant messages after stream completes
+    attachments?: IAttachment[];  // file attachments sent with this user message (for bubble display)
 }
 
 /** Context info tracked during a chat session */
@@ -252,6 +261,7 @@ export interface INewSessionMessage {
     projectDir?: string;
     model?: string;
     effort?: string;
+    attachments?: IAttachment[];
 }
 
 /** Client → Server: resume an existing session */
@@ -261,12 +271,14 @@ export interface IResumeSessionMessage {
     text: string;
     model?: string;
     effort?: string;
+    attachments?: IAttachment[];
 }
 
 /** Client → Server: send follow-up message to active session */
 export interface ISendMessageMessage {
     type: 'send_message';
     text: string;
+    attachments?: IAttachment[];
 }
 
 /** Client → Server: heartbeat ping */
@@ -299,6 +311,7 @@ export interface ISendMessageOptions {
     editAtUuid?: string;      // UUID of last context message before the edit point (edit_session only)
     model?: string;           // model alias (opus/sonnet/haiku) for new_session or resume_session
     effort?: string;          // effort level (low/medium/high/max) — model-dependent
+    attachments?: IAttachment[];  // file attachments (base64) — uploaded to R2 by backend
 }
 
 /** Client → Server: fork or reconstruct a session at an edit/regenerate point */

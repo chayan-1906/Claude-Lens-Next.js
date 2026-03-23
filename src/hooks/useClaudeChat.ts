@@ -572,16 +572,16 @@ function useClaudeChat(): IUseClaudeChatReturn {
             console.log(`[useClaudeChat] Sending edit_session (sessionId: ${options.sessionId}, editAtUuid: ${options.editAtUuid ?? 'none'}, text: "${text.slice(0, 50)}...")`);
         } else if (!isSessionActiveRef.current) {
             if (options?.sessionId) {
-                clientMessage = {type: 'resume_session', sessionId: options.sessionId, text, model: options?.model, effort: options?.effort};
-                console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, model: ${options?.model ?? 'default'}, text: "${text.slice(0, 50)}...")`);
+                clientMessage = {type: 'resume_session', sessionId: options.sessionId, text, model: options?.model, effort: options?.effort, attachments: options?.attachments};
+                console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, model: ${options?.model ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
             } else {
-                clientMessage = {type: 'new_session', text, projectDir: options?.projectDir, model: options?.model, effort: options?.effort};
-                console.log(`[useClaudeChat] Sending new_session (projectDir: ${options?.projectDir ?? 'none'}, model: ${options?.model ?? 'default'}, text: "${text.slice(0, 50)}...")`);
+                clientMessage = {type: 'new_session', text, projectDir: options?.projectDir, model: options?.model, effort: options?.effort, attachments: options?.attachments};
+                console.log(`[useClaudeChat] Sending new_session (projectDir: ${options?.projectDir ?? 'none'}, model: ${options?.model ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
             }
             isSessionActiveRef.current = true;
         } else {
-            clientMessage = {type: 'send_message', text};
-            console.log(`[useClaudeChat] Sending send_message (text: "${text.slice(0, 50)}...")`);
+            clientMessage = {type: 'send_message', text, attachments: options?.attachments};
+            console.log(`[useClaudeChat] Sending send_message (attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
         }
 
         ws.send(JSON.stringify(clientMessage));
@@ -677,9 +677,11 @@ function useClaudeChat(): IUseClaudeChatReturn {
     // --- Public API ---
 
     const sendMessage = React.useCallback((text: string, options?: ISendMessageOptions): void => {
-        if (!text.trim()) return;
+        const hasAttachments: boolean = !!(options?.attachments && options.attachments.length > 0);
+        if (!text.trim() && !hasAttachments) return;
 
-        console.log(`[useClaudeChat] sendMessage called (text: "${text.slice(0, 50)}...", options: ${JSON.stringify(options ?? {})})`);
+        const {attachments: _attachments, ...logOptions} = options ?? {};
+        console.log(`[useClaudeChat] sendMessage called (text: "${text.slice(0, 50)}...", attachments: ${options?.attachments?.length ?? 0}, options: ${JSON.stringify(logOptions)})`);
         regenerateRetryRef.current = null;
         setError(null);
 
@@ -688,6 +690,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
             role: EMessageRole.USER,
             content: text,
             timestamp: new Date(),
+            attachments: hasAttachments ? options!.attachments : undefined,
         };
         setMessages((prev: IChatMessage[]) => [...prev, userMessage]);
 

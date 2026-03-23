@@ -19,6 +19,22 @@ export type ToolUseBlock = {
     input: Record<string, unknown>;
 }
 
+export type ImageBlock = {
+    type: 'image';
+    source: {
+        type: 'url';
+        url: string;
+    };
+}
+
+export type DocumentBlock = {
+    type: 'document';
+    source: {
+        type: 'url';
+        url: string;
+    };
+}
+
 export type ToolResultContentItem = {
     type: string;
     text?: string;
@@ -34,7 +50,7 @@ export type ToolResultBlock = {
     _originalTokenCount?: number;
 }
 
-export type ContentBlock = ThinkingBlock | TextBlock | ToolUseBlock | ToolResultBlock;
+export type ContentBlock = ThinkingBlock | TextBlock | ToolUseBlock | ToolResultBlock | ImageBlock | DocumentBlock;
 
 export enum EMessageRole {
     USER = 'user',

@@ -4,7 +4,7 @@ import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
 import type {IMongoConfig} from "@/types/setup";
-import {IPendingToolApproval} from "@/types/chat";
+import {IAttachment, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
 /** ------------- Constants and Type Aliases ------------- */
@@ -150,7 +150,7 @@ export interface IImportZipButtonProps {
 }
 
 export interface IChatInputProps {
-    onSend: (text: string) => void;
+    onSend: (text: string, attachments?: IAttachment[]) => void;
     onStop: () => void;
     disabled: boolean;
     isLoading: boolean;

@@ -54,7 +54,7 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
         <div className={cn('flex flex-col group', isPlainUserMessage ? 'items-end' : 'items-start')}>
             <div className={cn(
                 'max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm',
-                (isSubAgentPrompt || hasNonTextBlock) ? 'py-3' : 'py-0',
+                (isSubAgentPrompt || hasNonTextBlock) ? 'py-3' : 'py-2',
                 isSubAgentPrompt
                     ? 'border border-primary/25 bg-primary/4 text-text'
                     : isPlainUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text',

@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import {FaSquare} from "react-icons/fa";
-import {HiArrowUp, HiOutlinePlus} from "react-icons/hi";
 import {ImSpinner2} from "react-icons/im";
 import {FaMicrophone} from "react-icons/fa6";
+import {HiArrowUp, HiOutlineDocument, HiOutlinePlus, HiX} from "react-icons/hi";
 import {cn} from "@/utils/cn";
+import {IAttachment} from "@/types/chat";
 import {Button} from "@/components/ui/Button";
 import {ModelSelector} from "@/components/ModelSelector";
 import {useVoiceInput} from "@/hooks/useVoiceInput";
@@ -13,7 +15,27 @@ import type {IChatInputProps} from "@/types/components";
 import {useMarkdownShortcuts} from "@/hooks/useMarkdownShortcuts";
 
 const MAX_TEXTAREA_HEIGHT: number = 200;
+const MAX_FILE_SIZE_BYTES: number = 10 * 1024 * 1024; // 10MB per file
+const MAX_ATTACHMENTS: number = 5;
 const WAVE_DELAYS: number[] = [0, 0.1, 0.2, 0.1, 0];
+
+/** MIME types accepted by the file picker */
+const ACCEPTED_FILE_TYPES: string = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/pdf',
+    'text/*',
+    // Common code file extensions (browser falls back to extension matching when MIME is unknown)
+    '.js', '.ts', '.jsx', '.tsx', '.py', '.rb', '.go', '.rs', '.c', '.cpp', '.h', '.hpp',
+    '.java', '.kt', '.swift', '.sh', '.bash', '.zsh', '.yml', '.yaml', '.json', '.xml',
+    '.html', '.css', '.scss', '.less', '.sql', '.md', '.txt', '.csv', '.log', '.env',
+    '.toml', '.ini', '.cfg', '.conf',
+].join(',');
+
+function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 // Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
 let draftText: string = '';
@@ -21,7 +43,12 @@ let draftText: string = '';
 function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, onModelChange, onEffortChange}: IChatInputProps) {
     const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
+    const [attachments, setAttachments] = React.useState<IAttachment[]>([]);
+    const [isDragOver, setIsDragOver] = React.useState<boolean>(false);
+    const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+    const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+    const dragCounterRef = React.useRef<number>(0);
 
     const {state: voiceState, isSpeaking, liveTranscript, transcript, rephrased, errorMessage, startRecording, stopRecording, reset: resetVoice} = useVoiceInput();
 
@@ -42,22 +69,139 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         adjustHeight();
     }, [adjustHeight]);
 
-    const handleSend = React.useCallback((): void => {
-        const trimmed: string = text.trim();
-        if (!trimmed || disabled) {
-            console.log(`[ChatInput] handleSend blocked — empty: ${!trimmed}, disabled: ${disabled}`);
+    // --- Attachment processing ---
+
+    const processFiles = React.useCallback(async (files: FileList | File[]): Promise<void> => {
+        const fileArray: File[] = Array.from(files);
+        setAttachmentError(null);
+
+        // Check total count (existing + new)
+        const remaining: number = MAX_ATTACHMENTS - attachments.length;
+        if (remaining <= 0) {
+            setAttachmentError(`Maximum ${MAX_ATTACHMENTS} attachments per message`);
             return;
         }
-        console.log(`[ChatInput] Sending: "${trimmed.slice(0, 50)}..."`);
-        onSend(trimmed);
+        const filesToProcess: File[] = fileArray.slice(0, remaining);
+        if (filesToProcess.length < fileArray.length) {
+            setAttachmentError(`Only ${remaining} more attachment(s) allowed (max ${MAX_ATTACHMENTS})`);
+        }
+
+        const newAttachments: IAttachment[] = [];
+        for (const file of filesToProcess) {
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                setAttachmentError(`${file.name} exceeds 10 MB limit`);
+                continue;
+            }
+
+            const base64: string = await new Promise<string>((resolve, reject) => {
+                const reader: FileReader = new FileReader();
+                reader.onload = (): void => {
+                    const result: string = reader.result as string;
+                    // Strip data URL prefix (data:mime;base64,) — backend expects raw base64
+                    const base64Data: string = result.split(',')[1] ?? '';
+                    resolve(base64Data);
+                };
+                reader.onerror = (): void => reject(reader.error);
+                reader.readAsDataURL(file);
+            });
+
+            newAttachments.push({
+                name: file.name,
+                mimeType: file.type || 'application/octet-stream',
+                data: base64,
+                size: file.size,
+            });
+        }
+
+        if (newAttachments.length > 0) {
+            setAttachments((prev: IAttachment[]) => [...prev, ...newAttachments]);
+        }
+    }, [attachments.length]);
+
+    const removeAttachment = React.useCallback((index: number): void => {
+        setAttachments((prev: IAttachment[]) => prev.filter((_: IAttachment, i: number) => i !== index));
+        setAttachmentError(null);
+    }, []);
+
+    const handleAttachClick = React.useCallback((): void => {
+        fileInputRef.current?.click();
+    }, []);
+
+    const handleFileInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
+        if (e.target.files && e.target.files.length > 0) {
+            processFiles(e.target.files);
+        }
+        // Reset value so the same file can be selected again
+        e.target.value = '';
+    }, [processFiles]);
+
+    // --- Drag and drop ---
+
+    const handleDragEnter = React.useCallback((e: React.DragEvent): void => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current++;
+        if (e.dataTransfer.types.includes('Files')) {
+            setIsDragOver(true);
+        }
+    }, []);
+
+    const handleDragLeave = React.useCallback((e: React.DragEvent): void => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current--;
+        if (dragCounterRef.current === 0) {
+            setIsDragOver(false);
+        }
+    }, []);
+
+    const handleDragOver = React.useCallback((e: React.DragEvent): void => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, []);
+
+    const handleDrop = React.useCallback((e: React.DragEvent): void => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounterRef.current = 0;
+        setIsDragOver(false);
+        const files: File[] = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            processFiles(files);
+        }
+    }, [processFiles]);
+
+    // --- Paste handler (images from clipboard) ---
+
+    const handlePaste = React.useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>): void => {
+        const files: File[] = Array.from(e.clipboardData.files);
+        if (files.length > 0) {
+            e.preventDefault();
+            processFiles(files);
+        }
+    }, [processFiles]);
+
+    // --- Send / stop ---
+
+    const handleSend = React.useCallback((): void => {
+        const trimmed: string = text.trim();
+        const hasAttachments: boolean = attachments.length > 0;
+        if ((!trimmed && !hasAttachments) || disabled) {
+            console.log(`[ChatInput] handleSend blocked — empty: ${!trimmed}, noAttachments: ${!hasAttachments}, disabled: ${disabled}`);
+            return;
+        }
+        console.log(`[ChatInput] Sending: "${trimmed.slice(0, 50)}..." with ${attachments.length} attachment(s)`);
+        onSend(trimmed, hasAttachments ? attachments : undefined);
         setText('');
         draftText = '';
+        setAttachments([]);
+        setAttachmentError(null);
         resetVoice();
         const textarea: HTMLTextAreaElement | null = textareaRef.current;
         if (textarea) {
             textarea.style.height = 'auto';
         }
-    }, [text, disabled, onSend, resetVoice]);
+    }, [text, attachments, disabled, onSend, resetVoice]);
 
     const handleMarkdownKeyDown = useMarkdownShortcuts(textareaRef, text, setText);
 
@@ -153,7 +297,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         await startRecording();
     }, [isVoiceProcessing, isRecording, stopRecording, resetVoice, startRecording]);
 
-    const canSend: boolean = text.trim().length > 0 && !disabled && !isRecording;
+    const canSend: boolean = (text.trim().length > 0 || attachments.length > 0) && !disabled && !isRecording;
 
     // Single action button — one of: Stop stream | Voice spinner | Stop recording | Send | Mic
     const renderActionButton = (): React.ReactElement => {
@@ -197,7 +341,26 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
     };
 
     return (
-        <div className={'flex flex-col rounded-t-xl border-x border-t border-border bg-surface'}>
+        <div className={cn('relative flex flex-col rounded-t-xl border-x border-t border-border bg-surface', isDragOver && 'ring-2 ring-primary ring-inset')}
+            onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
+        >
+            {/* Drag overlay */}
+            {isDragOver && (
+                <div className={'absolute inset-0 z-20 flex items-center justify-center rounded-t-xl bg-primary/10 border-2 border-dashed border-primary pointer-events-none'}>
+                    <p className={'text-sm font-medium text-primary'}>Drop files here!</p>
+                </div>
+            )}
+
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type={'file'}
+                multiple
+                accept={ACCEPTED_FILE_TYPES}
+                onChange={handleFileInputChange}
+                className={'hidden'}
+            />
+
             {/* Voice recording overlay: live transcript + wave bars */}
             {(isRecording || isVoiceProcessing) && (
                 <div className={'px-3 pt-3 pb-1 space-y-2'}>
@@ -235,14 +398,21 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
             )}
 
             {/* Voice error message */}
-            {voiceState === 'error' && errorMessage && (
+            {(voiceState === 'error' && errorMessage) && (
                 <div className={'px-3 pt-3 pb-1'}>
                     <p className={'text-xs text-error'}>{errorMessage}</p>
                 </div>
             )}
 
+            {/* Attachment error message */}
+            {attachmentError && (
+                <div className={'px-3 pt-3 pb-1'}>
+                    <p className={'text-xs text-error font-semibold'}>{attachmentError}</p>
+                </div>
+            )}
+
             {/* Voice transcription result: raw vs rephrased */}
-            {voiceState === 'done' && transcript && (
+            {(voiceState === 'done' && transcript) && (
                 <div className={'px-3 pt-3 pb-1'}>
                     <div className={'grid grid-cols-2 gap-2'}>
                         <div>
@@ -257,6 +427,33 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                 </div>
             )}
 
+            {/* Attachment preview chips */}
+            {attachments.length > 0 && (
+                <div className={'flex gap-2 px-3 pt-3 pb-1 overflow-x-auto'}>
+                    {attachments.map((attachment: IAttachment, index: number) => (
+                        <div key={`${attachment.name}-${index}`} className={'flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 shrink-0 max-w-48 group'}>
+                            {/* Thumbnail or icon */}
+                            {attachment.mimeType.startsWith('image/') ? (
+                                <Image src={`data:${attachment.mimeType};base64,${attachment.data}`} alt={attachment.name} width={32} height={32} className={'size-8 rounded object-cover shrink-0'} unoptimized/>
+                            ) : (
+                                <span className={'size-8 rounded bg-surface flex items-center justify-center shrink-0'}>
+                                    <HiOutlineDocument className={'size-4 text-text-muted'}/>
+                                </span>
+                            )}
+                            {/* Name + size */}
+                            <div className={'flex flex-col min-w-0'}>
+                                <span className={'text-xs text-text font-medium truncate'}>{attachment.name}</span>
+                                <span className={'text-[10px] text-text-muted'}>{formatFileSize(attachment.size)}</span>
+                            </div>
+                            {/* Remove button */}
+                            <Button variant={'ghost'} size={'icon'} onClick={(): void => removeAttachment(index)} className={'shrink-0 size-6 rounded'} aria-label={`Remove ${attachment.name}`}>
+                                <HiX className={'size-3.5'}/>
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Textarea */}
             <div className={'px-3 pt-3'}>
                 <textarea
@@ -265,6 +462,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                     inputMode={'text'}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
+                    onPaste={handlePaste}
                     disabled={isRecording || isVoiceProcessing}
                     placeholder={'Send a message...'}
                     className={cn(
@@ -278,8 +476,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
 
             {/* Bottom toolbar: [+] left | [ModelSelector] [ActionButton] right */}
             <div className={'flex items-center justify-between px-3 py-2'}>
-                {/* Left: plus icon (placeholder for future attachments) */}
-                <Button variant={'ghost'} size={'icon'} disabled className={'size-7 rounded-lg opacity-40'} aria-label={'Add attachment'}>
+                {/* Left: attach file button */}
+                <Button variant={'ghost'} size={'icon'} onClick={handleAttachClick} disabled={disabled || attachments.length >= MAX_ATTACHMENTS} className={'size-7 rounded-lg'} aria-label={'Add attachment'}>
                     <HiOutlinePlus className={'size-4'}/>
                 </Button>
 
