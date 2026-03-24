@@ -41,8 +41,7 @@ function DeleteProjectButton({projectDir, projectName}: IDeleteProjectButtonProp
 
     return (
         <>
-            <Button variant={'ghost'} size={'sm'} onClick={handleOpenModal} className={'p-1.5 rounded-md text-text-muted hover:text-error'} aria-label={'Delete project'}
-                    title={'Delete project'}>
+            <Button variant={'ghost'} size={'sm'} onClick={handleOpenModal} className={'p-1.5 rounded-md text-text-muted hover:text-error'} aria-label={'Delete project'} title={'Delete project'}>
                 <HiOutlineTrash className={'size-4'}/>
             </Button>
 
@@ -50,7 +49,7 @@ function DeleteProjectButton({projectDir, projectName}: IDeleteProjectButtonProp
                 <div className={'p-6'}>
                     <h2 className={'text-base font-semibold text-text'}>Delete Project</h2>
                     <p className={'text-sm text-text-muted mt-2'}>
-                        {'Are you sure you want to delete '}
+                        Are you sure you want to delete {' '}
                         <span className={'font-medium text-text'}>{projectName}</span>
                         ? This will permanently remove all sessions, attachments, messages, tasks, and memories for this project
                     </p>

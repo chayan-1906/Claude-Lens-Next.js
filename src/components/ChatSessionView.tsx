@@ -69,9 +69,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
     const [localSession, setLocalSession] = React.useState<ISession | undefined>(session);
     const [isRenameModalOpen, setIsRenameModalOpen] = React.useState<boolean>(false);
 
-    // Model/effort selection state
+    // Model/effort/thinking selection state
     const [selectedModel, setSelectedModel] = React.useState<string>('sonnet');
     const [selectedEffort, setSelectedEffort] = React.useState<string>('medium');
+    const [thinking, setThinking] = React.useState<boolean>(true);
 
     // Init model/effort from the last assistant message of the session (on mount for existing sessions)
     React.useEffect(() => {
@@ -85,6 +86,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         else if (modelId.includes('opus')) setSelectedModel('opus');
         else if (modelId.includes('sonnet')) setSelectedModel('sonnet');
         if (lastAssistant.effortLevel) setSelectedEffort(lastAssistant.effortLevel);
+        if (typeof lastAssistant.thinking === 'boolean') setThinking(lastAssistant.thinking);
     }, []); // run once on mount — historicalMessages is stable at this point
 
     // Project directory state for new chats
@@ -214,9 +216,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         isAtBottomRef.current = true;
         setShowScrollButton(false);
         scrollToBottom('instant');
-        const modelOpts: { model?: string; effort?: string } = {
+        const modelOpts: { model?: string; effort?: string; thinking?: boolean } = {
             model: selectedModel || undefined,
             effort: selectedEffort || undefined,
+            thinking,
         };
         // Prefer session prop sessionId; fall back to contextInfo sessionId (covers /c/new
         // where replaceState updated the URL but the prop never changed after pause)
@@ -226,15 +229,24 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
             ? {projectDir: projectDir || undefined, ...modelOpts, ...attachmentOpts}
             : {sessionId: resolvedSessionId, ...modelOpts, ...attachmentOpts},
         );
-    }, [sendMessage, isNewChat, session?.sessionId, contextInfo?.sessionId, projectDir, selectedModel, selectedEffort, scrollToBottom]);
+    }, [sendMessage, isNewChat, session?.sessionId, contextInfo?.sessionId, projectDir, selectedModel, selectedEffort, thinking, scrollToBottom]);
 
     const handleSwitchModel = React.useCallback((model: string): void => {
         setSelectedModel(model);
         // Only switch mid-conversation if a session is already active
         if (contextInfo?.sessionId) {
-            switchModel(model, selectedEffort || undefined);
+            switchModel(model, selectedEffort || undefined, thinking);
         }
-    }, [contextInfo?.sessionId, selectedEffort, switchModel]);
+    }, [contextInfo?.sessionId, selectedEffort, thinking, switchModel]);
+
+    const handleThinkingChange = React.useCallback((newThinking: boolean): void => {
+        setThinking(newThinking);
+        // Re-spawn the process with updated --settings when a session is already active.
+        // --settings is a CLI startup flag — it only applies on spawn, not mid-process.
+        if (contextInfo?.sessionId) {
+            switchModel(selectedModel, selectedEffort || undefined, newThinking);
+        }
+    }, [contextInfo?.sessionId, selectedModel, selectedEffort, switchModel]);
 
     // Stable callbacks for edit actions — prevents new closure per message in .map()
     const handleStartEdit = React.useCallback((uuid: string): void => {
@@ -871,8 +883,10 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     isLoading={isLoading}
                     selectedModel={selectedModel}
                     selectedEffort={selectedEffort}
+                    thinking={thinking}
                     onModelChange={handleSwitchModel}
                     onEffortChange={setSelectedEffort}
+                    onThinkingChange={handleThinkingChange}
                 />
             </div>
         </div>

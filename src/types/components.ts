@@ -156,8 +156,10 @@ export interface IChatInputProps {
     isLoading: boolean;
     selectedModel: string;
     selectedEffort: string;
+    thinking: boolean;
     onModelChange: (model: string) => void;
     onEffortChange: (effort: string) => void;
+    onThinkingChange: (thinking: boolean) => void;
 }
 
 export interface IScrollToBottomProps {
@@ -235,7 +237,9 @@ export interface IModelConfig {
 export interface IModelSelectorProps {
     selectedModel: string;
     selectedEffort: string;
+    thinking: boolean;
     onModelChange: (model: string) => void;
     onEffortChange: (effort: string) => void;
+    onThinkingChange: (thinking: boolean) => void;
     disabled?: boolean;
 }

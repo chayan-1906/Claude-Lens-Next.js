@@ -89,6 +89,7 @@ export interface IMessage {
     content: string | ContentBlock[];
     aiModel?: string;
     effortLevel?: string;
+    thinking?: boolean;
     timestamp: string;
     attachments?: IAttachmentMeta[];
     tokenUsage?: {

@@ -572,11 +572,11 @@ function useClaudeChat(): IUseClaudeChatReturn {
             console.log(`[useClaudeChat] Sending edit_session (sessionId: ${options.sessionId}, editAtUuid: ${options.editAtUuid ?? 'none'}, text: "${text.slice(0, 50)}...")`);
         } else if (!isSessionActiveRef.current) {
             if (options?.sessionId) {
-                clientMessage = {type: 'resume_session', sessionId: options.sessionId, text, model: options?.model, effort: options?.effort, attachments: options?.attachments};
-                console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, model: ${options?.model ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
+                clientMessage = {type: 'resume_session', sessionId: options.sessionId, text, model: options?.model, effort: options?.effort, thinking: options?.thinking, attachments: options?.attachments};
+                console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, model: ${options?.model ?? 'default'}, thinking: ${options?.thinking ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
             } else {
-                clientMessage = {type: 'new_session', text, projectDir: options?.projectDir, model: options?.model, effort: options?.effort, attachments: options?.attachments};
-                console.log(`[useClaudeChat] Sending new_session (projectDir: ${options?.projectDir ?? 'none'}, model: ${options?.model ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
+                clientMessage = {type: 'new_session', text, projectDir: options?.projectDir, model: options?.model, effort: options?.effort, thinking: options?.thinking, attachments: options?.attachments};
+                console.log(`[useClaudeChat] Sending new_session (projectDir: ${options?.projectDir ?? 'none'}, model: ${options?.model ?? 'default'}, thinking: ${options?.thinking ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
             }
             isSessionActiveRef.current = true;
         } else {
@@ -832,7 +832,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         ws.send(JSON.stringify({type: 'stop_execution'}));
     }, [finalizeStreamingMessage]);
 
-    const switchModel = React.useCallback((model: string, effort?: string): void => {
+    const switchModel = React.useCallback((model: string, effort?: string, thinking?: boolean): void => {
         const ws: WebSocket | null = wsRef.current;
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             console.warn('[useClaudeChat] switchModel called but WS not open');
@@ -842,13 +842,13 @@ function useClaudeChat(): IUseClaudeChatReturn {
             console.warn('[useClaudeChat] switchModel called but no active session');
             return;
         }
-        console.log(`[useClaudeChat] Sending switch_model → model: ${model}, effort: ${effort ?? 'default'}`);
+        console.log(`[useClaudeChat] Sending switch_model → model: ${model}, effort: ${effort ?? 'default'}, thinking: ${thinking ?? 'default'}`);
 
         // Finalize any in-progress streaming before the process is killed
         finalizeStreamingMessage();
         setStatus(EChatStatus.SENDING);
 
-        ws.send(JSON.stringify({type: 'switch_model', model, effort}));
+        ws.send(JSON.stringify({type: 'switch_model', model, effort, thinking}));
     }, [finalizeStreamingMessage]);
 
     const retry = React.useCallback((): void => {

@@ -1,6 +1,9 @@
 "use client";
 
 import React from "react";
+import {PiBrainBold} from "react-icons/pi";
+import {cn} from "@/utils/cn";
+import {Button} from "@/components/ui/Button";
 import type {IModelConfig, IModelSelectorProps} from "@/types/components";
 
 const MODEL_CONFIG: IModelConfig[] = [
@@ -24,7 +27,7 @@ const SELECT_STYLE: React.CSSProperties = {
     paddingRight: '14px',
 };
 
-function ModelSelector({selectedModel, selectedEffort, onModelChange, onEffortChange, disabled}: IModelSelectorProps) {
+function ModelSelector({selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, disabled}: IModelSelectorProps) {
     const handleModelChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>): void => {
         onModelChange(e.target.value);
     }, [onModelChange]);
@@ -32,6 +35,11 @@ function ModelSelector({selectedModel, selectedEffort, onModelChange, onEffortCh
     const handleEffortChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>): void => {
         onEffortChange(e.target.value);
     }, [onEffortChange]);
+
+    const handleThinkingToggle = React.useCallback((): void => {
+        if (disabled) return;
+        onThinkingChange(!thinking);
+    }, [disabled, thinking, onThinkingChange]);
 
     return (
         <div className={'flex items-center gap-2'}>
@@ -59,6 +67,19 @@ function ModelSelector({selectedModel, selectedEffort, onModelChange, onEffortCh
                     <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
             </select>
+
+            {/* Thinking toggle — brain icon, highlighted when ON */}
+            <Button
+                variant={'ghost'}
+                size={'icon'}
+                onClick={handleThinkingToggle}
+                disabled={disabled}
+                title={thinking ? 'Thinking: ON' : 'Thinking: OFF'}
+                aria-label={thinking ? 'Disable extended thinking' : 'Enable extended thinking'}
+                className={cn('size-5 rounded disabled:text-transparent', thinking ? 'text-primary hover:text-primary/80' : 'text-text-muted hover:text-primary/80')}
+            >
+                <PiBrainBold className={'size-3.5'}/>
+            </Button>
         </div>
     );
 }

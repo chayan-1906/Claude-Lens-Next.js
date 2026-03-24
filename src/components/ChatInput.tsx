@@ -40,7 +40,7 @@ function formatFileSize(bytes: number): string {
 // Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
 let draftText: string = '';
 
-function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, onModelChange, onEffortChange}: IChatInputProps) {
+function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange}: IChatInputProps) {
     const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const [attachments, setAttachments] = React.useState<IAttachment[]>([]);
@@ -486,8 +486,10 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                     <ModelSelector
                         selectedModel={selectedModel}
                         selectedEffort={selectedEffort}
+                        thinking={thinking}
                         onModelChange={onModelChange}
                         onEffortChange={onEffortChange}
+                        onThinkingChange={onThinkingChange}
                         disabled={isLoading}
                     />
                     {renderActionButton()}

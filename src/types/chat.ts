@@ -243,7 +243,7 @@ export interface IUseClaudeChatReturn {
     editMessage: (keepUpToIndex: number, newText: string, options?: ISendMessageOptions) => void;
     regenerateMessage: (keepUpToIndex: number, resendText: string, options?: ISendMessageOptions) => void;
     respondToApproval: (requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean) => void;
-    switchModel: (model: string, effort?: string) => void;
+    switchModel: (model: string, effort?: string, thinking?: boolean) => void;
     stopExecution: () => void;
     disconnect: () => void;
     retry: () => void;
@@ -261,6 +261,7 @@ export interface INewSessionMessage {
     projectDir?: string;
     model?: string;
     effort?: string;
+    thinking?: boolean;
     attachments?: IAttachment[];
 }
 
@@ -271,6 +272,7 @@ export interface IResumeSessionMessage {
     text: string;
     model?: string;
     effort?: string;
+    thinking?: boolean;
     attachments?: IAttachment[];
 }
 
@@ -299,6 +301,7 @@ export interface ISwitchModelMessage {
     type: 'switch_model';
     model: string;
     effort?: string;
+    thinking?: boolean;
 }
 
 export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage | IStopExecutionMessage | ISwitchModelMessage | IToolApprovalResponseMessage;
@@ -311,6 +314,7 @@ export interface ISendMessageOptions {
     editAtUuid?: string;      // UUID of last context message before the edit point (edit_session only)
     model?: string;           // model alias (opus/sonnet/haiku) for new_session or resume_session
     effort?: string;          // effort level (low/medium/high/max) — model-dependent
+    thinking?: boolean;       // extended thinking toggle — true = enabled, false = disabled
     attachments?: IAttachment[];  // file attachments (base64) — uploaded to R2 by backend
 }
 
