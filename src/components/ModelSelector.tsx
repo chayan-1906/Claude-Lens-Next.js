@@ -76,7 +76,7 @@ function ModelSelector({selectedModel, selectedEffort, thinking, onModelChange, 
                 disabled={disabled}
                 title={thinking ? 'Thinking: ON' : 'Thinking: OFF'}
                 aria-label={thinking ? 'Disable extended thinking' : 'Enable extended thinking'}
-                className={cn('size-5 rounded disabled:text-transparent', thinking ? 'text-primary hover:text-primary/80' : 'text-text-muted hover:text-primary/80')}
+                className={cn('size-5 rounded disabled:bg-transparent ', thinking ? 'text-primary hover:text-primary/80' : 'text-text-muted hover:text-primary/80')}
             >
                 <PiBrainBold className={'size-3.5'}/>
             </Button>

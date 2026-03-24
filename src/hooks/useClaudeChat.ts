@@ -13,6 +13,11 @@ import {
     IChatMessage,
     IContextInfo,
     IEditSessionMessage,
+    IIdeConnectedMessage,
+    IIdeDisconnectedMessage,
+    IIdeErrorMessage,
+    IIdeSelectionChangedMessage,
+    IIdeStatus,
     IPendingToolApproval,
     IResultEvent,
     ISendMessageOptions,
@@ -40,6 +45,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const [approvalQueue, setApprovalQueue] = React.useState<IPendingToolApproval[]>([]);
     // Derived — always the head of the queue; consumers see no API change
     const pendingApproval: IPendingToolApproval | null = approvalQueue[0] ?? null;
+    const [ideStatus, setIdeStatus] = React.useState<IIdeStatus | null>(null);
 
     // --- Refs: tool approval ---
     const allowAllRef = React.useRef<boolean>(false);
@@ -149,7 +155,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         // Drain/ignore buffered WS events that arrive after the user clicked Stop.
         // Only process_exit and session_stopped are allowed through — everything else
         // would re-trigger streaming UI or overwrite the IDLE state.
-        if (stopRequestedRef.current && data.type !== 'process_exit' && data.type !== 'session_stopped' && data.type !== 'sync_complete') {
+        if (stopRequestedRef.current && data.type !== 'process_exit' && data.type !== 'session_stopped' && data.type !== 'sync_complete' && data.type !== 'ide_connected' && data.type !== 'ide_disconnected' && data.type !== 'ide_selection_changed' && data.type !== 'ide_error') {
             console.log(`[useClaudeChat] Ignoring post-stop event: ${data.type}`);
             return;
         }
@@ -538,6 +544,43 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 break;
             }
 
+            case 'ide_connected': {
+                const event: IIdeConnectedMessage = data as IIdeConnectedMessage;
+                console.log(`[useClaudeChat] ide_connected → ideName: ${event.ideName}, port: ${event.port}`);
+                setIdeStatus((prev: IIdeStatus | null) => ({
+                    ...(prev ?? {}),
+                    connected: true,
+                    ideName: event.ideName,
+                    port: event.port,
+                }));
+                break;
+            }
+
+            case 'ide_disconnected': {
+                const event: IIdeDisconnectedMessage = data as IIdeDisconnectedMessage;
+                console.log(`[useClaudeChat] ide_disconnected → reason: ${event.reason ?? 'unknown'}`);
+                setIdeStatus((prev: IIdeStatus | null) => prev ? {...prev, connected: false} : null);
+                break;
+            }
+
+            case 'ide_selection_changed': {
+                const event: IIdeSelectionChangedMessage = data as IIdeSelectionChangedMessage;
+                setIdeStatus((prev: IIdeStatus | null) => ({
+                    ...(prev ?? {connected: true}),
+                    currentFile: event.filePath,
+                    currentFileName: event.fileName,
+                    currentLine: event.lineNumber,
+                }));
+                break;
+            }
+
+            case 'ide_error': {
+                const event: IIdeErrorMessage = data as IIdeErrorMessage;
+                console.warn(`[useClaudeChat] ide_error → ${event.message}`);
+                setIdeStatus((prev: IIdeStatus | null) => prev ? {...prev, connected: false} : null);
+                break;
+            }
+
             default: {
                 console.log(`[useClaudeChat] Unhandled event type: ${(data as Record<string, unknown>).type}`);
                 break;
@@ -890,7 +933,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, stopExecution, disconnect, retry, clearMessages, clearError};
+    return {status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, stopExecution, disconnect, retry, clearMessages, clearError};
 }
 
 export {useClaudeChat};

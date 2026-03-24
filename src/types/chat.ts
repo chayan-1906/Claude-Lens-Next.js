@@ -197,7 +197,34 @@ export interface IModelSwitchedMessage {
     model: string;
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage | IModelSwitchedMessage;
+/** Backend message: IDE (IntelliJ) connected via MCP */
+export interface IIdeConnectedMessage {
+    type: 'ide_connected';
+    ideName: string;
+    port: number;
+}
+
+/** Backend message: IDE disconnected */
+export interface IIdeDisconnectedMessage {
+    type: 'ide_disconnected';
+    reason?: string;
+}
+
+/** Backend message: IDE cursor/file selection changed */
+export interface IIdeSelectionChangedMessage {
+    type: 'ide_selection_changed';
+    filePath: string;
+    fileName: string;
+    lineNumber: number;
+}
+
+/** Backend message: IDE connection or tool call error */
+export interface IIdeErrorMessage {
+    type: 'ide_error';
+    message: string;
+}
+
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage | IModelSwitchedMessage | IIdeConnectedMessage | IIdeDisconnectedMessage | IIdeSelectionChangedMessage | IIdeErrorMessage;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {
@@ -230,11 +257,22 @@ export interface IPendingToolApproval {
     toolUseId: string;
 }
 
+/** Live IDE (IntelliJ) connection state */
+export interface IIdeStatus {
+    connected: boolean;
+    ideName?: string;
+    port?: number;
+    currentFile?: string;
+    currentFileName?: string;
+    currentLine?: number;
+}
+
 export interface IUseClaudeChatReturn {
     status: EChatStatus;
     messages: IChatMessage[];
     streamingContent: ContentBlock[] | null;
     contextInfo: IContextInfo | null;
+    ideStatus: IIdeStatus | null;
     error: string | null;
     retryable: boolean;
     forkedSessionId: string | null;
