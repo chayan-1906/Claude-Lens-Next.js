@@ -1144,6 +1144,11 @@ body {
 	font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+::selection {
+	background: var(--color-primary) !important;
+	color: var(--color-background);
+}
+
 @keyframes claude-dot {
 	0%, 80%, 100% {
 		transform: translateY(0);

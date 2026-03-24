@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import {NEXT_PUBLIC_BACKEND_WS_URL} from "../../config/config";
 import {generateUUID} from "@/utils/generateUUID";
+import {NEXT_PUBLIC_BACKEND_WS_URL} from "../../config/config";
 import {ContentBlock, EMessageRole, TextBlock, ThinkingBlock, ToolUseBlock} from "@/types/message";
 import {
     BASE_RECONNECT_DELAY_MS,
@@ -210,7 +210,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     if (rafIdRef.current === null) {
                         rafIdRef.current = requestAnimationFrame((): void => {
                             if (streamBufferRef.current) {
-                                setStreamingContent(streamBufferRef.current);
+                                setStreamingContent(streamBufferRef.current.slice());
                             }
                             rafIdRef.current = null;
                         });
