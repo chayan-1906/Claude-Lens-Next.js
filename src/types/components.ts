@@ -93,6 +93,16 @@ export interface IToolCallBlockProps {
     input: Record<string, unknown>;
 }
 
+export interface IBubbleShellProps {
+    isUser: boolean;
+    isSystemUser?: boolean;
+    isSubAgentPrompt?: boolean;
+    isSynthetic?: boolean;
+    hasNonTextBlock: boolean;
+    metadata?: React.ReactNode;
+    children: React.ReactNode;
+}
+
 export interface ICodeBlockProps {
     code: string;
     language?: string;

@@ -1,7 +1,7 @@
 import React from "react";
-import {cn} from "@/utils/cn";
 import {HiOutlineChevronDoubleRight} from "react-icons/hi";
 import {MessageContent} from "./MessageContent";
+import {BubbleShell} from "@/components/BubbleShell";
 import {IMessageBubbleProps} from "@/types/components";
 import {formatModelName} from "@/utils/formatModelName";
 import {parseUserMessage} from "@/utils/parseUserMessage";
@@ -48,50 +48,45 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
     const showCopyButton: boolean = typeof message.content === 'string' || message.content.some((block: ContentBlock) => block.type === 'text' || block.type === 'thinking');
     const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
 
-    const isPlainUserMessage: boolean = isUserMessage && !isCommandOutput && !isToolResult && !isSubAgentPrompt;
-
     return (
-        <div className={cn('flex flex-col group', isPlainUserMessage ? 'items-end' : 'items-start')}>
-            <div className={cn(
-                'max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm',
-                (isSubAgentPrompt || hasNonTextBlock) ? 'py-3' : 'py-2',
-                isSubAgentPrompt
-                    ? 'border border-primary/25 bg-primary/4 text-text'
-                    : isPlainUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text',
-            )}>
-                {isSubAgentPrompt && (
-                    <div className={'flex items-center gap-1.5 pb-1'}>
-                        <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
-                        <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
-                    </div>
-                )}
-                <MessageContent content={message.content} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
-            </div>
-
-            {/* Timestamp */}
-            <div className={'flex items-center gap-2 mt-1 px-1'}>
-                <span className={'text-[10px] text-text-muted'} suppressHydrationWarning title={new Date(message.timestamp).toLocaleString()}>{formatRelativeDate(message.timestamp)}</span>
-                {/*{(!isUserMessage && onRegenerate) && (
-                    <Button variant={'ghost'} size={'icon'} onClick={() => onRegenerate(index)} title={'Regenerate response'}
-                            className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
-                        <HiOutlineRefresh className={'size-3.5'}/>
-                    </Button>
-                )}*/}
-                {/*{(isUserMessage && canEdit && onEdit) && (
-                    <Button variant={'ghost'} size={'icon'} onClick={() => onEdit(message.uuid)} title={'Edit message'} className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
-                        <HiOutlinePencil className={'size-3.5'}/>
-                    </Button>
-                )}*/}
-                {showCopyButton && (
-                    <CopyMessageButton text={contentText}/>
-                )}
-                {(!isUserMessage && message.aiModel) && (
-                    <span className={'text-xs text-text-muted italic'}>
-                        Prepared using {formatModelName(message.aiModel)}
-                    </span>
-                )}
-            </div>
-        </div>
+        <BubbleShell
+            isUser={isUserMessage}
+            isSystemUser={isCommandOutput || isToolResult}
+            isSubAgentPrompt={isSubAgentPrompt}
+            hasNonTextBlock={hasNonTextBlock}
+            metadata={
+                <div className={'flex items-center gap-2 mt-1 px-1'}>
+                    <span className={'text-[10px] text-text-muted'} suppressHydrationWarning title={new Date(message.timestamp).toLocaleString()}>{formatRelativeDate(message.timestamp)}</span>
+                    {/*{(!isUserMessage && onRegenerate) && (
+                        <Button variant={'ghost'} size={'icon'} onClick={() => onRegenerate(index)} title={'Regenerate response'}
+                                className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
+                            <HiOutlineRefresh className={'size-3.5'}/>
+                        </Button>
+                    )}*/}
+                    {/*{(isUserMessage && canEdit && onEdit) && (
+                        <Button variant={'ghost'} size={'icon'} onClick={() => onEdit(message.uuid)} title={'Edit message'} className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
+                            <HiOutlinePencil className={'size-3.5'}/>
+                        </Button>
+                    )}*/}
+                    {showCopyButton && (
+                        <CopyMessageButton text={contentText}/>
+                    )}
+                    {(!isUserMessage && message.aiModel) && (
+                        <span className={'text-xs text-text-muted italic'}>
+                            Prepared using {formatModelName(message.aiModel)}
+                        </span>
+                    )}
+                </div>
+            }
+        >
+            {isSubAgentPrompt && (
+                <div className={'flex items-center gap-1.5 pb-1'}>
+                    <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
+                    <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
+                </div>
+            )}
+            <MessageContent content={message.content} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
+        </BubbleShell>
     );
 });
 

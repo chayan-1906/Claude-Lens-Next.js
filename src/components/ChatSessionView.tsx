@@ -13,6 +13,7 @@ import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
+import {BubbleShell} from "@/components/BubbleShell";
 import {IOpenFolderPickerResponse} from "@/types/file";
 import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
@@ -741,89 +742,88 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                     && Array.isArray(prevLiveMessage.content)
                                     && prevLiveMessage.content.some((block: ContentBlock) => block.type === 'tool_use' && (block as ToolUseBlock).name === 'Agent');
                                 const isSystemUserMessage: boolean = isCommandOutput || isToolResult;
-                                const isPlainUserMessage: boolean = isUser && !isSystemUserMessage && !isSubAgentPrompt;
                                 const isSyntheticMessage: boolean = !isUser && (message.model === '<synthetic>' || message.model === 'synthetic');
                                 const copyText: string = extractMessageText(message.content);
                                 const hasAttachments: boolean = !!(message.attachments && message.attachments.length > 0);
                                 const hasNonTextBlock: boolean = hasAttachments || (Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text'));
-                                const bubbleStyle: string = isSyntheticMessage
-                                    ? 'bg-warning/10 border border-warning/20 text-warning'
-                                    : isSubAgentPrompt ? 'border border-primary/25 bg-primary/[0.04] text-text'
-                                        : isPlainUserMessage ? 'bg-user-bubble text-text' : 'bg-assistant-bubble text-text';
                                 return (
-                                    <div key={message.id} className={cn('flex flex-col group', isPlainUserMessage ? 'items-end' : 'items-start')}>
-                                        <div className={cn('flex flex-col gap-1 max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm', hasNonTextBlock ? 'py-3' : 'py-0', bubbleStyle)}>
-                                            {isSubAgentPrompt && (
-                                                <div className={'flex items-center gap-1.5 pt-3 pb-1'}>
-                                                    <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
-                                                    <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
-                                                </div>
-                                            )}
-                                            {/* Attachment thumbnails (user messages with files) */}
-                                            {(message.attachments && message.attachments.length > 0) && (
-                                                <div className={'flex flex-wrap gap-5'}>
-                                                    {message.attachments.map((attachment: IAttachment, attachIdx: number) => (
-                                                        attachment.mimeType.startsWith('image/') ? (
-                                                            <Image
-                                                                key={attachIdx}
-                                                                src={`data:${attachment.mimeType};base64,${attachment.data}`}
-                                                                alt={attachment.name}
-                                                                width={200}
-                                                                height={200}
-                                                                className={'rounded-lg max-w-48 max-h-48 object-contain'}
-                                                                unoptimized
-                                                                loading={'lazy'}
-                                                            />
-                                                        ) : (
-                                                            <div key={attachIdx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2'}>
-                                                                <span className={'text-xs font-medium text-text'}>{attachment.name}</span>
-                                                            </div>
-                                                        )
-                                                    ))}
-                                                </div>
-                                            )}
-                                            <MessageContent content={message.content}/>
-                                        </div>
-                                        <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                            {/*{(isUser && !isChattingDisabled && editingId === null) && (
-                                                <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
-                                                        className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
-                                                    <HiOutlinePencil className={'size-3.5'}/>
-                                                </Button>
-                                            )}
-                                            {(() => {
-                                                const showLiveRegenerate: boolean = !isUser && canRegenerate;
-                                                return showLiveRegenerate ? (
-                                                    <Button variant={'ghost'} size={'icon'} onClick={() => handleLiveRegenerate(index)} title={'Regenerate response'}
+                                    <BubbleShell
+                                        key={message.id}
+                                        isUser={isUser}
+                                        isSystemUser={isSystemUserMessage}
+                                        isSubAgentPrompt={isSubAgentPrompt}
+                                        isSynthetic={isSyntheticMessage}
+                                        hasNonTextBlock={hasNonTextBlock}
+                                        metadata={
+                                            <div className={'flex items-center gap-2 mt-1 px-1'}>
+                                                {/*{(isUser && !isChattingDisabled && editingId === null) && (
+                                                    <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
                                                             className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
-                                                        <HiOutlineRefresh className={'size-3.5'}/>
+                                                        <HiOutlinePencil className={'size-3.5'}/>
                                                     </Button>
-                                                ) : null;
-                                            })()}*/}
-                                            {copyText && (
-                                                <CopyMessageButton text={copyText}/>
-                                            )}
-                                            {(!isUser && message.model && !isSyntheticMessage) && (
-                                                <span className={'text-xs text-text-muted italic'}>
-                                            Prepared using {formatModelName(message.model)}
-                                        </span>
-                                            )}
-                                            {isSyntheticMessage && (
-                                                <span className={'text-xs text-warning/70 italic'}>System notice</span>
-                                            )}
-                                        </div>
-                                    </div>
+                                                )}
+                                                {(() => {
+                                                    const showLiveRegenerate: boolean = !isUser && canRegenerate;
+                                                    return showLiveRegenerate ? (
+                                                        <Button variant={'ghost'} size={'icon'} onClick={() => handleLiveRegenerate(index)} title={'Regenerate response'}
+                                                                className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
+                                                            <HiOutlineRefresh className={'size-3.5'}/>
+                                                        </Button>
+                                                    ) : null;
+                                                })()}*/}
+                                                {copyText && (
+                                                    <CopyMessageButton text={copyText}/>
+                                                )}
+                                                {(!isUser && message.model && !isSyntheticMessage) && (
+                                                    <span className={'text-xs text-text-muted italic'}>
+                                                        Prepared using {formatModelName(message.model)}
+                                                    </span>
+                                                )}
+                                                {isSyntheticMessage && (
+                                                    <span className={'text-xs text-warning/70 italic'}>System notice</span>
+                                                )}
+                                            </div>
+                                        }
+                                    >
+                                        {isSubAgentPrompt && (
+                                            <div className={'flex items-center gap-1.5 pb-1'}>
+                                                <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
+                                                <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
+                                            </div>
+                                        )}
+                                        {/* Attachment thumbnails (user messages with files) */}
+                                        {(message.attachments && message.attachments.length > 0) && (
+                                            <div className={'flex flex-wrap gap-5'}>
+                                                {message.attachments.map((attachment: IAttachment, attachIdx: number) => (
+                                                    attachment.mimeType.startsWith('image/') ? (
+                                                        <Image
+                                                            key={attachIdx}
+                                                            src={`data:${attachment.mimeType};base64,${attachment.data}`}
+                                                            alt={attachment.name}
+                                                            width={200}
+                                                            height={200}
+                                                            className={'rounded-lg max-w-48 max-h-48 object-contain'}
+                                                            unoptimized
+                                                            loading={'lazy'}
+                                                        />
+                                                    ) : (
+                                                        <div key={attachIdx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2'}>
+                                                            <span className={'text-xs font-medium text-text'}>{attachment.name}</span>
+                                                        </div>
+                                                    )
+                                                ))}
+                                            </div>
+                                        )}
+                                        <MessageContent content={message.content}/>
+                                    </BubbleShell>
                                 );
                             })}
 
                             {/* Streaming assistant response */}
                             {streamingContent && (
-                                <div className={'flex flex-col items-start'}>
-                                    <div
-                                        className={cn('max-w-[85%] min-w-0 overflow-hidden rounded-2xl px-4 text-sm bg-assistant-bubble text-text', streamingContent.some((block: ContentBlock) => block.type !== 'text') ? 'py-3' : 'py-0')}>
-                                        <MessageContent content={streamingContent}/>
-                                    </div>
-                                </div>
+                                <BubbleShell isUser={false} hasNonTextBlock={streamingContent.some((block: ContentBlock) => block.type !== 'text')}>
+                                    <MessageContent content={streamingContent}/>
+                                </BubbleShell>
                             )}
 
                             {/* Tool approval prompt — shown inline when hook is waiting for user decision */}

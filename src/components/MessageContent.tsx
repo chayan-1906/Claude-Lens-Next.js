@@ -43,7 +43,7 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
     }
 
     return (
-        <div className={`flex flex-col ${content.length > 1 ? 'gap-2' : ''}`}>
+        <div className={'flex flex-col gap-2'}>
             {content.map((block: ContentBlock, index: number) => {
                 switch (block.type) {
                     case 'thinking':
