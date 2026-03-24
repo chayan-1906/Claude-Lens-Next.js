@@ -42,6 +42,7 @@ function ImageModal({src, alt, onClose}: IImageModalProps) {
                 className={'max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl'}
                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
                 unoptimized
+                loading={'eager'}
             />
         </div>,
         document.body,

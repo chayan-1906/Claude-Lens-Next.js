@@ -16,6 +16,7 @@ function ImageThumbnail({src, alt, width, height, className, unoptimized}: IImag
                 alt={alt}
                 width={width}
                 height={height}
+                style={{width: 'auto', height: 'auto'}}
                 className={cn(className, 'cursor-pointer hover:scale-105 transition-transform')}
                 onClick={() => setIsOpen(true)}
                 unoptimized={unoptimized}
