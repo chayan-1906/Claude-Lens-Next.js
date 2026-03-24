@@ -462,7 +462,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     if (delta.type === 'thinking_delta') {
                         const block: ContentBlock = buffer[inner.index];
                         if (block.type === 'thinking') {
-                            (block as ThinkingBlock).thinking += delta.thinking;
+                            buffer[inner.index] = {...block, thinking: (block as ThinkingBlock).thinking + delta.thinking} as ThinkingBlock;
                             shouldScheduleRaf = true;
                         }
                     } else if (delta.type === 'text_delta') {
