@@ -103,6 +103,21 @@ export interface IBubbleShellProps {
     children: React.ReactNode;
 }
 
+export interface IImageModalProps {
+    src: string;
+    alt: string;
+    onClose: () => void;
+}
+
+export interface IImageThumbnailProps {
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+    className?: string;
+    unoptimized?: boolean;
+}
+
 export interface ICodeBlockProps {
     code: string;
     language?: string;

@@ -2,7 +2,6 @@
 "use no memo"; // useVirtualizer returns mutable refs incompatible with React Compiler auto-memoization
 
 import React from "react";
-import Image from "next/image";
 import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
 import {useVirtualizer, VirtualItem} from "@tanstack/react-virtual";
@@ -19,6 +18,7 @@ import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
 import {IChatSessionViewProps} from "@/types/components";
 import {MessageBubble} from "@/components/MessageBubble";
+import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {MessageContent} from "@/components/MessageContent";
 import {IGetSessionResponse, ISession} from "@/types/session";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
@@ -796,7 +796,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                             <div className={'flex flex-wrap gap-5'}>
                                                 {message.attachments.map((attachment: IAttachment, attachIdx: number) => (
                                                     attachment.mimeType.startsWith('image/') ? (
-                                                        <Image
+                                                        <ImageThumbnail
                                                             key={attachIdx}
                                                             src={`data:${attachment.mimeType};base64,${attachment.data}`}
                                                             alt={attachment.name}
@@ -804,7 +804,6 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                                             height={200}
                                                             className={'rounded-lg max-w-48 max-h-48 object-contain'}
                                                             unoptimized
-                                                            loading={'lazy'}
                                                         />
                                                     ) : (
                                                         <div key={attachIdx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2'}>

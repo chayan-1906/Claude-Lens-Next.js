@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "next/image";
 import dynamic from "next/dynamic";
 import remarkGfm from "remark-gfm";
 import Markdown from "react-markdown";
@@ -8,6 +7,7 @@ import {stripAnsiCodes} from "@/utils/stripAnsiCodes";
 import {IMessageContentProps} from "@/types/components";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
+import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {renderCode, renderLink} from "@/components/CodeBlock";
 import {ContentBlock, DocumentBlock, EUserMessageType, ImageBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
@@ -76,7 +76,7 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
 
                     case 'image':
                         return (
-                            <Image
+                            <ImageThumbnail
                                 key={index}
                                 src={(block as ImageBlock).source.url}
                                 alt={'Attachment'}
@@ -84,7 +84,6 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                                 height={300}
                                 className={'rounded-lg max-w-72 max-h-72 object-contain'}
                                 unoptimized
-                                loading={'lazy'}
                             />
                         );
 
