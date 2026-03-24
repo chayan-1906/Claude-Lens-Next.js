@@ -224,7 +224,14 @@ export interface IIdeErrorMessage {
     message: string;
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage | IModelSwitchedMessage | IIdeConnectedMessage | IIdeDisconnectedMessage | IIdeSelectionChangedMessage | IIdeErrorMessage;
+/** Backend message: tool approval auto-resolved from IDE (Apply/Reject clicked in IntelliJ) */
+export interface IToolApprovalAutoResolvedMessage {
+    type: 'tool_approval_auto_resolved';
+    requestId: string;
+    decision: 'allow' | 'deny';
+}
+
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage | IModelSwitchedMessage | IIdeConnectedMessage | IIdeDisconnectedMessage | IIdeSelectionChangedMessage | IIdeErrorMessage | IToolApprovalAutoResolvedMessage;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {

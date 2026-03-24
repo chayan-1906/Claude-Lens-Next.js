@@ -4,7 +4,7 @@ import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
 import type {IMongoConfig} from "@/types/setup";
-import {IAttachment, IPendingToolApproval} from "@/types/chat";
+import {IAttachment, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
 /** ------------- Constants and Type Aliases ------------- */
@@ -185,6 +185,7 @@ export interface IChatInputProps {
     onModelChange: (model: string) => void;
     onEffortChange: (effort: string) => void;
     onThinkingChange: (thinking: boolean) => void;
+    ideStatus?: IIdeStatus | null;
 }
 
 export interface IScrollToBottomProps {

@@ -40,7 +40,7 @@ function formatFileSize(bytes: number): string {
 // Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
 let draftText: string = '';
 
-function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange}: IChatInputProps) {
+function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, ideStatus}: IChatInputProps) {
     const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const [attachments, setAttachments] = React.useState<IAttachment[]>([]);
@@ -341,9 +341,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
     };
 
     return (
-        <div className={cn('relative flex flex-col rounded-t-xl border-x border-t border-border bg-surface', isDragOver && 'ring-2 ring-primary ring-inset')}
-            onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}
-        >
+        <div className={cn('relative flex flex-col rounded-t-xl border-x border-t border-border bg-surface', isDragOver && 'ring-2 ring-primary ring-inset')} onDragEnter={handleDragEnter}
+             onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
             {/* Drag overlay */}
             {isDragOver && (
                 <div className={'absolute inset-0 z-20 flex items-center justify-center rounded-t-xl bg-primary/10 border-2 border-dashed border-primary pointer-events-none'}>
@@ -434,7 +433,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                         <div key={`${attachment.name}-${index}`} className={'flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 shrink-0 max-w-48 group'}>
                             {/* Thumbnail or icon */}
                             {attachment.mimeType.startsWith('image/') ? (
-                                <Image src={`data:${attachment.mimeType};base64,${attachment.data}`} alt={attachment.name} width={32} height={32} className={'size-8 rounded object-cover shrink-0'} unoptimized/>
+                                <Image src={`data:${attachment.mimeType};base64,${attachment.data}`} alt={attachment.name} width={32} height={32} className={'size-8 rounded object-cover shrink-0'}
+                                       unoptimized/>
                             ) : (
                                 <span className={'size-8 rounded bg-surface flex items-center justify-center shrink-0'}>
                                     <HiOutlineDocument className={'size-4 text-text-muted'}/>
@@ -474,12 +474,22 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                 />
             </div>
 
-            {/* Bottom toolbar: [+] left | [ModelSelector] [ActionButton] right */}
+            {/* Bottom toolbar: [+] [IDE] left | [ModelSelector] [ActionButton] right */}
             <div className={'flex items-center justify-between px-3 py-2'}>
-                {/* Left: attach file button */}
-                <Button variant={'ghost'} size={'icon'} onClick={handleAttachClick} disabled={disabled || attachments.length >= MAX_ATTACHMENTS} className={'size-7 rounded-lg'} aria-label={'Add attachment'}>
-                    <HiOutlinePlus className={'size-4'}/>
-                </Button>
+                {/* Left: attach file button + IDE status */}
+                <div className={'flex items-center gap-1.5'}>
+                    <Button variant={'ghost'} size={'icon'} onClick={handleAttachClick} disabled={disabled || attachments.length >= MAX_ATTACHMENTS} className={'size-7 rounded-lg'}
+                            aria-label={'Add attachment'}>
+                        <HiOutlinePlus className={'size-4'}/>
+                    </Button>
+                    {ideStatus && (
+                        <span className={'relative flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-text-muted select-none'}
+                              title={ideStatus.connected ? `Connected to ${ideStatus.ideName ?? 'IDE'}${ideStatus.currentFileName ? ` · ${ideStatus.currentFileName}` : ''}` : 'IDE disconnected'}>
+                            <span className={cn('size-1.5 rounded-full', ideStatus.connected ? 'bg-success' : 'bg-text-muted/40')}/>
+                            {ideStatus.ideName ?? 'IDE'}
+                        </span>
+                    )}
+                </div>
 
                 {/* Right: model + effort selectors + action button */}
                 <div className={'flex items-center gap-2'}>

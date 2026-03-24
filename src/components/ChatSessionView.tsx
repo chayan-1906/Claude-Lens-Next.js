@@ -34,7 +34,7 @@ import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResu
 function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
     const router = useRouter();
     const {
-        status, messages, streamingContent, contextInfo, error, retryable, forkedSessionId, pendingApproval,
+        status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval,
         sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, stopExecution, retry, clearMessages, clearError,
     } = useClaudeChat();
 
@@ -576,7 +576,8 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                         </Button>
                         <DeleteSessionButton sessionId={localSession.sessionId} sessionTitle={localSession.title}/>
                         <span
-                            className={cn('size-2.5 rounded-full', status === EChatStatus.CONNECTING ? 'bg-warning' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success')}/>
+                            className={cn('size-2.5 rounded-full animate-pulse', status === EChatStatus.CONNECTING ? 'bg-warning' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success')}
+                            title={status === EChatStatus.CONNECTING ? 'WebSocket reconnecting...' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'WebSocket disconnected' : 'WebSocket connected'}/>
                     </div>
                 </div>
             )}
@@ -886,6 +887,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     onModelChange={handleSwitchModel}
                     onEffortChange={setSelectedEffort}
                     onThinkingChange={handleThinkingChange}
+                    ideStatus={ideStatus}
                 />
             </div>
         </div>

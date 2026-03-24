@@ -19,6 +19,7 @@ import {
     IIdeSelectionChangedMessage,
     IIdeStatus,
     IPendingToolApproval,
+    IToolApprovalAutoResolvedMessage,
     IResultEvent,
     ISendMessageOptions,
     IStreamEvent,
@@ -155,7 +156,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         // Drain/ignore buffered WS events that arrive after the user clicked Stop.
         // Only process_exit and session_stopped are allowed through — everything else
         // would re-trigger streaming UI or overwrite the IDLE state.
-        if (stopRequestedRef.current && data.type !== 'process_exit' && data.type !== 'session_stopped' && data.type !== 'sync_complete' && data.type !== 'ide_connected' && data.type !== 'ide_disconnected' && data.type !== 'ide_selection_changed' && data.type !== 'ide_error') {
+        if (stopRequestedRef.current && data.type !== 'process_exit' && data.type !== 'session_stopped' && data.type !== 'sync_complete' && data.type !== 'ide_connected' && data.type !== 'ide_disconnected' && data.type !== 'ide_selection_changed' && data.type !== 'ide_error' && data.type !== 'tool_approval_auto_resolved') {
             console.log(`[useClaudeChat] Ignoring post-stop event: ${data.type}`);
             return;
         }
@@ -544,6 +545,16 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 break;
             }
 
+            case 'tool_approval_auto_resolved': {
+                // IDE Apply/Reject auto-resolved the approval — dismiss the frontend prompt
+                const autoResolvedEvent: IToolApprovalAutoResolvedMessage = data as IToolApprovalAutoResolvedMessage;
+                console.log(`[useClaudeChat] tool_approval_auto_resolved → requestId: ${autoResolvedEvent.requestId}, decision: ${autoResolvedEvent.decision}`);
+                setApprovalQueue((prev: IPendingToolApproval[]) =>
+                    prev.filter((a: IPendingToolApproval) => a.requestId !== autoResolvedEvent.requestId),
+                );
+                break;
+            }
+
             case 'ide_connected': {
                 const event: IIdeConnectedMessage = data as IIdeConnectedMessage;
                 console.log(`[useClaudeChat] ide_connected → ideName: ${event.ideName}, port: ${event.port}`);
@@ -665,6 +676,9 @@ function useClaudeChat(): IUseClaudeChatReturn {
             reconnectAttemptsRef.current = 0;
             startHeartbeat();
 
+            // Request current IDE status immediately on connect
+            ws.send(JSON.stringify({type: 'request_ide_status'}));
+
             const pending = pendingMessageRef.current;
             if (pending) {
                 console.log(`[useClaudeChat] Flushing pending message:`, pending.text.slice(0, 50));
@@ -716,6 +730,11 @@ function useClaudeChat(): IUseClaudeChatReturn {
     React.useEffect(() => {
         connectRef.current = connect;
     }, [connect]);
+
+    // Connect WebSocket eagerly on mount (enables IDE status indicator without sending a message)
+    React.useEffect(() => {
+        connectRef.current();
+    }, []);
 
     // --- Public API ---
 
