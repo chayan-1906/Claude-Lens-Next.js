@@ -796,7 +796,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                                         {(message.attachments && message.attachments.length > 0) && (
                                             <div className={'flex flex-wrap gap-5'}>
                                                 {message.attachments.map((attachment: IAttachment, attachIdx: number) => (
-                                                    attachment.mimeType.startsWith('image/') ? (
+                                                    attachment.mimeType.startsWith('image/') && !attachment.mimeType.includes('heic') && !attachment.mimeType.includes('heif') ? (
                                                         <ImageThumbnail
                                                             key={attachIdx}
                                                             src={`data:${attachment.mimeType};base64,${attachment.data}`}

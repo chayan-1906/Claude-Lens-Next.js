@@ -5,7 +5,7 @@ import Image from "next/image";
 import {FaSquare} from "react-icons/fa";
 import {ImSpinner2} from "react-icons/im";
 import {FaMicrophone} from "react-icons/fa6";
-import {HiArrowUp, HiOutlineDocument, HiOutlinePlus, HiX} from "react-icons/hi";
+import {HiArrowUp, HiOutlineDocument, HiOutlinePhotograph, HiOutlinePlus, HiX} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {IAttachment} from "@/types/chat";
 import {Button} from "@/components/ui/Button";
@@ -19,9 +19,12 @@ const MAX_FILE_SIZE_BYTES: number = 10 * 1024 * 1024; // 10MB per file
 const MAX_ATTACHMENTS: number = 5;
 const WAVE_DELAYS: number[] = [0, 0.1, 0.2, 0.1, 0];
 
+/** HEIC/HEIF MIME types — browsers cannot render these natively */
+const HEIC_MIME_TYPES: Set<string> = new Set(['image/heic', 'image/heif']);
+
 /** MIME types accepted by the file picker */
 const ACCEPTED_FILE_TYPES: string = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', '.heic', '.heif',
     'application/pdf',
     'text/*',
     // Common code file extensions (browser falls back to extension matching when MIME is unknown)
@@ -431,10 +434,14 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                 <div className={'flex gap-2 px-3 pt-3 pb-1 overflow-x-auto'}>
                     {attachments.map((attachment: IAttachment, index: number) => (
                         <div key={`${attachment.name}-${index}`} className={'flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 shrink-0 max-w-48 group'}>
-                            {/* Thumbnail or icon */}
-                            {attachment.mimeType.startsWith('image/') ? (
+                            {/* Thumbnail or icon — HEIC/HEIF can't be rendered by browsers, show photo placeholder */}
+                            {attachment.mimeType.startsWith('image/') && !HEIC_MIME_TYPES.has(attachment.mimeType) ? (
                                 <Image src={`data:${attachment.mimeType};base64,${attachment.data}`} alt={attachment.name} width={32} height={32} className={'size-8 rounded object-cover shrink-0'}
                                        unoptimized/>
+                            ) : HEIC_MIME_TYPES.has(attachment.mimeType) ? (
+                                <span className={'size-8 rounded bg-surface flex items-center justify-center shrink-0'}>
+                                    <HiOutlinePhotograph className={'size-4 text-text-muted'}/>
+                                </span>
                             ) : (
                                 <span className={'size-8 rounded bg-surface flex items-center justify-center shrink-0'}>
                                     <HiOutlineDocument className={'size-4 text-text-muted'}/>
