@@ -9,9 +9,25 @@ function CopyMessageButton({text}: ICopyMessageButtonProps) {
     const [copied, setCopied] = React.useState<boolean>(false);
 
     const handleCopy = React.useCallback(async (): Promise<void> => {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        try {
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for non-HTTPS contexts (e.g. localhost without secure context)
+                const textarea: HTMLTextAreaElement = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            console.warn('Copy to clipboard failed');
+        }
     }, [text]);
 
     return (
