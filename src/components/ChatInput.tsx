@@ -34,10 +34,48 @@ const ACCEPTED_FILE_TYPES: string = [
     '.toml', '.ini', '.cfg', '.conf',
 ].join(',');
 
+const MAX_IMAGE_DIMENSION: number = 2000;
+const JPEG_QUALITY: number = 0.85;
+
 function formatFileSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Resize image to ≤2000px and re-encode as JPEG — mirrors Claude CLI's own image preprocessing */
+async function resizeAndCompressImage(base64: string, mimeType: string): Promise<{base64: string; mimeType: string; size: number}> {
+    return new Promise((resolve): void => {
+        const img = new window.Image();
+        img.onload = (): void => {
+            const {width, height} = img;
+            const scale: number = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
+            const newWidth: number = Math.round(width * scale);
+            const newHeight: number = Math.round(height * scale);
+            const canvas: HTMLCanvasElement = document.createElement('canvas');
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            const ctx: CanvasRenderingContext2D | null = canvas.getContext('2d');
+            if (!ctx) {
+                resolve({base64, mimeType, size: Math.ceil(base64.length * 0.75)});
+                return;
+            }
+            // White background handles PNG transparency when converting to JPEG
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, newWidth, newHeight);
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+            const outputMimeType: string = 'image/jpeg';
+            const dataUrl: string = canvas.toDataURL(outputMimeType, JPEG_QUALITY);
+            const outputBase64: string = dataUrl.split(',')[1] ?? '';
+            const outputSize: number = Math.ceil(outputBase64.length * 0.75);
+            resolve({base64: outputBase64, mimeType: outputMimeType, size: outputSize});
+        };
+        img.onerror = (): void => {
+            // Decoding failed — pass through unchanged
+            resolve({base64, mimeType, size: Math.ceil(base64.length * 0.75)});
+        };
+        img.src = `data:${mimeType};base64,${base64}`;
+    });
 }
 
 // Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
@@ -96,7 +134,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                 continue;
             }
 
-            const base64: string = await new Promise<string>((resolve, reject) => {
+            const rawBase64: string = await new Promise<string>((resolve, reject) => {
                 const reader: FileReader = new FileReader();
                 reader.onload = (): void => {
                     const result: string = reader.result as string;
@@ -108,11 +146,17 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                 reader.readAsDataURL(file);
             });
 
+            const fileMimeType: string = file.type || 'application/octet-stream';
+            const isResizableImage: boolean = fileMimeType.startsWith('image/') && !HEIC_MIME_TYPES.has(fileMimeType);
+            const {base64, mimeType, size} = isResizableImage
+                ? await resizeAndCompressImage(rawBase64, fileMimeType)
+                : {base64: rawBase64, mimeType: fileMimeType, size: file.size};
+
             newAttachments.push({
                 name: file.name,
-                mimeType: file.type || 'application/octet-stream',
+                mimeType,
                 data: base64,
-                size: file.size,
+                size,
             });
         }
 
