@@ -204,6 +204,7 @@ export interface IChatSessionViewProps {
     session?: ISession;
     historicalMessages?: IMessage[];
     r2Configured: boolean;
+    localJsonlAvailable?: boolean;
 }
 
 export interface IDiffViewProps {

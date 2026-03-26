@@ -16,7 +16,7 @@ async function SessionPage({params}: ISessionPageProps) {
         return <ChatSessionView isNewChat={true} r2Configured={r2Configured ?? false}/>;
     }
 
-    const {success, session, messages, error}: IGetSessionResponse = await getSession({sessionId});
+    const {success, session, messages, localJsonlAvailable, error}: IGetSessionResponse = await getSession({sessionId});
 
     if (!success || !session || !messages) {
         if (error?.includes('Invalid sessionId') || error?.includes('No session found')) {
@@ -31,7 +31,7 @@ async function SessionPage({params}: ISessionPageProps) {
     }
 
     return (
-        <ChatSessionView isNewChat={false} session={session} historicalMessages={messages} r2Configured={r2Configured ?? false}/>
+        <ChatSessionView isNewChat={false} session={session} historicalMessages={messages} r2Configured={r2Configured ?? false} localJsonlAvailable={localJsonlAvailable ?? false}/>
     );
 }
 

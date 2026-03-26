@@ -49,6 +49,7 @@ export interface IGetAllSessionsResponse extends IApiResponse {
 export interface IGetSessionResponse extends IApiResponse {
     session?: ISession;
     messages?: IMessage[];
+    localJsonlAvailable?: boolean;
 }
 
 export interface IUpdateSessionResponse extends IApiResponse {

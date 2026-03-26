@@ -231,7 +231,14 @@ export interface IToolApprovalAutoResolvedMessage {
     decision: 'allow' | 'deny';
 }
 
-export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage | IModelSwitchedMessage | IIdeConnectedMessage | IIdeDisconnectedMessage | IIdeSelectionChangedMessage | IIdeErrorMessage | IToolApprovalAutoResolvedMessage;
+/** Backend message: JSONL backup to R2 completed (response to backup_session) */
+export interface IBackupCompleteMessage {
+    type: 'backup_complete';
+    success: boolean;
+    message?: string;
+}
+
+export type ServerMessage = ISystemEvent | IAssistantEvent | IUserEvent | IResultEvent | IRateLimitEvent | IProcessExitMessage | IPongMessage | IWsErrorMessage | IProjectNotAvailableMessage | IStreamEvent | IToolApprovalRequestMessage | ISessionStoppedMessage | ISyncCompleteMessage | IModelSwitchedMessage | IBackupCompleteMessage | IIdeConnectedMessage | IIdeDisconnectedMessage | IIdeSelectionChangedMessage | IIdeErrorMessage | IToolApprovalAutoResolvedMessage;
 
 /** Live chat message displayed in ChatSessionView */
 export interface IChatMessage {
@@ -289,6 +296,7 @@ export interface IUseClaudeChatReturn {
     regenerateMessage: (keepUpToIndex: number, resendText: string, options?: ISendMessageOptions) => void;
     respondToApproval: (requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean) => void;
     switchModel: (model: string, effort?: string, thinking?: boolean) => void;
+    backupSession: (sessionId?: string) => void;
     stopExecution: () => void;
     disconnect: () => void;
     retry: () => void;
@@ -349,7 +357,7 @@ export interface ISwitchModelMessage {
     thinking?: boolean;
 }
 
-export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage | IStopExecutionMessage | ISwitchModelMessage | IToolApprovalResponseMessage;
+export type ClientMessage = INewSessionMessage | IResumeSessionMessage | ISendMessageMessage | IPingMessage | IEditSessionMessage | IStopExecutionMessage | ISwitchModelMessage | IToolApprovalResponseMessage | IBackupSessionMessage;
 
 /** Options passed to useClaudeChat.sendMessage */
 export interface ISendMessageOptions {
@@ -370,6 +378,12 @@ export interface IEditSessionMessage {
     editAtUuid?: string;
     text: string;
     projectDir?: string;
+}
+
+/** Client → Server: trigger manual JSONL backup to R2 */
+export interface IBackupSessionMessage {
+    type: 'backup_session';
+    sessionId?: string;
 }
 
 /** Client → Server: interrupt/stop Claude's current execution (equivalent to Esc in terminal) */

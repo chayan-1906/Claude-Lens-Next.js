@@ -408,6 +408,12 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 break;
             }
 
+            case 'backup_complete': {
+                const backupEvent = data as { type: 'backup_complete'; success: boolean; message?: string };
+                console.log(`[useClaudeChat] backup_complete → success: ${backupEvent.success}${backupEvent.message ? `, message: ${backupEvent.message}` : ''}`);
+                break;
+            }
+
             case 'pong': {
                 // Heartbeat response — no action needed
                 break;
@@ -913,6 +919,16 @@ function useClaudeChat(): IUseClaudeChatReturn {
         ws.send(JSON.stringify({type: 'switch_model', model, effort, thinking}));
     }, [finalizeStreamingMessage]);
 
+    const backupSession = React.useCallback((sessionId?: string): void => {
+        const ws: WebSocket | null = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.warn('[useClaudeChat] backupSession called but WS not open');
+            return;
+        }
+        console.log(`[useClaudeChat] Sending backup_session${sessionId ? ` — sessionId: ${sessionId}` : ''}`);
+        ws.send(JSON.stringify({type: 'backup_session', ...(sessionId && {sessionId})}));
+    }, []);
+
     const retry = React.useCallback((): void => {
         console.log('[useClaudeChat] retry() called — resetting error and reconnecting');
         setError(null);
@@ -952,7 +968,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, stopExecution, disconnect, retry, clearMessages, clearError};
+    return {status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, backupSession, stopExecution, disconnect, retry, clearMessages, clearError};
 }
 
 export {useClaudeChat};

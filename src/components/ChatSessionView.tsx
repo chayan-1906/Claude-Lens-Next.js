@@ -5,7 +5,7 @@ import React from "react";
 import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
 import {useVirtualizer, VirtualItem} from "@tanstack/react-virtual";
-import {HiOutlineBeaker, HiOutlineChevronDoubleRight, HiOutlineCode, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
+import {HiOutlineBeaker, HiOutlineChevronDoubleRight, HiOutlineCode, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineShieldCheck, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {debug} from "@/utils/debug";
 import {routes} from "@/utils/routes";
@@ -31,11 +31,11 @@ import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
 
-function ChatSessionView({isNewChat, session, historicalMessages, r2Configured}: IChatSessionViewProps) {
+function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, localJsonlAvailable}: IChatSessionViewProps) {
     const router = useRouter();
     const {
         status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval,
-        sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, stopExecution, retry, clearMessages, clearError,
+        sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, backupSession, stopExecution, retry, clearMessages, clearError,
     } = useClaudeChat();
 
     // Refs to ensure post-first-response actions run only once
@@ -573,6 +573,11 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured}:
                                 title={'Refresh session'}>
                             <HiOutlineRefresh className={cn('size-3.5', isRefreshingMessages && 'animate-spin')}/>
                         </Button>
+                        {r2Configured && localJsonlAvailable && (
+                            <Button variant={'ghost'} size={'icon'} onClick={() => backupSession(localSession.sessionId)} className={'size-7 text-text-muted'} title={'Backup session JSONL to R2'}>
+                                <HiOutlineShieldCheck className={'size-3.5'}/>
+                            </Button>
+                        )}
                         <DeleteSessionButton sessionId={localSession.sessionId} sessionTitle={localSession.title}/>
                         <span
                             className={cn('size-2.5 rounded-full animate-pulse', status === EChatStatus.CONNECTING ? 'bg-warning' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success')}

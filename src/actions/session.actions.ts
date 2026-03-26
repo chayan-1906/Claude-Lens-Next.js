@@ -87,6 +87,7 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
             message: data.message,
             session: data.session as ISession,
             messages: allMessages,
+            localJsonlAvailable: data.localJsonlAvailable as boolean ?? false,
         };
     } catch (error: unknown) {
         console.error('Get session error:', error);
