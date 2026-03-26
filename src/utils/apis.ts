@@ -9,6 +9,9 @@ const baseSetupApiUrl: string = `${baseApiUrl}/setup`;
 /** Base URL for configuration endpoints */
 const baseConfigurationsApiUrl: string = `${baseSetupApiUrl}/configurations`;
 
+/** Base URL for path mapping endpoints */
+const basePathMappingsApiUrl: string = `${baseSetupApiUrl}/path-mappings`;
+
 /** Base URL for sync endpoints */
 const baseSyncApiUrl: string = `${baseApiUrl}/sync`;
 
@@ -47,6 +50,12 @@ const apis = {
     testConfigurationApi: (configId: string) => `${baseConfigurationsApiUrl}/${configId}/test`,
     activateConfigurationApi: (configId: string) => `${baseConfigurationsApiUrl}/${configId}/activate`,
     getConfigProjectsApi: (configId: string) => `${baseConfigurationsApiUrl}/${configId}/projects`,
+
+    getPathMappingsApi: basePathMappingsApiUrl,
+    createPathMappingApi: basePathMappingsApiUrl,
+    updatePathMappingApi: (mappingId: string) => `${basePathMappingsApiUrl}/${mappingId}`,
+    deletePathMappingApi: (mappingId: string) => `${basePathMappingsApiUrl}/${mappingId}`,
+    mergePathMappingApi: (mappingId: string) => `${basePathMappingsApiUrl}/${mappingId}/merge`,
 
     getLocalProjectsApi: `${baseSyncApiUrl}/projects`,
     syncApi: baseSyncApiUrl,

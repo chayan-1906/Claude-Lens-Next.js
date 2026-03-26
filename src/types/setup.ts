@@ -14,6 +14,14 @@ export interface IMongoConfig {
     lastConnectedAt?: string;
 }
 
+/** A single path mapping — maps multiple absolute paths to one canonical path */
+export interface IPathMapping {
+    id: string;
+    label: string;
+    paths: string[];
+    canonicalPath: string;
+}
+
 
 /** ------------- API response types ------------- */
 
@@ -43,6 +51,25 @@ export type IActivateConfigurationResponse = IApiResponse;
 
 export interface IGetConfigProjectsResponse extends IApiResponse {
     projects?: { rawProjectDir: string; projectDir: string }[];
+}
+
+export interface IGetPathMappingsResponse extends IApiResponse {
+    pathMappings?: IPathMapping[];
+}
+
+export interface ICreatePathMappingResponse extends IApiResponse {
+    pathMapping?: IPathMapping;
+}
+
+export interface IUpdatePathMappingResponse extends IApiResponse {
+    pathMapping?: IPathMapping;
+}
+
+export type IDeletePathMappingResponse = IApiResponse;
+
+export interface IMergePathMappingResponse extends IApiResponse {
+    sessionsUpdated?: number;
+    memoriesUpdated?: number;
 }
 
 
@@ -77,4 +104,25 @@ export interface IActivateConfigurationParams {
 
 export interface IGetConfigProjectsParams {
     configId: string;
+}
+
+export interface ICreatePathMappingParams {
+    label: string;
+    paths: string[];
+    canonicalPath: string;
+}
+
+export interface IUpdatePathMappingParams {
+    mappingId: string;
+    label?: string;
+    paths?: string[];
+    canonicalPath?: string;
+}
+
+export interface IDeletePathMappingParams {
+    mappingId: string;
+}
+
+export interface IMergePathMappingParams {
+    mappingId: string;
 }

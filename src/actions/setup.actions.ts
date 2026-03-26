@@ -20,6 +20,16 @@ import type {
     IGetConfigProjectsParams,
     IGetConfigProjectsResponse,
     IMongoConfig,
+    IPathMapping,
+    IGetPathMappingsResponse,
+    ICreatePathMappingParams,
+    ICreatePathMappingResponse,
+    IUpdatePathMappingParams,
+    IUpdatePathMappingResponse,
+    IDeletePathMappingParams,
+    IDeletePathMappingResponse,
+    IMergePathMappingParams,
+    IMergePathMappingResponse,
 } from "@/types/setup";
 import {refreshSidebar} from "@/actions/session.actions";
 
@@ -141,7 +151,7 @@ async function editConfiguration({configId, name, uri, description, color}: IEdi
             let errorMessage: string = 'Failed to update configuration!';
             console.error('Edit configuration failed:', {code: errorCode, message: data.error?.message});
 
-            if (errorCode === 'INVALID_MONGO_URI') {
+            if (errorCode === 'INVALID_MONGOURI') {
                 errorMessage = data.error?.message || 'Invalid MongoDB URI. Please check and try again!';
             }
 
@@ -295,6 +305,186 @@ async function getConfigProjects({configId}: IGetConfigProjectsParams): Promise<
     }
 }
 
+// ======================== Path Mapping Actions ========================
+
+async function getPathMappings(): Promise<IGetPathMappingsResponse> {
+    try {
+        const response: Response = await fetch(apis.getPathMappingsApi);
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = 'Failed to fetch path mappings!';
+            console.error('Getting path mappings failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            pathMappings: data.pathMappings as IPathMapping[],
+        };
+    } catch (error: unknown) {
+        console.error('Get path mappings error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function createPathMapping({label, paths, canonicalPath}: ICreatePathMappingParams): Promise<ICreatePathMappingResponse> {
+    try {
+        const response: Response = await fetch(apis.createPathMappingApi, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({label, paths, canonicalPath}),
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to create path mapping!';
+            console.error('Create path mapping failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'LABEL_MISSING') {
+                errorMessage = 'Label is required!';
+            } else if (errorCode === 'INVALID_PATHS') {
+                errorMessage = 'At least 2 paths are required!';
+            } else if (errorCode === 'CANONICALPATH_MISSING') {
+                errorMessage = 'Canonical path is required!';
+            } else if (errorCode === 'INVALID_CANONICALPATH') {
+                errorMessage = 'Canonical path must be one of the listed paths!';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            pathMapping: data.pathMapping as IPathMapping,
+        };
+    } catch (error: unknown) {
+        console.error('Create path mapping error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function updatePathMapping({mappingId, label, paths, canonicalPath}: IUpdatePathMappingParams): Promise<IUpdatePathMappingResponse> {
+    try {
+        const response: Response = await fetch(apis.updatePathMappingApi(mappingId), {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({label, paths, canonicalPath}),
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to update path mapping!';
+            console.error('Update path mapping failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'INVALID_PATHS') {
+                errorMessage = 'At least 2 paths are required!';
+            } else if (errorCode === 'INVALID_CANONICALPATH') {
+                errorMessage = 'Canonical path must be one of the listed paths!';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            pathMapping: data.pathMapping as IPathMapping,
+        };
+    } catch (error: unknown) {
+        console.error('Update path mapping error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function deletePathMapping({mappingId}: IDeletePathMappingParams): Promise<IDeletePathMappingResponse> {
+    try {
+        const response: Response = await fetch(apis.deletePathMappingApi(mappingId), {
+            method: 'DELETE',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = data.error?.message || 'Failed to delete path mapping!';
+            console.error('Delete path mapping failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+        };
+    } catch (error: unknown) {
+        console.error('Delete path mapping error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function mergePathMapping({mappingId}: IMergePathMappingParams): Promise<IMergePathMappingResponse> {
+    try {
+        const response: Response = await fetch(apis.mergePathMappingApi(mappingId), {
+            method: 'POST',
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = data.error?.message || 'Failed to merge path mapping data!';
+            console.error('Merge path mapping failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            sessionsUpdated: data.sessionsUpdated as number,
+            memoriesUpdated: data.memoriesUpdated as number,
+        };
+    } catch (error: unknown) {
+        console.error('Merge path mapping error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
 async function setSetupConfiguredCookie(): Promise<void> {
     const cookieStore = await cookies();
     cookieStore.set(SETUP_CONFIGURED_COOKIE, 'true', {
@@ -315,4 +505,9 @@ export {
     activateConfiguration,
     getConfigProjects,
     setSetupConfiguredCookie,
+    getPathMappings,
+    createPathMapping,
+    updatePathMapping,
+    deletePathMapping,
+    mergePathMapping,
 };

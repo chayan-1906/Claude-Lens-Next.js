@@ -8,10 +8,12 @@ import {Button} from "@/components/ui/Button";
 import {ConfigCard} from "@/components/ConfigCard";
 import type {ISetupFormProps} from "@/types/components";
 import {ConfigFormModal} from "@/components/ConfigFormModal";
-import {activateConfiguration, addConfiguration, deleteConfiguration, getConfigProjects, testConfiguration} from "@/actions/setup.actions";
-import type {IActivateConfigurationResponse, IAddConfigurationResponse, IDeleteConfigurationResponse, IGetConfigProjectsResponse, IMongoConfig, ITestConfigurationResponse} from "@/types/setup";
+import {PathMappingCard} from "@/components/PathMappingCard";
+import {PathMappingFormModal} from "@/components/PathMappingFormModal";
+import {activateConfiguration, addConfiguration, deleteConfiguration, deletePathMapping, getConfigProjects, mergePathMapping, testConfiguration} from "@/actions/setup.actions";
+import type {IActivateConfigurationResponse, IAddConfigurationResponse, IDeleteConfigurationResponse, IDeletePathMappingResponse, IGetConfigProjectsResponse, IMergePathMappingResponse, IMongoConfig, IPathMapping, ITestConfigurationResponse} from "@/types/setup";
 
-function SetupForm({initialConfigurations, initialActiveConfigId}: ISetupFormProps) {
+function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMappings}: ISetupFormProps) {
     const router = useRouter();
     const hasConfigs: boolean = initialConfigurations.length > 0;
 
@@ -26,6 +28,12 @@ function SetupForm({initialConfigurations, initialActiveConfigId}: ISetupFormPro
     const [activatingId, setActivatingId] = React.useState<string | null>(null);
     const [testResult, setTestResult] = React.useState<{ configId: string; success: boolean; message: string } | null>(null);
     const [projectsPreview, setProjectsPreview] = React.useState<{ configId: string; projects: { rawProjectDir: string; projectDir: string }[] } | null>(null);
+
+    // Path mapping state
+    const [isMappingModalOpen, setIsMappingModalOpen] = React.useState<boolean>(false);
+    const [editingMapping, setEditingMapping] = React.useState<IPathMapping | null>(null);
+    const [mergingId, setMergingId] = React.useState<string | null>(null);
+    const [mergeResult, setMergeResult] = React.useState<{ mappingId: string; success: boolean; message: string } | null>(null);
 
     // First-run submit handler: add a "Default" config and activate it
     const handleFirstRunSubmit = React.useCallback(async (e: React.FormEvent): Promise<void> => {
@@ -120,6 +128,52 @@ function SetupForm({initialConfigurations, initialActiveConfigId}: ISetupFormPro
         router.refresh();
     }, [router]);
 
+    // Path mapping handlers
+    const handleAddMapping = React.useCallback((): void => {
+        setEditingMapping(null);
+        setIsMappingModalOpen(true);
+    }, []);
+
+    const handleEditMapping = React.useCallback((mapping: IPathMapping): void => {
+        setEditingMapping(mapping);
+        setIsMappingModalOpen(true);
+    }, []);
+
+    const handleDeleteMapping = React.useCallback(async (mapping: IPathMapping): Promise<void> => {
+        const confirmed: boolean = window.confirm(`Delete mapping "${mapping.label}"? Future syncs will fall back to raw paths.`);
+        if (!confirmed) return;
+
+        const response: IDeletePathMappingResponse = await deletePathMapping({mappingId: mapping.id});
+        if (!response.success) {
+            setError(response.error || 'Failed to delete path mapping!');
+            return;
+        }
+
+        router.refresh();
+    }, [router]);
+
+    const handleMergeMapping = React.useCallback(async (mapping: IPathMapping): Promise<void> => {
+        const confirmed: boolean = window.confirm(`Merge existing data for "${mapping.label}"? This will update all sessions and memories with non-canonical paths to use the canonical path.`);
+        if (!confirmed) return;
+
+        setMergingId(mapping.id);
+        setMergeResult(null);
+
+        const response: IMergePathMappingResponse = await mergePathMapping({mappingId: mapping.id});
+
+        if (response.success) {
+            setMergeResult({mappingId: mapping.id, success: true, message: response.message || `Merged! ${response.sessionsUpdated} session(s) and ${response.memoriesUpdated} memory doc(s) updated.`});
+        } else {
+            setMergeResult({mappingId: mapping.id, success: false, message: response.error || 'Merge failed!'});
+        }
+
+        setMergingId(null);
+    }, []);
+
+    const handleMappingSaved = React.useCallback((): void => {
+        router.refresh();
+    }, [router]);
+
     // First-run mode: simple URI input form
     if (!hasConfigs) {
         return (
@@ -205,6 +259,52 @@ function SetupForm({initialConfigurations, initialActiveConfigId}: ISetupFormPro
                 ))}
             </div>
 
+            {/* ======================== Path Mappings Section ======================== */}
+            <div className={'mt-8 pt-6 border-t border-border'}>
+                <div className={'flex items-center justify-between mb-4'}>
+                    <div>
+                        <h2 className={'text-lg font-semibold text-text'}>Path Mappings</h2>
+                        <p className={'text-xs text-text-muted mt-0.5'}>
+                            Map multiple machine paths to a single canonical project
+                        </p>
+                    </div>
+                    <Button variant={'primary'} size={'sm'} onClick={handleAddMapping}>
+                        <FaPlus/>
+                        Add Mapping
+                    </Button>
+                </div>
+
+                {initialPathMappings.length === 0
+                    ? (
+                        <p className={'text-sm text-text-muted text-center py-6 bg-surface rounded-lg border border-border border-dashed'}>
+                            No path mappings configured yet.
+                        </p>
+                    )
+                    : (
+                        <div className={'grid gap-3'}>
+                            {initialPathMappings.map((mapping: IPathMapping) => (
+                                <React.Fragment key={mapping.id}>
+                                    <PathMappingCard
+                                        mapping={mapping}
+                                        onEdit={handleEditMapping}
+                                        onDelete={handleDeleteMapping}
+                                        onMerge={handleMergeMapping}
+                                        isMerging={mergingId === mapping.id}
+                                    />
+
+                                    {/* Merge result */}
+                                    {mergeResult && mergeResult.mappingId === mapping.id && (
+                                        <div className={`text-xs px-3 py-2 rounded-md ${mergeResult.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
+                                            {mergeResult.message}
+                                        </div>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    )
+                }
+            </div>
+
             {/* Home link when configured */}
             {initialActiveConfigId && (
                 <div className={'flex justify-center mt-6'}>
@@ -214,8 +314,11 @@ function SetupForm({initialConfigurations, initialActiveConfigId}: ISetupFormPro
                 </div>
             )}
 
-            {/* Add/Edit modal */}
+            {/* Add/Edit config modal */}
             <ConfigFormModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} editingConfig={editingConfig} onSaved={handleSaved}/>
+
+            {/* Add/Edit path mapping modal */}
+            <PathMappingFormModal isOpen={isMappingModalOpen} onOpenChange={setIsMappingModalOpen} editingMapping={editingMapping} onSaved={handleMappingSaved}/>
         </div>
     );
 }

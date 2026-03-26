@@ -3,7 +3,7 @@ import type {ITask} from "@/types/task";
 import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
-import type {IMongoConfig} from "@/types/setup";
+import type {IMongoConfig, IPathMapping} from "@/types/setup";
 import {IAttachment, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
@@ -229,6 +229,7 @@ export interface IToolApprovalPromptProps {
 export interface ISetupFormProps {
     initialConfigurations: IMongoConfig[];
     initialActiveConfigId: string;
+    initialPathMappings: IPathMapping[];
 }
 
 export interface IConfigCardProps {
@@ -245,6 +246,21 @@ export interface IConfigFormModalProps {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
     editingConfig: IMongoConfig | null;
+    onSaved: () => void;
+}
+
+export interface IPathMappingCardProps {
+    mapping: IPathMapping;
+    onEdit: (mapping: IPathMapping) => void;
+    onDelete: (mapping: IPathMapping) => void;
+    onMerge: (mapping: IPathMapping) => void;
+    isMerging: boolean;
+}
+
+export interface IPathMappingFormModalProps {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    editingMapping: IPathMapping | null;
     onSaved: () => void;
 }
 

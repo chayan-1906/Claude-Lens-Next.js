@@ -1,8 +1,8 @@
 import type {Metadata} from "next";
 import {connection} from "next/server";
 import {SetupForm} from "@/components/SetupForm";
-import {getConfigurations} from "@/actions/setup.actions";
-import type {IGetConfigurationsResponse, IMongoConfig} from "@/types/setup";
+import {getConfigurations, getPathMappings} from "@/actions/setup.actions";
+import type {IGetConfigurationsResponse, IGetPathMappingsResponse, IMongoConfig, IPathMapping} from "@/types/setup";
 
 export const metadata: Metadata = {
     title: 'Setup — Claude Lens',
@@ -11,7 +11,10 @@ export const metadata: Metadata = {
 
 async function SetupPage() {
     await connection();
-    const {configurations, activeConfigId}: IGetConfigurationsResponse = await getConfigurations();
+    const [{configurations, activeConfigId}, {pathMappings}]: [IGetConfigurationsResponse, IGetPathMappingsResponse] = await Promise.all([
+        getConfigurations(),
+        getPathMappings(),
+    ]);
     const hasConfigs: boolean = (configurations?.length ?? 0) > 0;
 
     return (
@@ -26,7 +29,7 @@ async function SetupPage() {
                         : 'Enter your MongoDB connection string to get started!'}
                 </p>
 
-                <SetupForm initialConfigurations={configurations as IMongoConfig[] ?? []} initialActiveConfigId={activeConfigId ?? ''}/>
+                <SetupForm initialConfigurations={configurations as IMongoConfig[] ?? []} initialActiveConfigId={activeConfigId ?? ''} initialPathMappings={pathMappings as IPathMapping[] ?? []}/>
             </div>
         </div>
     );
