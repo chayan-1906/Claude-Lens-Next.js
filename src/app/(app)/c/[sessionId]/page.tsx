@@ -13,7 +13,8 @@ async function SessionPage({params}: ISessionPageProps) {
     const {r2Configured}: IGetSetupStatusResponse = await getSetupStatus();
 
     if (isNewChat) {
-        return <ChatSessionView isNewChat={true} r2Configured={r2Configured ?? false}/>;
+        const instanceKey: string = crypto.randomUUID();
+        return <ChatSessionView key={instanceKey} isNewChat={true} r2Configured={r2Configured ?? false}/>;
     }
 
     const {success, session, messages, localJsonlAvailable, error}: IGetSessionResponse = await getSession({sessionId});
