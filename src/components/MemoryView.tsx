@@ -2,7 +2,7 @@ import React from "react";
 import remarkGfm from "remark-gfm";
 import Markdown from "react-markdown";
 import type {IMemoryViewProps} from "@/types/components";
-import {renderCode, renderLink} from "@/components/CodeBlock";
+import {renderCode, renderPre, renderLink} from "@/components/CodeBlock";
 
 function MemoryView({memory}: IMemoryViewProps) {
     const fileName: string = memory.filePath.split('/').pop() || memory.filePath;
@@ -17,7 +17,7 @@ function MemoryView({memory}: IMemoryViewProps) {
             {/* Memory content */}
             <div className={'px-6 py-4'}>
                 <div className={'max-w-3xl mx-auto markdown-content text-sm'}>
-                    <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
+                    <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, pre: renderPre, a: renderLink}}>
                         {memory.content}
                     </Markdown>
                 </div>

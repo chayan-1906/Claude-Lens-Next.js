@@ -23,7 +23,7 @@ function CodeBlock({code, language}: ICodeBlockProps) {
     }, [code]);
 
     return (
-        <div className={'relative rounded-lg overflow-hidden border border-code-border'}>
+        <div className={'relative rounded-lg overflow-hidden border border-code-border my-4'}>
             {language && (
                 <div className={'flex items-center justify-between px-3 py-1.5 bg-code-bg border-b border-code-border'}>
                     <span className={'text-xs font-mono text-text-muted'}>{language}</span>
@@ -36,7 +36,7 @@ function CodeBlock({code, language}: ICodeBlockProps) {
                 </div>
             )}
             {!language && (
-                <Button variant={'ghost'} size={'icon'} onClick={handleCopy} className={'absolute top-1 right-1 size-7 text-text-muted hover:text-text'} title={'Copy'}>
+                <Button variant={'ghost'} size={'icon'} onClick={handleCopy} className={'absolute top-4 right-2 size-7 text-text-muted hover:text-text'} title={'Copy'}>
                     {copied
                         ? <TbCopyCheck className={'size-3.5 text-success'}/>
                         : <TbCopy className={'size-3.5'}/>
@@ -53,10 +53,12 @@ function CodeBlock({code, language}: ICodeBlockProps) {
 /** Shared Markdown code renderer — delegates fenced blocks to CodeBlock, renders inline code with theme tokens */
 function renderCode({className, children, ...props}: React.ComponentProps<'code'>) {
     const match: RegExpMatchArray | null = /language-(\w+)/.exec(className || '');
+    const codeString: string = String(children).replace(/\n$/, '');
 
-    if (match) {
+    // Block code: has a language class OR contains newlines (fenced block without language)
+    if (match || codeString.includes('\n')) {
         return (
-            <CodeBlock code={String(children).replace(/\n$/, '')} language={match[1]}/>
+            <CodeBlock code={codeString} language={match?.[1]}/>
         );
     }
 
@@ -64,6 +66,15 @@ function renderCode({className, children, ...props}: React.ComponentProps<'code'
         <code className={'px-1.5 py-0.5 rounded bg-code-bg text-xs font-mono'} {...props}>
             {children}
         </code>
+    );
+}
+
+/** Strips the default <pre> wrapper — CodeBlock provides its own styled wrapper */
+function renderPre({children}: React.ComponentProps<'pre'>) {
+    return (
+        <>
+            {children}
+        </>
     );
 }
 
@@ -76,4 +87,4 @@ function renderLink({href, children, ...props}: React.ComponentProps<'a'>) {
     );
 }
 
-export {CodeBlock, renderCode, renderLink};
+export {CodeBlock, renderCode, renderPre, renderLink};

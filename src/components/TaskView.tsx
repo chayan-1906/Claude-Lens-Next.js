@@ -6,9 +6,9 @@ import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import {ETaskStatus} from "@/types/task";
 import type {ITaskViewProps} from "@/types/components";
-import {renderCode, renderLink} from "@/components/CodeBlock";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {DeleteTasksButton} from "@/components/DeleteTasksButton";
+import {renderCode, renderPre, renderLink} from "@/components/CodeBlock";
 
 const STATUS_CONFIG: Record<ETaskStatus, { label: string; className: string }> = {
     [ETaskStatus.PENDING]: {label: 'Pending', className: 'bg-surface text-text-muted border border-border'},
@@ -69,7 +69,7 @@ function TaskView({task}: ITaskViewProps) {
                     <section>
                         <p className={'text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5'}>{'Description'}</p>
                         <div className={'markdown-content text-sm'}>
-                            <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
+                            <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, pre: renderPre, a: renderLink}}>
                                 {task.description}
                             </Markdown>
                         </div>

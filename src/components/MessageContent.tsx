@@ -8,7 +8,7 @@ import {IMessageContentProps} from "@/types/components";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
-import {renderCode, renderLink} from "@/components/CodeBlock";
+import {renderCode, renderPre, renderLink} from "@/components/CodeBlock";
 import {ContentBlock, DocumentBlock, EUserMessageType, ImageBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
 // Lazy load heavy sub-components via next/dynamic — only loaded when the block type is actually rendered
@@ -35,6 +35,8 @@ const ToolResultContentBlock = dynamic(
     {loading: () => lazyLoadingFallback},
 );
 
+const markdownComponents = {code: renderCode, pre: renderPre, a: renderLink};
+
 const MessageContent = React.memo(function MessageContent({content, sessionId, messageId, onStubbed}: IMessageContentProps) {
     if (typeof content === 'string') {
         return (
@@ -57,7 +59,7 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
 
                         return (
                             <div key={index} className={'markdown-content'}>
-                                <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
+                                <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                                     {cleaned}
                                 </Markdown>
                             </div>
@@ -119,7 +121,7 @@ function renderStringContent(text: string): React.ReactNode {
                     </span>
                     {parsed.remainingText && (
                         <div className={'markdown-content'}>
-                            <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
+                            <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                                 {parsed.remainingText}
                             </Markdown>
                         </div>
@@ -145,7 +147,7 @@ function renderStringContent(text: string): React.ReactNode {
 
             return (
                 <div className={'markdown-content'}>
-                    <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, a: renderLink}}>
+                    <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                         {cleaned}
                     </Markdown>
                 </div>
