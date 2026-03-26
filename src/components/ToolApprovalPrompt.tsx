@@ -18,6 +18,9 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
     const mcpServerName: string = mcpParts[1] ?? '';
     const mcpToolName: string = mcpParts.slice(2).join('__');
 
+    const [showDenyInput, setShowDenyInput] = React.useState<boolean>(false);
+    const [customReason, setCustomReason] = React.useState<string>('');
+
     const headerLabel: string = isBash
         ? 'Run command?'
         : isMcp || isGenericTool
@@ -26,18 +29,44 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                 ? 'Create file?'
                 : 'Edit file?';
 
+    const defaultReason: string = isBash
+        ? 'User denied the command'
+        : (isMcp || isGenericTool)
+            ? 'User denied the tool call'
+            : 'User denied the edit';
+
     const handleApprove = React.useCallback((): void => {
         onRespond(requestId, 'allow');
     }, [requestId, onRespond]);
 
-    const handleDeny = React.useCallback((): void => {
-        const reason: string = isBash ? 'User denied the command' : (isMcp || isGenericTool) ? 'User denied the tool call' : 'User denied the edit';
-        onRespond(requestId, 'deny', reason);
-    }, [requestId, onRespond, isBash, isMcp, isGenericTool]);
-
     const handleAllowAll = React.useCallback((): void => {
         onRespond(requestId, 'allow', undefined, true);
     }, [requestId, onRespond]);
+
+    const handleDenyClick = React.useCallback((): void => {
+        setShowDenyInput(true);
+    }, []);
+
+    const handleConfirmDeny = React.useCallback((): void => {
+        const finalReason: string = customReason.trim() || defaultReason;
+        onRespond(requestId, 'deny', finalReason);
+        setShowDenyInput(false);
+        setCustomReason('');
+    }, [requestId, onRespond, customReason, defaultReason]);
+
+    const handleCancelDeny = React.useCallback((): void => {
+        setShowDenyInput(false);
+        setCustomReason('');
+    }, []);
+
+    const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleConfirmDeny();
+        } else if (e.key === 'Escape') {
+            handleCancelDeny();
+        }
+    }, [handleConfirmDeny, handleCancelDeny]);
 
     return (
         <div className={'flex flex-col items-start w-full'}>
@@ -83,6 +112,21 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                     )}
                 </div>
 
+                {/* Deny reason input */}
+                {showDenyInput && (
+                    <div className={'px-3 pb-3'}>
+                        <textarea
+                            autoFocus
+                            value={customReason}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>): void => setCustomReason(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder={'Why? e.g. use Edit instead, wrong file path...'}
+                            rows={2}
+                            className={'w-full rounded-lg border border-error/40 bg-surface px-3 py-2 text-xs text-text placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-error/50'}
+                        />
+                    </div>
+                )}
+
                 {/* Action buttons */}
                 <div className={'flex items-center gap-2 px-4 py-3 border-t border-warning/20'}>
                     <Button variant={'primary'} size={'sm'} onClick={handleApprove} className={'gap-1.5'}>
@@ -93,10 +137,22 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                         <HiOutlineCheckCircle className={'size-3.5'}/>
                         Allow All
                     </Button>
-                    <Button variant={'danger'} size={'sm'} onClick={handleDeny} className={'gap-1.5'}>
-                        <HiOutlineX className={'size-3.5'}/>
-                        Deny
-                    </Button>
+                    {showDenyInput ? (
+                        <>
+                            <Button variant={'danger'} size={'sm'} onClick={handleConfirmDeny} className={'gap-1.5'}>
+                                <HiOutlineX className={'size-3.5'}/>
+                                Confirm Deny
+                            </Button>
+                            <Button variant={'ghost'} size={'sm'} onClick={handleCancelDeny}>
+                                Cancel
+                            </Button>
+                        </>
+                    ) : (
+                        <Button variant={'danger'} size={'sm'} onClick={handleDenyClick} className={'gap-1.5'}>
+                            <HiOutlineX className={'size-3.5'}/>
+                            Deny
+                        </Button>
+                    )}
                 </div>
             </div>
         </div>
