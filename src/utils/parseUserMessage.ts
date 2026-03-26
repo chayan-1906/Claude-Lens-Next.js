@@ -10,7 +10,7 @@ import type {ParsedUserMessage} from "@/types/message";
  */
 function parseUserMessage(text: string): ParsedUserMessage {
     // Group 3 — system caveat → hide entirely
-    if (text.includes('<local-command-caveat>')) {
+    if (text.includes('<local-command-caveat>') || text.includes('<task-notification>')) {
         return {type: EUserMessageType.SYSTEM_CAVEAT};
     }
 

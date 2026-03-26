@@ -8,11 +8,12 @@ import type {IToolApprovalPromptProps} from "@/types/components";
 
 function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
     const {requestId, toolName, toolInput} = approval;
+    const isRead: boolean = toolName === 'Read';
     const isBash: boolean = toolName === 'Bash';
     const isMcp: boolean = toolName.startsWith('mcp__');
-    const isFileOp: boolean = !isBash && !isMcp && ('file_path' in toolInput || 'notebook_path' in toolInput);
-    const isGenericTool: boolean = !isBash && !isMcp && !isFileOp;
-    const filePath: string = isFileOp ? ((toolInput.file_path as string) ?? (toolInput.notebook_path as string) ?? '') : '';
+    const isFileOp: boolean = !isBash && !isMcp && !isRead && ('file_path' in toolInput || 'notebook_path' in toolInput);
+    const isGenericTool: boolean = !isBash && !isMcp && !isRead && !isFileOp;
+    const filePath: string = (isFileOp || isRead) ? ((toolInput.file_path as string) ?? (toolInput.notebook_path as string) ?? '') : '';
     const bashCommand: string = isBash ? ((toolInput.command as string) ?? '') : '';
     const mcpParts: string[] = isMcp ? toolName.split('__') : [];
     const mcpServerName: string = mcpParts[1] ?? '';
@@ -23,17 +24,21 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
 
     const headerLabel: string = isBash
         ? 'Run command?'
-        : isMcp || isGenericTool
-            ? 'Use tool?'
-            : toolName === 'Write'
-                ? 'Create file?'
-                : 'Edit file?';
+        : isRead
+            ? 'Read file?'
+            : isMcp || isGenericTool
+                ? 'Use tool?'
+                : toolName === 'Write'
+                    ? 'Create file?'
+                    : 'Edit file?';
 
     const defaultReason: string = isBash
         ? 'User denied the command'
-        : (isMcp || isGenericTool)
-            ? 'User denied the tool call'
-            : 'User denied the edit';
+        : isRead
+            ? 'User denied the read'
+            : (isMcp || isGenericTool)
+                ? 'User denied the tool call'
+                : 'User denied the edit';
 
     const handleApprove = React.useCallback((): void => {
         onRespond(requestId, 'allow');
@@ -78,19 +83,26 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                     </span>
                     {isMcp ? (
                         <>
-                            <span className={'text-xs font-mono text-text-muted truncate flex-1'}>{mcpToolName}</span>
-                            <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase'}>{mcpServerName}</span>
+                            <span className={'text-xs font-mono text-text-muted truncate flex-1'} title={mcpToolName}>{mcpToolName}</span>
+                            <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase'} title={mcpServerName}>{mcpServerName}</span>
                         </>
                     ) : isGenericTool ? (
-                        <span className={'text-xs font-mono text-text-muted truncate flex-1'}>{toolName}</span>
-                    ) : isFileOp ? (
-                        <span className={'text-xs text-text-muted font-mono truncate flex-1'}>{filePath}</span>
+                        <span className={'text-xs font-mono text-text-muted truncate flex-1'} title={toolName}>{toolName}</span>
+                    ) : (isFileOp || isRead) ? (
+                        <span className={'text-xs text-text-muted font-mono truncate flex-1'} title={filePath}>{filePath}</span>
                     ) : null}
                 </div>
 
                 {/* Content */}
                 <div className={'p-3'}>
-                    {isBash ? (
+                    {isRead ? (
+                        <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>
+                            <div className={'flex items-center gap-2 px-4 py-3'}>
+                                <span className={'text-xs font-mono text-text truncate'} title={filePath}>{filePath}</span>
+                                <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase shrink-0'}>READ</span>
+                            </div>
+                        </div>
+                    ) : isBash ? (
                         <div className={'rounded-lg border border-primary/30 overflow-hidden bg-surface'}>
                             <pre className={'px-4 py-3 text-xs font-mono text-text overflow-x-auto'}>{bashCommand}</pre>
                         </div>
