@@ -14,6 +14,15 @@ export interface IMongoConfig {
     lastConnectedAt?: string;
 }
 
+/** Cloudflare R2 storage credentials for attachment uploads */
+export interface IR2Config {
+    accessKeyId: string;
+    secretAccessKey: string;
+    endpoint: string;
+    publicUrl: string;
+    bucketName: string;
+}
+
 /** A single path mapping — maps multiple absolute paths to one canonical path */
 export interface IPathMapping {
     id: string;
@@ -28,6 +37,7 @@ export interface IPathMapping {
 export interface IGetSetupStatusResponse extends IApiResponse {
     configured?: boolean;
     hasLocalConfig?: boolean;
+    r2Configured?: boolean;
 }
 
 export interface IGetConfigurationsResponse extends IApiResponse {
@@ -70,6 +80,14 @@ export type IDeletePathMappingResponse = IApiResponse;
 export interface IMergePathMappingResponse extends IApiResponse {
     sessionsUpdated?: number;
     memoriesUpdated?: number;
+}
+
+export interface IGetR2ConfigResponse extends IApiResponse {
+    r2Config?: IR2Config | null;
+}
+
+export interface ISaveR2ConfigResponse extends IApiResponse {
+    r2Config?: IR2Config;
 }
 
 
@@ -125,4 +143,12 @@ export interface IDeletePathMappingParams {
 
 export interface IMergePathMappingParams {
     mappingId: string;
+}
+
+export interface ISaveR2ConfigParams {
+    accessKeyId: string;
+    secretAccessKey: string;
+    endpoint: string;
+    publicUrl: string;
+    bucketName: string;
 }

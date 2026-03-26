@@ -43,7 +43,7 @@ function formatFileSize(bytes: number): string {
 // Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
 let draftText: string = '';
 
-function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, ideStatus}: IChatInputProps) {
+function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, ideStatus, r2Configured}: IChatInputProps) {
     const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const [attachments, setAttachments] = React.useState<IAttachment[]>([]);
@@ -189,8 +189,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
     const handleSend = React.useCallback((): void => {
         const trimmed: string = text.trim();
         const hasAttachments: boolean = attachments.length > 0;
-        if ((!trimmed && !hasAttachments) || disabled) {
-            console.log(`[ChatInput] handleSend blocked — empty: ${!trimmed}, noAttachments: ${!hasAttachments}, disabled: ${disabled}`);
+        if ((!trimmed && !hasAttachments) || disabled || !r2Configured) {
+            console.log(`[ChatInput] handleSend blocked — empty: ${!trimmed}, noAttachments: ${!hasAttachments}, disabled: ${disabled}, r2Configured: ${r2Configured}`);
             return;
         }
         console.log(`[ChatInput] Sending: "${trimmed.slice(0, 50)}..." with ${attachments.length} attachment(s)`);
@@ -204,7 +204,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         if (textarea) {
             textarea.style.height = 'auto';
         }
-    }, [text, attachments, disabled, onSend, resetVoice]);
+    }, [text, attachments, disabled, r2Configured, onSend, resetVoice]);
 
     const handleMarkdownKeyDown = useMarkdownShortcuts(textareaRef, text, setText);
 
@@ -259,13 +259,13 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
     }, []);
 
     React.useEffect(() => {
-        if (!disabled && textareaRef.current) {
+        if (!disabled && r2Configured && textareaRef.current) {
             const el: HTMLTextAreaElement = textareaRef.current;
             el.focus();
             el.selectionStart = el.value.length;
             el.selectionEnd = el.value.length;
         }
-    }, [disabled]);
+    }, [disabled, r2Configured]);
 
     const handleStop = React.useCallback((): void => {
         if (isStopping) return;
@@ -300,7 +300,10 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         await startRecording();
     }, [isVoiceProcessing, isRecording, stopRecording, resetVoice, startRecording]);
 
-    const canSend: boolean = (text.trim().length > 0 || attachments.length > 0) && !disabled && !isRecording;
+    const r2Disabled: boolean = !r2Configured;
+    const effectiveDisabled: boolean = disabled || r2Disabled;
+    const canSend: boolean = (text.trim().length > 0 || attachments.length > 0) && !effectiveDisabled && !isRecording;
+    const r2Tooltip: string | undefined = r2Disabled ? 'Please configure Cloudflare R2 in Setup to start chatting' : undefined;
 
     // Single action button — one of: Stop stream | Voice spinner | Stop recording | Send | Mic
     const renderActionButton = (): React.ReactElement => {
@@ -330,14 +333,14 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         }
         if (canSend) {
             return (
-                <Button variant={'primary'} size={'icon'} onClick={handleSend} className={'shrink-0 size-8 rounded-lg'}>
+                <Button variant={'primary'} size={'icon'} onClick={handleSend} title={r2Tooltip} className={'shrink-0 size-8 rounded-lg'}>
                     <HiArrowUp className={'size-4'}/>
                 </Button>
             );
         }
         // Default: idle mic
         return (
-            <Button variant={'ghost'} size={'icon'} onClick={handleMicClick} disabled={disabled} aria-label={'Start recording'} className={'shrink-0 size-8 rounded-lg'}>
+            <Button variant={'ghost'} size={'icon'} onClick={handleMicClick} disabled={effectiveDisabled} title={r2Tooltip} aria-label={'Start recording'} className={'shrink-0 size-8 rounded-lg'}>
                 <FaMicrophone className={'size-3.5'}/>
             </Button>
         );
@@ -470,8 +473,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     onPaste={handlePaste}
-                    disabled={isRecording || isVoiceProcessing}
-                    placeholder={'Send a message...'}
+                    disabled={isRecording || isVoiceProcessing || r2Disabled}
+                    placeholder={r2Disabled ? 'Configure Cloudflare R2 in Setup to start chatting...' : 'Send a message...'}
                     className={cn(
                         'w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-text font-medium placeholder:text-text-muted',
                         'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
@@ -485,7 +488,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
             <div className={'flex items-center justify-between px-3 py-2'}>
                 {/* Left: attach file button + IDE status */}
                 <div className={'flex items-center gap-1.5'}>
-                    <Button variant={'ghost'} size={'icon'} onClick={handleAttachClick} disabled={disabled || attachments.length >= MAX_ATTACHMENTS} className={'size-7 rounded-lg'}
+                    <Button variant={'ghost'} size={'icon'} onClick={handleAttachClick} disabled={effectiveDisabled || attachments.length >= MAX_ATTACHMENTS} title={r2Tooltip} className={'size-7 rounded-lg'}
                             aria-label={'Add attachment'}>
                         <HiOutlinePlus className={'size-4'}/>
                     </Button>

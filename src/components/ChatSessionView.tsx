@@ -31,7 +31,7 @@ import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
 
-function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionViewProps) {
+function ChatSessionView({isNewChat, session, historicalMessages, r2Configured}: IChatSessionViewProps) {
     const router = useRouter();
     const {
         status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval,
@@ -456,8 +456,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
         // Usage ratio guard — stale "Prompt is too long" after model switch / compact
         const used: number | undefined = session?.contextTokensUsed;
         const window: number | undefined = session?.contextWindowSize;
-        if (used !== undefined && window !== undefined && window > 0 && used / window < 0.95) return false;
-        return true;
+        return !(used !== undefined && window !== undefined && window > 0 && used / window < 0.95);
     }, [localHistoricalMessages, session?.contextTokensUsed, session?.contextWindowSize]);
 
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
@@ -888,6 +887,7 @@ function ChatSessionView({isNewChat, session, historicalMessages}: IChatSessionV
                     onEffortChange={setSelectedEffort}
                     onThinkingChange={handleThinkingChange}
                     ideStatus={ideStatus}
+                    r2Configured={r2Configured}
                 />
             </div>
         </div>

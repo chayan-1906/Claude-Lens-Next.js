@@ -3,7 +3,7 @@ import type {ITask} from "@/types/task";
 import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
-import type {IMongoConfig, IPathMapping} from "@/types/setup";
+import type {IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 import {IAttachment, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 
@@ -186,6 +186,7 @@ export interface IChatInputProps {
     onEffortChange: (effort: string) => void;
     onThinkingChange: (thinking: boolean) => void;
     ideStatus?: IIdeStatus | null;
+    r2Configured: boolean;
 }
 
 export interface IScrollToBottomProps {
@@ -202,6 +203,7 @@ export interface IChatSessionViewProps {
     isNewChat: boolean;
     session?: ISession;
     historicalMessages?: IMessage[];
+    r2Configured: boolean;
 }
 
 export interface IDiffViewProps {
@@ -230,6 +232,7 @@ export interface ISetupFormProps {
     initialConfigurations: IMongoConfig[];
     initialActiveConfigId: string;
     initialPathMappings: IPathMapping[];
+    initialR2Config: IR2Config | null;
 }
 
 export interface IConfigCardProps {

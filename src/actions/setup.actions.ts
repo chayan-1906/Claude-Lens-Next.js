@@ -2,36 +2,40 @@
 
 import {cookies} from "next/headers";
 import {apis} from "@/utils/apis";
-import {SETUP_CONFIGURED_COOKIE} from "@/types/setup";
-import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import type {
-    IGetSetupStatusResponse,
-    IGetConfigurationsResponse,
-    IAddConfigurationParams,
-    IAddConfigurationResponse,
-    IEditConfigurationParams,
-    IEditConfigurationResponse,
-    IDeleteConfigurationParams,
-    IDeleteConfigurationResponse,
-    ITestConfigurationParams,
-    ITestConfigurationResponse,
+import {
     IActivateConfigurationParams,
     IActivateConfigurationResponse,
-    IGetConfigProjectsParams,
-    IGetConfigProjectsResponse,
-    IMongoConfig,
-    IPathMapping,
-    IGetPathMappingsResponse,
+    IAddConfigurationParams,
+    IAddConfigurationResponse,
     ICreatePathMappingParams,
     ICreatePathMappingResponse,
-    IUpdatePathMappingParams,
-    IUpdatePathMappingResponse,
+    IDeleteConfigurationParams,
+    IDeleteConfigurationResponse,
     IDeletePathMappingParams,
     IDeletePathMappingResponse,
+    IEditConfigurationParams,
+    IEditConfigurationResponse,
+    IGetConfigProjectsParams,
+    IGetConfigProjectsResponse,
+    IGetConfigurationsResponse,
+    IGetPathMappingsResponse,
+    IGetR2ConfigResponse,
+    IGetSetupStatusResponse,
     IMergePathMappingParams,
     IMergePathMappingResponse,
+    IMongoConfig,
+    IPathMapping,
+    IR2Config,
+    ISaveR2ConfigParams,
+    ISaveR2ConfigResponse,
+    ITestConfigurationParams,
+    ITestConfigurationResponse,
+    IUpdatePathMappingParams,
+    IUpdatePathMappingResponse,
+    SETUP_CONFIGURED_COOKIE
 } from "@/types/setup";
 import {refreshSidebar} from "@/actions/session.actions";
+import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
 
 async function getSetupStatus(): Promise<IGetSetupStatusResponse> {
     try {
@@ -54,6 +58,7 @@ async function getSetupStatus(): Promise<IGetSetupStatusResponse> {
             message: data.message,
             configured: data.configured as boolean,
             hasLocalConfig: data.hasLocalConfig as boolean,
+            r2Configured: data.r2Configured as boolean,
         };
     } catch (error: unknown) {
         console.error('Get setup status error:', error);
@@ -495,6 +500,88 @@ async function setSetupConfiguredCookie(): Promise<void> {
     });
 }
 
+// ======================== R2 Config Actions ========================
+
+async function getR2Config(): Promise<IGetR2ConfigResponse> {
+    try {
+        const response: Response = await fetch(apis.getR2ConfigApi);
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = 'Failed to fetch R2 config!';
+            console.error('Getting R2 config failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            r2Config: data.r2Config as IR2Config | null,
+        };
+    } catch (error: unknown) {
+        console.error('Get R2 config error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function saveR2Config({accessKeyId, secretAccessKey, endpoint, publicUrl, bucketName}: ISaveR2ConfigParams): Promise<ISaveR2ConfigResponse> {
+    try {
+        const response: Response = await fetch(apis.saveR2ConfigApi, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({accessKeyId, secretAccessKey, endpoint, publicUrl, bucketName}),
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to save R2 config!';
+            console.error('Save R2 config failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'ACCESSKEYID_MISSING') {
+                errorMessage = 'Access Key ID is required!';
+            } else if (errorCode === 'SECRETACCESSKEY_MISSING') {
+                errorMessage = 'Secret Access Key is required!';
+            } else if (errorCode === 'ENDPOINT_MISSING') {
+                errorMessage = 'Endpoint is required!';
+            } else if (errorCode === 'INVALID_ENDPOINT') {
+                errorMessage = data.error?.message || 'Invalid endpoint URL format!';
+            } else if (errorCode === 'PUBLICURL_MISSING') {
+                errorMessage = 'Public URL is required!';
+            } else if (errorCode === 'BUCKETNAME_MISSING') {
+                errorMessage = 'Bucket Name is required!';
+            } else if (errorCode === 'INVALID_SECRETACCESSKEY') {
+                errorMessage = data.error?.message || 'Invalid secret access key!';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            r2Config: data.r2Config as IR2Config,
+        };
+    } catch (error: unknown) {
+        console.error('Save R2 config error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
 export {
     getSetupStatus,
     getConfigurations,
@@ -510,4 +597,6 @@ export {
     updatePathMapping,
     deletePathMapping,
     mergePathMapping,
+    getR2Config,
+    saveR2Config,
 };

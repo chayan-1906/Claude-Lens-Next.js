@@ -10,10 +10,10 @@ import type {ISetupFormProps} from "@/types/components";
 import {ConfigFormModal} from "@/components/ConfigFormModal";
 import {PathMappingCard} from "@/components/PathMappingCard";
 import {PathMappingFormModal} from "@/components/PathMappingFormModal";
-import {activateConfiguration, addConfiguration, deleteConfiguration, deletePathMapping, getConfigProjects, mergePathMapping, testConfiguration} from "@/actions/setup.actions";
-import type {IActivateConfigurationResponse, IAddConfigurationResponse, IDeleteConfigurationResponse, IDeletePathMappingResponse, IGetConfigProjectsResponse, IMergePathMappingResponse, IMongoConfig, IPathMapping, ITestConfigurationResponse} from "@/types/setup";
+import {activateConfiguration, addConfiguration, deleteConfiguration, deletePathMapping, getConfigProjects, mergePathMapping, saveR2Config, testConfiguration} from "@/actions/setup.actions";
+import type {IActivateConfigurationResponse, IAddConfigurationResponse, IDeleteConfigurationResponse, IDeletePathMappingResponse, IGetConfigProjectsResponse, IMergePathMappingResponse, IMongoConfig, IPathMapping, ISaveR2ConfigResponse, ITestConfigurationResponse} from "@/types/setup";
 
-function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMappings}: ISetupFormProps) {
+function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMappings, initialR2Config}: ISetupFormProps) {
     const router = useRouter();
     const hasConfigs: boolean = initialConfigurations.length > 0;
 
@@ -34,6 +34,15 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
     const [editingMapping, setEditingMapping] = React.useState<IPathMapping | null>(null);
     const [mergingId, setMergingId] = React.useState<string | null>(null);
     const [mergeResult, setMergeResult] = React.useState<{ mappingId: string; success: boolean; message: string } | null>(null);
+
+    // R2 config state
+    const [r2AccessKeyId, setR2AccessKeyId] = React.useState<string>(initialR2Config?.accessKeyId ?? '');
+    const [r2SecretAccessKey, setR2SecretAccessKey] = React.useState<string>(initialR2Config?.secretAccessKey ?? '');
+    const [r2Endpoint, setR2Endpoint] = React.useState<string>(initialR2Config?.endpoint ?? '');
+    const [r2PublicUrl, setR2PublicUrl] = React.useState<string>(initialR2Config?.publicUrl ?? '');
+    const [r2BucketName, setR2BucketName] = React.useState<string>(initialR2Config?.bucketName ?? '');
+    const [isR2Saving, setIsR2Saving] = React.useState<boolean>(false);
+    const [r2Result, setR2Result] = React.useState<{ success: boolean; message: string } | null>(null);
 
     // First-run submit handler: add a "Default" config and activate it
     const handleFirstRunSubmit = React.useCallback(async (e: React.FormEvent): Promise<void> => {
@@ -174,6 +183,31 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
         router.refresh();
     }, [router]);
 
+    // R2 config handler
+    const r2FieldsFilled: boolean = !!(r2AccessKeyId.trim() && r2SecretAccessKey.trim() && r2Endpoint.trim() && r2PublicUrl.trim() && r2BucketName.trim());
+
+    const handleR2Save = React.useCallback(async (e: React.FormEvent): Promise<void> => {
+        e.preventDefault();
+        setIsR2Saving(true);
+        setR2Result(null);
+
+        const response: ISaveR2ConfigResponse = await saveR2Config({
+            accessKeyId: r2AccessKeyId.trim(),
+            secretAccessKey: r2SecretAccessKey.trim(),
+            endpoint: r2Endpoint.trim(),
+            publicUrl: r2PublicUrl.trim(),
+            bucketName: r2BucketName.trim(),
+        });
+
+        if (response.success) {
+            setR2Result({success: true, message: response.message || 'R2 config saved!'});
+        } else {
+            setR2Result({success: false, message: response.error || 'Failed to save R2 config!'});
+        }
+
+        setIsR2Saving(false);
+    }, [r2AccessKeyId, r2SecretAccessKey, r2Endpoint, r2PublicUrl, r2BucketName]);
+
     // First-run mode: simple URI input form
     if (!hasConfigs) {
         return (
@@ -303,6 +337,104 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                         </div>
                     )
                 }
+            </div>
+
+            {/* ======================== Cloudflare R2 Section ======================== */}
+            <div className={'mt-8 pt-6 border-t border-border'}>
+                <div className={'mb-4'}>
+                    <h2 className={'text-lg font-semibold text-text'}>Cloudflare R2</h2>
+                    <p className={'text-xs text-text-muted mt-0.5'}>
+                        Storage credentials for file attachments (images, PDFs, code files)
+                    </p>
+                </div>
+
+                <form onSubmit={handleR2Save} className={'space-y-3'}>
+                    <div>
+                        <label htmlFor={'r2-access-key-id'} className={'block text-xs font-medium text-text mb-1'}>
+                            Access Key ID
+                        </label>
+                        <input
+                            id={'r2-access-key-id'}
+                            type={'text'}
+                            value={r2AccessKeyId}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2AccessKeyId(e.target.value)}
+                            placeholder={'CLOUDFLARE_ACCESS_KEY_ID'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            disabled={isR2Saving}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor={'r2-secret-access-key'} className={'block text-xs font-medium text-text mb-1'}>
+                            Secret Access Key
+                        </label>
+                        <input
+                            id={'r2-secret-access-key'}
+                            type={'text'}
+                            value={r2SecretAccessKey}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2SecretAccessKey(e.target.value)}
+                            placeholder={'CLOUDFLARE_SECRET_ACCESS_KEY'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            disabled={isR2Saving}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor={'r2-endpoint'} className={'block text-xs font-medium text-text mb-1'}>
+                            R2 Endpoint
+                        </label>
+                        <input
+                            id={'r2-endpoint'}
+                            type={'text'}
+                            value={r2Endpoint}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2Endpoint(e.target.value)}
+                            placeholder={'https://<account-id>.r2.cloudflarestorage.com'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            disabled={isR2Saving}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor={'r2-public-url'} className={'block text-xs font-medium text-text mb-1'}>
+                            R2 Public URL
+                        </label>
+                        <input
+                            id={'r2-public-url'}
+                            type={'text'}
+                            value={r2PublicUrl}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2PublicUrl(e.target.value)}
+                            placeholder={'https://pub-xxx.r2.dev'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            disabled={isR2Saving}
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor={'r2-bucket-name'} className={'block text-xs font-medium text-text mb-1'}>
+                            Bucket Name
+                        </label>
+                        <input
+                            id={'r2-bucket-name'}
+                            type={'text'}
+                            value={r2BucketName}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2BucketName(e.target.value)}
+                            placeholder={'my-bucket'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            disabled={isR2Saving}
+                        />
+                    </div>
+
+                    {/* R2 result feedback */}
+                    {r2Result && (
+                        <div className={`text-xs px-3 py-2 rounded-md ${r2Result.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
+                            {r2Result.message}
+                        </div>
+                    )}
+
+                    <Button type={'submit'} variant={'primary'} size={'sm'} isLoading={isR2Saving} disabled={!r2FieldsFilled || isR2Saving} className={'w-full'}>
+                        Save R2 Config
+                    </Button>
+                </form>
             </div>
 
             {/* Home link when configured */}

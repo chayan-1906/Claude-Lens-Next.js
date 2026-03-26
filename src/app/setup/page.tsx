@@ -1,8 +1,8 @@
 import type {Metadata} from "next";
 import {connection} from "next/server";
 import {SetupForm} from "@/components/SetupForm";
-import {getConfigurations, getPathMappings} from "@/actions/setup.actions";
-import type {IGetConfigurationsResponse, IGetPathMappingsResponse, IMongoConfig, IPathMapping} from "@/types/setup";
+import {getConfigurations, getPathMappings, getR2Config} from "@/actions/setup.actions";
+import type {IGetConfigurationsResponse, IGetPathMappingsResponse, IGetR2ConfigResponse, IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 
 export const metadata: Metadata = {
     title: 'Setup — Claude Lens',
@@ -11,9 +11,10 @@ export const metadata: Metadata = {
 
 async function SetupPage() {
     await connection();
-    const [{configurations, activeConfigId}, {pathMappings}]: [IGetConfigurationsResponse, IGetPathMappingsResponse] = await Promise.all([
+    const [{configurations, activeConfigId}, {pathMappings}, {r2Config}]: [IGetConfigurationsResponse, IGetPathMappingsResponse, IGetR2ConfigResponse] = await Promise.all([
         getConfigurations(),
         getPathMappings(),
+        getR2Config(),
     ]);
     const hasConfigs: boolean = (configurations?.length ?? 0) > 0;
 
@@ -29,7 +30,7 @@ async function SetupPage() {
                         : 'Enter your MongoDB connection string to get started!'}
                 </p>
 
-                <SetupForm initialConfigurations={configurations as IMongoConfig[] ?? []} initialActiveConfigId={activeConfigId ?? ''} initialPathMappings={pathMappings as IPathMapping[] ?? []}/>
+                <SetupForm initialConfigurations={configurations as IMongoConfig[] ?? []} initialActiveConfigId={activeConfigId ?? ''} initialPathMappings={pathMappings as IPathMapping[] ?? []} initialR2Config={r2Config as IR2Config ?? null}/>
             </div>
         </div>
     );
