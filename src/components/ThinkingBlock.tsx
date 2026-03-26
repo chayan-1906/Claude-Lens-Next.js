@@ -1,12 +1,17 @@
 "use client";
 
 import React from "react";
+import remarkGfm from "remark-gfm";
+import Markdown from "react-markdown";
 import {HiOutlineChevronRight} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
 import {stubToolResults} from "@/actions/message.actions";
 import type {IThinkingBlockProps} from "@/types/components";
+import {renderCode, renderPre, renderLink} from "@/components/CodeBlock";
+
+const markdownComponents = {code: renderCode, pre: renderPre, a: renderLink};
 
 const ThinkingBlock = React.memo(function ThinkingBlock({block, sessionId, messageId, onStubbed}: IThinkingBlockProps) {
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
@@ -68,8 +73,10 @@ const ThinkingBlock = React.memo(function ThinkingBlock({block, sessionId, messa
             </div>
 
             {isOpen && (
-                <div className={'px-3 py-3 text-xs text-text-muted whitespace-pre-wrap font-mono leading-relaxed'}>
-                    {block.thinking}
+                <div className={'px-3 py-3 text-xs text-text-muted leading-relaxed markdown-content'}>
+                    <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {block.thinking}
+                    </Markdown>
                 </div>
             )}
 

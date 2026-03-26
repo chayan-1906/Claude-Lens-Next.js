@@ -98,13 +98,13 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                     {isRead ? (
                         <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>
                             <div className={'flex items-center gap-2 px-4 py-3'}>
-                                <span className={'text-xs font-mono text-text truncate'} title={filePath}>{filePath}</span>
+                                <span className={'text-xs font-mono text-text'} title={filePath}>{filePath}</span>
                                 <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase shrink-0'}>READ</span>
                             </div>
                         </div>
                     ) : isBash ? (
-                        <div className={'rounded-lg border border-primary/30 overflow-hidden bg-surface'}>
-                            <pre className={'px-4 py-3 text-xs font-mono text-text overflow-x-auto'}>{bashCommand}</pre>
+                        <div className={'rounded-lg border border-primary/30 overflow-hidden'}>
+                            <pre className={'px-4 py-3 text-xs font-mono text-text whitespace-pre-wrap'}>{bashCommand}</pre>
                         </div>
                     ) : (isMcp || isGenericTool) ? (
                         <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>

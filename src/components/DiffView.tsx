@@ -99,8 +99,8 @@ function DiffView({toolName, filePath, oldString, newString, content}: IDiffView
         <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>
             {/* File path header */}
             <div className={'flex items-center gap-2 px-3 py-2 bg-background border-b border-border'}>
-                <span className={'text-xs font-mono text-text-muted truncate'}>{filePath}</span>
-                <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded', toolName === 'Write' ? badgeColors.newFile : badgeColors.edit)}>
+                <span className={'text-xs font-mono text-text-muted truncate flex-1'} title={filePath}>{filePath}</span>
+                <span className={cn('text-[10px] font-medium px-1.5 py-1 rounded', toolName === 'Write' ? badgeColors.newFile : badgeColors.edit)}>
                     {toolName === 'Write' ? 'NEW FILE' : 'EDIT'}
                 </span>
             </div>
