@@ -735,6 +735,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                                 const isSystemUserMessage: boolean = isCommandOutput || isToolResult;
                                 const isSyntheticMessage: boolean = !isUser && (message.model === '<synthetic>' || message.model === 'synthetic');
                                 const copyText: string = extractMessageText(message.content);
+                                const speakableText: string = extractSpeakableText(message.content);
                                 const hasAttachments: boolean = !!(message.attachments && message.attachments.length > 0);
                                 const hasNonTextBlock: boolean = hasAttachments || (Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text'));
                                 return (
@@ -765,8 +766,8 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                                                 {copyText && (
                                                     <CopyMessageButton text={copyText}/>
                                                 )}
-                                                {(!isUser && !isSyntheticMessage) && (
-                                                    <ReadAloudButton text={extractSpeakableText(message.content)} messageId={message.id} tts={tts}/>
+                                                {(!isUser && !isSyntheticMessage && speakableText) && (
+                                                    <ReadAloudButton text={speakableText} messageId={message.id} tts={tts}/>
                                                 )}
                                                 {(!isUser && message.model && !isSyntheticMessage) && (
                                                     <span className={'text-xs text-text-muted italic'}>

@@ -47,6 +47,7 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
     }
 
     const showCopyButton: boolean = typeof message.content === 'string' || message.content.some((block: ContentBlock) => block.type === 'text' || block.type === 'thinking');
+    const speakableText: string = extractSpeakableText(message.content);
     const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
 
     return (
@@ -72,8 +73,8 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
                     {showCopyButton && (
                         <CopyMessageButton text={contentText}/>
                     )}
-                    {(!isUserMessage && tts) && (
-                        <ReadAloudButton text={extractSpeakableText(message.content)} messageId={message.messageId} tts={tts}/>
+                    {(!isUserMessage && tts && speakableText) && (
+                        <ReadAloudButton text={speakableText} messageId={message.messageId} tts={tts}/>
                     )}
                     {(!isUserMessage && message.aiModel) && (
                         <span className={'text-xs text-text-muted italic'}>

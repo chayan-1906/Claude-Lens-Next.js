@@ -1,11 +1,8 @@
 import React from "react";
 import {stripMarkdown} from "@/utils/stripMarkdown";
 import {NEURAL_VOICES, TTS_SPEEDS} from "@/types/tts";
-import type {INeuralVoice, IUseTextToSpeechReturn, TTSSpeed, TTSState} from "@/types/tts";
-
-/** localStorage keys */
-const LS_VOICE_KEY: string = 'tts-voice-id';
-const LS_RATE_KEY: string = 'tts-rate';
+import {getTtsSettings, saveTtsSettings} from "@/actions/voice.actions";
+import type {INeuralVoice, IGetTtsSettingsResponse, ISaveTtsSettingsResponse, IUseTextToSpeechReturn, TTSSpeed, TTSState} from "@/types/tts";
 
 /** Max characters per TTS request chunk. Keeps individual requests fast. */
 const MAX_CHUNK_CHARS: number = 4000;
@@ -100,17 +97,16 @@ const useTextToSpeech = (): IUseTextToSpeechReturn => {
 
     // --- Restore preferences ---
     React.useEffect(() => {
-        const savedVoiceId: string | null = localStorage.getItem(LS_VOICE_KEY);
-        if (savedVoiceId) {
-            const match: INeuralVoice | undefined = NEURAL_VOICES.find((voice: INeuralVoice) => voice.voiceId === savedVoiceId);
-            if (match) setSelectedVoiceState(match);
-        }
-
-        const savedRate: string | null = localStorage.getItem(LS_RATE_KEY);
-        if (savedRate !== null) {
-            const parsed: number = parseFloat(savedRate);
-            if (TTS_SPEEDS.includes(parsed as TTSSpeed)) setRateState(parsed as TTSSpeed);
-        }
+        getTtsSettings().then((result: IGetTtsSettingsResponse): void => {
+            if (!result.success) return;
+            if (result.voiceId) {
+                const match: INeuralVoice | undefined = NEURAL_VOICES.find((voice: INeuralVoice) => voice.voiceId === result.voiceId);
+                if (match) setSelectedVoiceState(match);
+            }
+            if (result.rate !== undefined && TTS_SPEEDS.includes(result.rate as TTSSpeed)) {
+                setRateState(result.rate as TTSSpeed);
+            }
+        });
     }, []);
 
     /** Cancel all in-flight requests and revoke any already-resolved URLs. */
@@ -233,12 +229,12 @@ const useTextToSpeech = (): IUseTextToSpeechReturn => {
 
     const setSelectedVoice = React.useCallback((voice: INeuralVoice): void => {
         setSelectedVoiceState(voice);
-        localStorage.setItem(LS_VOICE_KEY, voice.voiceId);
+        void saveTtsSettings({voiceId: voice.voiceId}).catch((): ISaveTtsSettingsResponse => ({success: false}));
     }, []);
 
     const setRate = React.useCallback((newRate: TTSSpeed): void => {
         setRateState(newRate);
-        localStorage.setItem(LS_RATE_KEY, String(newRate));
+        void saveTtsSettings({rate: newRate}).catch((): ISaveTtsSettingsResponse => ({success: false}));
     }, []);
 
     // Cleanup on unmount

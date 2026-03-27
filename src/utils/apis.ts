@@ -88,6 +88,8 @@ const apis = {
     importProjectApi: baseImportApiUrl,
 
     transcribeApi: `${baseVoiceApiUrl}/transcribe`,
+    getTtsSettingsApi: `${baseVoiceApiUrl}/tts-settings`,
+    saveTtsSettingsApi: `${baseVoiceApiUrl}/tts-settings`,
 
     openFolderPickerApi: `${baseFilePickerApiUrl}/folder`,
 };

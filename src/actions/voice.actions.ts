@@ -3,6 +3,7 @@
 import {apis} from "@/utils/apis";
 import type {ITranscribeResult} from "@/types/voice";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
+import type {IGetTtsSettingsResponse, ISaveTtsSettingsParams, ISaveTtsSettingsResponse} from "@/types/tts";
 
 async function transcribeAudio(formData: FormData): Promise<ITranscribeResult> {
     try {
@@ -36,4 +37,46 @@ async function transcribeAudio(formData: FormData): Promise<ITranscribeResult> {
     }
 }
 
-export {transcribeAudio};
+async function getTtsSettings(): Promise<IGetTtsSettingsResponse> {
+    try {
+        const response: Response = await fetch(apis.getTtsSettingsApi);
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            console.error('Getting TTS settings failed:', {code: data.error?.code, message: data.error?.message});
+            return {success: false, error: 'Failed to fetch TTS settings!'};
+        }
+
+        return {
+            success: true,
+            voiceId: data.voiceId as string,
+            rate: data.rate as number,
+        };
+    } catch (error: unknown) {
+        console.error('Get TTS settings error:', error);
+        return {success: false, error: 'Something went wrong. Please try again!'};
+    }
+}
+
+async function saveTtsSettings({voiceId, rate}: ISaveTtsSettingsParams): Promise<ISaveTtsSettingsResponse> {
+    try {
+        const response: Response = await fetch(apis.saveTtsSettingsApi, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({voiceId, rate}),
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            console.error('Saving TTS settings failed:', {code: data.error?.code, message: data.error?.message});
+            return {success: false, error: 'Failed to save TTS settings!'};
+        }
+
+        return {success: true};
+    } catch (error: unknown) {
+        console.error('Save TTS settings error:', error);
+        return {success: false, error: 'Something went wrong. Please try again!'};
+    }
+}
+
+export {transcribeAudio, getTtsSettings, saveTtsSettings};

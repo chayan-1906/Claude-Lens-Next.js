@@ -9,18 +9,36 @@ export const TTS_SPEEDS: TTSSpeed[] = [0.75, 1, 1.25, 1.5, 2];
 /** Curated English Neural voices available via Microsoft Edge TTS */
 export const NEURAL_VOICES: INeuralVoice[] = [
     {name: 'Aria', voiceId: 'en-US-AriaNeural', gender: 'Female'},
-    {name: 'Jenny', voiceId: 'en-US-JennyNeural', gender: 'Female'},
     {name: 'Michelle', voiceId: 'en-US-MichelleNeural', gender: 'Female'},
-    {name: 'Guy', voiceId: 'en-US-GuyNeural', gender: 'Male'},
-    {name: 'Christopher', voiceId: 'en-US-ChristopherNeural', gender: 'Male'},
-    {name: 'Eric', voiceId: 'en-US-EricNeural', gender: 'Male'},
+    {name: 'Sonia', voiceId: 'en-GB-SoniaNeural', gender: 'Female'},
+    {name: 'Libby', voiceId: 'en-GB-LibbyNeural', gender: 'Female'},
+    {name: 'Natasha', voiceId: 'en-AU-NatashaNeural', gender: 'Female'},
+    {name: 'Brian', voiceId: 'en-US-BrianNeural', gender: 'Male'},
+    {name: 'Andrew', voiceId: 'en-US-AndrewNeural', gender: 'Male'},
+    {name: 'Ryan', voiceId: 'en-GB-RyanNeural', gender: 'Male'},
 ];
 
 
 /** ------------- API response types ------------- */
 
+export interface IGetTtsSettingsResponse {
+    success: boolean;
+    voiceId?: string;
+    rate?: number;
+    error?: string;
+}
+
+export interface ISaveTtsSettingsResponse {
+    success: boolean;
+    error?: string;
+}
 
 /** ------------- function params ------------- */
+
+export interface ISaveTtsSettingsParams {
+    voiceId?: string;
+    rate?: number;
+}
 
 export interface INeuralVoice {
     name: string;
