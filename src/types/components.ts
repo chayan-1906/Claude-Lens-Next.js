@@ -133,6 +133,8 @@ export interface IReadAloudButtonProps {
     text: string;
     messageId: string;
     tts: IUseTextToSpeechReturn;
+    /** When provided, called instead of tts.speak() — used for stream-read mode. */
+    onSpeak?: () => void;
 }
 
 export interface IVoiceSettingsPopoverProps {

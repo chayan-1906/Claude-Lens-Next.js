@@ -54,6 +54,26 @@ function chunkText(text: string): string[] {
 }
 
 /**
+ * Splits accumulated streaming text at sentence boundaries (. ! ? followed by
+ * whitespace, or paragraph breaks). Returns the completed sentences and whatever
+ * has not yet reached a boundary (to be buffered for the next push).
+ */
+function extractCompleteSentences(text: string): {sentences: string[]; remaining: string} {
+    const boundaryRe: RegExp = /[.!?]+\s+|\n{2,}/g;
+    const sentences: string[] = [];
+    let lastIndex: number = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = boundaryRe.exec(text)) !== null) {
+        const sentence: string = text.slice(lastIndex, boundaryRe.lastIndex).trim();
+        if (sentence) sentences.push(sentence);
+        lastIndex = boundaryRe.lastIndex;
+    }
+
+    return {sentences, remaining: text.slice(lastIndex)};
+}
+
+/**
  * Fetch one audio chunk from the TTS proxy route and return an object URL.
  * Accepts an AbortSignal so in-flight requests are cancelled on stop().
  */
@@ -94,6 +114,11 @@ const useTextToSpeech = (): IUseTextToSpeechReturn => {
     /** Snapshot of voice/rate at speak() time — keeps the whole chain consistent. */
     const activeVoiceRef = React.useRef<string>(NEURAL_VOICES[0].voiceId);
     const activeRateRef = React.useRef<number>(1);
+    /** Stream-read mode refs — only active between startStreamRead() and endStreamRead(). */
+    const isStreamModeRef = React.useRef<boolean>(false);
+    const streamWaitingRef = React.useRef<boolean>(false);
+    const streamPendingRef = React.useRef<string>('');
+    const streamLastLengthRef = React.useRef<number>(0);
 
     // --- Restore preferences ---
     React.useEffect(() => {
@@ -142,7 +167,11 @@ const useTextToSpeech = (): IUseTextToSpeechReturn => {
 
         const promise: Promise<string | null> | undefined = urlPromisesRef.current[index];
         if (!promise) {
-            // All chunks done
+            if (isStreamModeRef.current) {
+                // More sentences will arrive — park here until pushStreamText kicks us
+                streamWaitingRef.current = true;
+                return;
+            }
             setState('idle');
             setActiveMessageId(null);
             return;
@@ -227,6 +256,66 @@ const useTextToSpeech = (): IUseTextToSpeechReturn => {
         setActiveMessageId(null);
     }, [cancelAll]);
 
+    const startStreamRead = React.useCallback((messageId: string): void => {
+        cancelAll();
+        isCancelledRef.current = false;
+        isStreamModeRef.current = true;
+        streamWaitingRef.current = true;   // treat as waiting so the first push triggers playback
+        streamPendingRef.current = '';
+        streamLastLengthRef.current = 0;
+        activeVoiceRef.current = selectedVoice.voiceId;
+        activeRateRef.current = rate;
+        abortControllerRef.current = new AbortController();
+        urlPromisesRef.current = [];
+        setActiveMessageId(messageId);
+        setState('speaking');
+    }, [selectedVoice, rate, cancelAll]);
+
+    const pushStreamText = React.useCallback((fullText: string): void => {
+        if (!isStreamModeRef.current || isCancelledRef.current) return;
+
+        const newText: string = fullText.slice(streamLastLengthRef.current);
+        streamLastLengthRef.current = fullText.length;
+        if (!newText) return;
+
+        streamPendingRef.current += newText;
+        const {sentences, remaining} = extractCompleteSentences(streamPendingRef.current);
+        streamPendingRef.current = remaining;
+
+        for (const sentence of sentences) {
+            const clean: string = stripMarkdown(sentence).trim();
+            if (!clean || !abortControllerRef.current) continue;
+            const idx: number = urlPromisesRef.current.length;
+            urlPromisesRef.current.push(fetchAudioUrl(clean, activeVoiceRef.current, activeRateRef.current, abortControllerRef.current.signal));
+            if (streamWaitingRef.current) {
+                streamWaitingRef.current = false;
+                void playChunkAtRef.current?.(idx);
+            }
+        }
+    }, []);
+
+    const endStreamRead = React.useCallback((): void => {
+        isStreamModeRef.current = false;
+
+        const remaining: string = stripMarkdown(streamPendingRef.current).trim();
+        streamPendingRef.current = '';
+        streamLastLengthRef.current = 0;
+
+        if (remaining && abortControllerRef.current && !isCancelledRef.current) {
+            const idx: number = urlPromisesRef.current.length;
+            urlPromisesRef.current.push(fetchAudioUrl(remaining, activeVoiceRef.current, activeRateRef.current, abortControllerRef.current.signal));
+            if (streamWaitingRef.current) {
+                streamWaitingRef.current = false;
+                void playChunkAtRef.current?.(idx);
+            }
+        } else if (streamWaitingRef.current) {
+            // Nothing left — the player was waiting on more that never came
+            streamWaitingRef.current = false;
+            setState('idle');
+            setActiveMessageId(null);
+        }
+    }, []);
+
     const setSelectedVoice = React.useCallback((voice: INeuralVoice): void => {
         setSelectedVoiceState(voice);
         void saveTtsSettings({voiceId: voice.voiceId}).catch((): ISaveTtsSettingsResponse => ({success: false}));
@@ -244,7 +333,7 @@ const useTextToSpeech = (): IUseTextToSpeechReturn => {
         };
     }, [cancelAll]);
 
-    return {state, activeMessageId, selectedVoice, rate, speak, pause, resume, stop, setSelectedVoice, setRate};
+    return {state, activeMessageId, selectedVoice, rate, speak, pause, resume, stop, setSelectedVoice, setRate, startStreamRead, pushStreamText, endStreamRead};
 }
 
 export {useTextToSpeech};

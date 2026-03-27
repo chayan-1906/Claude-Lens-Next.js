@@ -6,7 +6,7 @@ import {TbPlayerPause, TbPlayerStop} from "react-icons/tb";
 import {Button} from "@/components/ui/Button";
 import {IReadAloudButtonProps} from "@/types/components";
 
-function ReadAloudButton({text, messageId, tts}: IReadAloudButtonProps) {
+function ReadAloudButton({text, messageId, tts, onSpeak}: IReadAloudButtonProps) {
     const isActive: boolean = tts.activeMessageId === messageId;
 
     const handleClick = React.useCallback((): void => {
@@ -14,10 +14,12 @@ function ReadAloudButton({text, messageId, tts}: IReadAloudButtonProps) {
             tts.pause();
         } else if (isActive && tts.state === 'paused') {
             tts.resume();
+        } else if (onSpeak) {
+            onSpeak();
         } else {
             tts.speak(text, messageId);
         }
-    }, [isActive, tts, text, messageId]);
+    }, [isActive, tts, text, messageId, onSpeak]);
 
     const handleStop = React.useCallback((): void => {
         tts.stop();

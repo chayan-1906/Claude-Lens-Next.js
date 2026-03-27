@@ -57,4 +57,10 @@ export interface IUseTextToSpeechReturn {
     stop: () => void;
     setSelectedVoice: (voice: INeuralVoice) => void;
     setRate: (rate: TTSSpeed) => void;
+    /** Begin stream-read mode for a live response. Call before the first pushStreamText. */
+    startStreamRead: (messageId: string) => void;
+    /** Feed the full accumulated speakable text so far — the hook diffs internally. */
+    pushStreamText: (fullText: string) => void;
+    /** Signal that streaming is done — flushes any remaining buffered text. */
+    endStreamRead: () => void;
 }

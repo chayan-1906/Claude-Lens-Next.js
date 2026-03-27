@@ -40,6 +40,29 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
     } = useClaudeChat();
     const tts = useTextToSpeech();
 
+    /** Sentinel messageId used while stream-reading a live response. */
+    const STREAM_READ_ID: string = '__streaming__';
+    /** Tracks previous streamingContent presence to detect the end-of-stream transition. */
+    const prevIsStreamingRef = React.useRef<boolean>(false);
+
+    // --- Stream-read effects ---
+
+    /** Feed new text to TTS as the streaming response grows. */
+    React.useEffect(() => {
+        if (!streamingContent || tts.activeMessageId !== STREAM_READ_ID) return;
+        const fullText: string = extractSpeakableText(streamingContent);
+        if (fullText) tts.pushStreamText(fullText);
+    }, [streamingContent, tts.activeMessageId]);
+
+    /** Flush remaining buffer when the streaming response ends. */
+    React.useEffect(() => {
+        const isCurrentlyStreaming: boolean = streamingContent !== null;
+        if (prevIsStreamingRef.current && !isCurrentlyStreaming && tts.activeMessageId === STREAM_READ_ID) {
+            tts.endStreamRead();
+        }
+        prevIsStreamingRef.current = isCurrentlyStreaming;
+    }, [streamingContent]);
+
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
     const hasSyncedSidebarRef = React.useRef<boolean>(false);
@@ -814,11 +837,21 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                             })}
 
                             {/* Streaming assistant response */}
-                            {streamingContent && (
-                                <BubbleShell isUser={false} hasNonTextBlock={streamingContent.some((block: ContentBlock) => block.type !== 'text')}>
-                                    <MessageContent content={streamingContent}/>
-                                </BubbleShell>
-                            )}
+                            {streamingContent && (() => {
+                                const speakableStreamText: string = extractSpeakableText(streamingContent);
+                                return (
+                                    <BubbleShell isUser={false} hasNonTextBlock={streamingContent.some((block: ContentBlock) => block.type !== 'text')}
+                                        metadata={speakableStreamText ? (
+                                            <div className={'flex items-center gap-2 mt-1 px-1'}>
+                                                <ReadAloudButton text={''} messageId={STREAM_READ_ID} tts={tts}
+                                                    onSpeak={() => tts.startStreamRead(STREAM_READ_ID)}/>
+                                            </div>
+                                        ) : undefined}
+                                    >
+                                        <MessageContent content={streamingContent}/>
+                                    </BubbleShell>
+                                );
+                            })()}
 
                             {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
                             {pendingApproval && (
