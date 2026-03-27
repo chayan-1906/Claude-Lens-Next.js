@@ -77,7 +77,7 @@ const ToolResultContentBlock = React.memo(function ToolResultContentBlock({block
                 <div className={'p-6'}>
                     <h2 className={'text-base font-semibold text-text'}>{'Remove tool result content?'}</h2>
                     <p className={'text-sm text-text-muted mt-2'}>
-                        This frees ~`{estimatedTokens.toLocaleString()}` tokens. The tool call will be kept!
+                        This frees ~{estimatedTokens.toLocaleString()} tokens. The tool call will be kept!
                     </p>
 
                     {error && (

@@ -57,4 +57,22 @@ function extractMessageText(content: string | ContentBlock[]): string {
     return parts.join('\n\n');
 }
 
-export {normalizeToolResultContent, extractMessageText};
+/**
+ * Extracts only the readable text content from an assistant message for TTS.
+ * Skips thinking, tool_use, and tool_result blocks — the user only wants
+ * to hear the actual response prose.
+ */
+function extractSpeakableText(content: string | ContentBlock[]): string {
+    if (typeof content === 'string') {
+        return extractMessageText(content);
+    }
+
+    const parts: string[] = content
+        .filter((block: ContentBlock): boolean => block.type === 'text')
+        .map((block: ContentBlock): string => stripSystemTags((block as Extract<ContentBlock, {type: 'text'}>).text))
+        .filter(Boolean);
+
+    return parts.join('\n\n');
+}
+
+export {normalizeToolResultContent, extractMessageText, extractSpeakableText};

@@ -5,12 +5,13 @@ import {BubbleShell} from "@/components/BubbleShell";
 import {IMessageBubbleProps} from "@/types/components";
 import {formatModelName} from "@/utils/formatModelName";
 import {parseUserMessage} from "@/utils/parseUserMessage";
+import {ReadAloudButton} from "@/components/ReadAloudButton";
 import {formatRelativeDate} from "@/utils/formatRelativeDate";
-import {extractMessageText} from "@/utils/extractMessageText";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ContentBlock, EMessageRole, EUserMessageType} from "@/types/message";
+import {extractMessageText, extractSpeakableText} from "@/utils/extractMessageText";
 
-const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, isSubAgentPrompt = false, onStubbed}: IMessageBubbleProps) {
+const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, isSubAgentPrompt = false, onStubbed, tts}: IMessageBubbleProps) {
     const isUserMessage: boolean = message.role === EMessageRole.USER;
 
     const isCommandOutput: boolean = isUserMessage && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
@@ -70,6 +71,9 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
                     )}*/}
                     {showCopyButton && (
                         <CopyMessageButton text={contentText}/>
+                    )}
+                    {(!isUserMessage && tts) && (
+                        <ReadAloudButton text={extractSpeakableText(message.content)} messageId={message.messageId} tts={tts}/>
                     )}
                     {(!isUserMessage && message.aiModel) && (
                         <span className={'text-xs text-text-muted italic'}>

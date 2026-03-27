@@ -3,6 +3,7 @@ import type {ITask} from "@/types/task";
 import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {ISession} from "@/types/session";
+import type {IUseTextToSpeechReturn} from "@/types/tts";
 import type {IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 import {IAttachment, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
@@ -58,6 +59,7 @@ export interface IMessageBubbleProps {
     onEdit?: (uuid: string) => void;
     onRegenerate?: (clickedIndex: number) => void;
     onStubbed?: (messageId: string) => void;
+    tts?: IUseTextToSpeechReturn;
 }
 
 export interface IInlineMessageEditorProps {
@@ -125,6 +127,17 @@ export interface ICodeBlockProps {
 
 export interface ICopyMessageButtonProps {
     text: string;
+}
+
+export interface IReadAloudButtonProps {
+    text: string;
+    messageId: string;
+    tts: IUseTextToSpeechReturn;
+}
+
+export interface IVoiceSettingsPopoverProps {
+    tts: IUseTextToSpeechReturn;
+    triggerClassName?: string;
 }
 
 export interface ITaskPageProps {

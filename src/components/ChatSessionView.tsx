@@ -14,10 +14,12 @@ import {BubbleShell} from "@/components/BubbleShell";
 import {IOpenFolderPickerResponse} from "@/types/file";
 import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
+import {useTextToSpeech} from "@/hooks/useTextToSpeech";
 import {IChatSessionViewProps} from "@/types/components";
 import {MessageBubble} from "@/components/MessageBubble";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {MessageContent} from "@/components/MessageContent";
+import {ReadAloudButton} from "@/components/ReadAloudButton";
 import {IGetSessionResponse, ISession} from "@/types/session";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ToolApprovalPrompt} from "@/components/ToolApprovalPrompt";
@@ -26,7 +28,8 @@ import {EChatStatus, IAttachment, IChatMessage} from "@/types/chat";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
-import {extractMessageText, normalizeToolResultContent} from "@/utils/extractMessageText";
+import {VoiceSettingsPopover} from "@/components/VoiceSettingsPopover";
+import {extractMessageText, extractSpeakableText, normalizeToolResultContent} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
 
 function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, localJsonlAvailable}: IChatSessionViewProps) {
@@ -35,6 +38,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
         status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval,
         sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, backupSession, stopExecution, retry, clearMessages, clearError,
     } = useClaudeChat();
+    const tts = useTextToSpeech();
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -692,6 +696,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                                                 onEdit={handleStartEdit}
                                                 onRegenerate={!isUser && canRegenerate ? handleHistoricalRegenerate : undefined}
                                                 onStubbed={handleStubbed}
+                                                tts={tts}
                                             />
                                         )}
                                     </div>
@@ -759,6 +764,9 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                                                 })()}*/}
                                                 {copyText && (
                                                     <CopyMessageButton text={copyText}/>
+                                                )}
+                                                {(!isUser && !isSyntheticMessage) && (
+                                                    <ReadAloudButton text={extractSpeakableText(message.content)} messageId={message.id} tts={tts}/>
                                                 )}
                                                 {(!isUser && message.model && !isSyntheticMessage) && (
                                                     <span className={'text-xs text-text-muted italic'}>
@@ -861,6 +869,9 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                 {/*{hasContextData && (
                     <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow}/>
                 )}*/}
+                <div className={'flex items-center justify-end px-1 mb-1'}>
+                    <VoiceSettingsPopover tts={tts}/>
+                </div>
                 <ChatInput
                     onSend={handleSend}
                     onStop={stopExecution}
