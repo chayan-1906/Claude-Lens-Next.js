@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
-import {EThemeMode, EThemeScheme} from "@/types/theme";
 import {setThemeMode, setThemeScheme} from "@/actions/theme.actions";
 import type {IThemeContext, IThemeProviderProps} from "@/types/theme";
+import {EThemeMode, EThemeScheme, THEME_MODE_COOKIE, THEME_SCHEME_COOKIE} from "@/types/theme";
+
+const COOKIE_MAX_AGE: number = 60 * 60 * 24 * 365;
 
 const ThemeContext = React.createContext<IThemeContext | null>(null);
 
@@ -14,12 +16,14 @@ function ThemeProvider({children, initialScheme, initialMode}: IThemeProviderPro
     const setScheme = React.useCallback((newScheme: EThemeScheme): void => {
         setSchemeState(newScheme);
         document.documentElement.dataset.scheme = newScheme;
+        document.cookie = `${THEME_SCHEME_COOKIE}=${newScheme};path=/;max-age=${COOKIE_MAX_AGE};samesite=lax`;
         setThemeScheme(newScheme);
     }, []);
 
     const setMode = React.useCallback((newMode: EThemeMode): void => {
         setModeState(newMode);
         document.documentElement.dataset.mode = newMode;
+        document.cookie = `${THEME_MODE_COOKIE}=${newMode};path=/;max-age=${COOKIE_MAX_AGE};samesite=lax`;
         setThemeMode(newMode);
     }, []);
 

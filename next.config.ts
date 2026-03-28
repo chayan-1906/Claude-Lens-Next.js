@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     reactCompiler: true,
     reactStrictMode: false,
     cacheComponents: true,
-    allowedDevOrigins: ['192.168.0.4'],
+    allowedDevOrigins: ['192.168.7.5'],
 };
 
 export default nextConfig;
