@@ -46,7 +46,7 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
         );
     }
 
-    const showCopyButton: boolean = typeof message.content === 'string' || message.content.some((block: ContentBlock) => block.type === 'text' || block.type === 'thinking');
+    const showCopyButton: boolean = typeof message.content === 'string' || message.content.some((block: ContentBlock) => block.type === 'text');
     const speakableText: string = extractSpeakableText(message.content);
     const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
 
@@ -71,7 +71,7 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
                         </Button>
                     )}*/}
                     {showCopyButton && (
-                        <CopyMessageButton text={contentText}/>
+                        <CopyMessageButton text={speakableText}/>
                     )}
                     {(!isUserMessage && tts && speakableText) && (
                         <ReadAloudButton text={speakableText} messageId={message.messageId} tts={tts}/>

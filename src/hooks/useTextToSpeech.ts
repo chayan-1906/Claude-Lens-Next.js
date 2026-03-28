@@ -179,10 +179,16 @@ const useTextToSpeech = (): IUseTextToSpeechReturn => {
 
         const url: string | null = await promise;
 
-        if (!url || isCancelledRef.current) {
+        if (isCancelledRef.current) {
             if (url) URL.revokeObjectURL(url);
             setState('idle');
             setActiveMessageId(null);
+            return;
+        }
+
+        // Chunk fetch failed — skip to next chunk instead of stopping entirely
+        if (!url) {
+            playChunkAtRef.current?.(index + 1);
             return;
         }
 
