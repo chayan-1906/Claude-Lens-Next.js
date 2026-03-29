@@ -27,4 +27,5 @@ export interface IDeleteProjectResponse extends IApiResponse {
 
 export interface IDeleteProjectParams {
     projectDir: string;
+    reclaimR2?: boolean;
 }

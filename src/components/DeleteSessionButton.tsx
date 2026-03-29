@@ -7,7 +7,6 @@ import {routes} from "@/utils/routes";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
 import type {IDeleteSessionButtonProps} from "@/types/components";
-import {reclaimR2Storage} from "@/actions/r2.actions";
 import {deleteSession, refreshSidebar} from "@/actions/session.actions";
 
 function DeleteSessionButton({sessionId, sessionTitle, r2Configured}: IDeleteSessionButtonProps) {
@@ -21,12 +20,7 @@ function DeleteSessionButton({sessionId, sessionTitle, r2Configured}: IDeleteSes
         setIsDeleting(true);
         setError(null);
 
-        const calls: [Promise<{success: boolean; error?: string}>, Promise<unknown>] = [
-            deleteSession({sessionId}),
-            reclaimR2 ? reclaimR2Storage({sessionId}) : Promise.resolve(),
-        ];
-
-        const [{success, error}] = await Promise.all(calls);
+        const {success, error} = await deleteSession({sessionId, reclaimR2});
 
         if (!success) {
             setError(error || 'Failed to delete session!');

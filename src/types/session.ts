@@ -85,4 +85,5 @@ export interface IUpdateSessionParams {
 
 export interface IDeleteSessionParams {
     sessionId: string;
+    reclaimR2?: boolean;
 }

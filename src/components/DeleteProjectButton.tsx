@@ -6,7 +6,6 @@ import {HiOutlineTrash} from "react-icons/hi";
 import {routes} from "@/utils/routes";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
-import {reclaimR2Storage} from "@/actions/r2.actions";
 import {deleteProject} from "@/actions/project.actions";
 import type {IDeleteProjectButtonProps} from "@/types/components";
 
@@ -21,12 +20,7 @@ function DeleteProjectButton({projectDir, projectName, r2Configured}: IDeletePro
         setIsDeleting(true);
         setError(null);
 
-        const calls: [Promise<{success: boolean; error?: string}>, Promise<unknown>] = [
-            deleteProject({projectDir}),
-            reclaimR2 ? reclaimR2Storage({projectDir}) : Promise.resolve(),
-        ];
-
-        const [{success, error}] = await Promise.all(calls);
+        const {success, error} = await deleteProject({projectDir, reclaimR2});
 
         if (!success) {
             setError(error || 'Failed to delete project!');

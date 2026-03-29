@@ -147,10 +147,12 @@ async function updateSession({sessionId, title, description}: IUpdateSessionPara
     }
 }
 
-async function deleteSession({sessionId}: IDeleteSessionParams): Promise<IDeleteSessionResponse> {
+async function deleteSession({sessionId, reclaimR2}: IDeleteSessionParams): Promise<IDeleteSessionResponse> {
     try {
         const response: Response = await fetch(apis.deleteSessionApi(sessionId), {
             method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({reclaimR2: reclaimR2 ?? false}),
         });
         const data: ApiResponseClass = await parseApiResponse(response);
 

@@ -38,10 +38,12 @@ async function getAllProjects(): Promise<IGetAllProjectsResponse> {
     }
 }
 
-async function deleteProject({projectDir}: IDeleteProjectParams): Promise<IDeleteProjectResponse> {
+async function deleteProject({projectDir, reclaimR2}: IDeleteProjectParams): Promise<IDeleteProjectResponse> {
     try {
         const response: Response = await fetch(apis.deleteProjectApi(projectDir), {
             method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({reclaimR2: reclaimR2 ?? false}),
         });
         const data: ApiResponseClass = await parseApiResponse(response);
 
