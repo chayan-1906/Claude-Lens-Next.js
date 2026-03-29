@@ -75,7 +75,7 @@ const TASK_STATUS_ICON: Record<string, { label: string; className: string }> = {
     deleted: {label: '\u00D7', className: 'text-error'},
 };
 
-function SidebarClient({projects}: ISidebarClientProps) {
+function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
     const router = useRouter();
     const pathname: string = usePathname();
     const [expandedProjects, setExpandedProjects] = React.useState<Set<string>>(new Set());
@@ -434,7 +434,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                             </Button>
                             <div className={'shrink-0 flex items-center pr-1'}>
                                 <ExportProjectButton projectDir={projectDir}/>
-                                <DeleteProjectButton projectDir={projectDir} projectName={projectName}/>
+                                <DeleteProjectButton projectDir={projectDir} projectName={projectName} r2Configured={r2Configured}/>
                             </div>
                         </div>
 
@@ -474,7 +474,7 @@ function SidebarClient({projects}: ISidebarClientProps) {
                                                 </Button>
                                                 <div className={'shrink-0 flex items-center'}>
                                                     <ExportSessionButton projectDir={projectDir} sessionId={session.sessionId}/>
-                                                    <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title}/>
+                                                    <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title} r2Configured={r2Configured}/>
                                                 </div>
                                             </div>
 

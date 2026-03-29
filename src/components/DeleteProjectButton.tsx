@@ -6,20 +6,27 @@ import {HiOutlineTrash} from "react-icons/hi";
 import {routes} from "@/utils/routes";
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
+import {reclaimR2Storage} from "@/actions/r2.actions";
 import {deleteProject} from "@/actions/project.actions";
 import type {IDeleteProjectButtonProps} from "@/types/components";
 
-function DeleteProjectButton({projectDir, projectName}: IDeleteProjectButtonProps) {
+function DeleteProjectButton({projectDir, projectName, r2Configured}: IDeleteProjectButtonProps) {
     const router = useRouter();
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
     const [isDeleting, setIsDeleting] = React.useState<boolean>(false);
+    const [reclaimR2, setReclaimR2] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string | null>(null);
 
     const handleDelete = React.useCallback(async (): Promise<void> => {
         setIsDeleting(true);
         setError(null);
 
-        const {success, error} = await deleteProject({projectDir});
+        const calls: [Promise<{success: boolean; error?: string}>, Promise<unknown>] = [
+            deleteProject({projectDir}),
+            reclaimR2 ? reclaimR2Storage({projectDir}) : Promise.resolve(),
+        ];
+
+        const [{success, error}] = await Promise.all(calls);
 
         if (!success) {
             setError(error || 'Failed to delete project!');
@@ -32,10 +39,12 @@ function DeleteProjectButton({projectDir, projectName}: IDeleteProjectButtonProp
         setIsModalOpen(false);
         setIsDeleting(false);
         router.push(routes.homePath);
-    }, [projectDir, router]);
+    }, [projectDir, reclaimR2, router]);
 
     const handleOpenModal = React.useCallback((e: React.MouseEvent): void => {
         e.stopPropagation();
+        setReclaimR2(false);
+        setError(null);
         setIsModalOpen(true);
     }, []);
 
@@ -51,8 +60,15 @@ function DeleteProjectButton({projectDir, projectName}: IDeleteProjectButtonProp
                     <p className={'text-sm text-text-muted mt-2'}>
                         Are you sure you want to delete {' '}
                         <span className={'font-medium text-text'}>{projectName}</span>
-                        ? This will permanently remove all sessions, attachments, messages, tasks, and memories for this project
+                        ? This will permanently remove all sessions, messages, tasks, and memories for this project.
                     </p>
+
+                    {r2Configured && (
+                        <label className={'flex items-center gap-2 mt-4 cursor-pointer select-none'}>
+                            <input type={'checkbox'} checked={reclaimR2} onChange={(e) => setReclaimR2(e.target.checked)} className={'size-4 accent-warning cursor-pointer'}/>
+                            <span className={'text-sm text-text-muted'}>Also reclaim R2 storage for this project</span>
+                        </label>
+                    )}
 
                     {error && (
                         <p className={'text-sm text-error mt-3 bg-error/10 px-3 py-2 rounded-md'}>{error}</p>

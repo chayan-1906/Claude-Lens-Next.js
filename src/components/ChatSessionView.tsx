@@ -594,7 +594,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                                 <HiOutlineShieldCheck className={'size-3.5'}/>
                             </Button>
                         )}
-                        <DeleteSessionButton sessionId={localSession.sessionId} sessionTitle={localSession.title}/>
+                        <DeleteSessionButton sessionId={localSession.sessionId} sessionTitle={localSession.title} r2Configured={r2Configured}/>
                         <span
                             className={cn('size-2.5 rounded-full animate-pulse', status === EChatStatus.CONNECTING ? 'bg-warning' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success')}
                             title={status === EChatStatus.CONNECTING ? 'WebSocket reconnecting...' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'WebSocket disconnected' : 'WebSocket connected'}/>
@@ -820,7 +820,6 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                                                             width={200}
                                                             height={200}
                                                             className={'rounded-lg max-w-48 max-h-48 object-contain'}
-                                                            unoptimized
                                                         />
                                                     ) : (
                                                         <div key={attachIdx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2'}>

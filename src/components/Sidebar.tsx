@@ -1,6 +1,8 @@
 import {Suspense} from "react";
+import {getSetupStatus} from "@/actions/setup.actions";
 import {SidebarClient} from "@/components/SidebarClient";
 import {getAllProjects} from "@/actions/project.actions";
+import type {IGetSetupStatusResponse} from "@/types/setup";
 import type {IGetAllProjectsResponse} from "@/types/project";
 
 /** Skeleton shown while SidebarWrapper fetches projects */
@@ -38,7 +40,10 @@ async function Sidebar() {
 }
 
 async function SidebarWrapper() {
-    const {success, projects, error}: IGetAllProjectsResponse = await getAllProjects();
+    const [{success, projects, error}, {r2Configured}]: [IGetAllProjectsResponse, IGetSetupStatusResponse] = await Promise.all([
+        getAllProjects(),
+        getSetupStatus(),
+    ]);
 
     if (!success) {
         return (
@@ -47,7 +52,7 @@ async function SidebarWrapper() {
     }
 
     return (
-        <SidebarClient projects={projects ?? []}/>
+        <SidebarClient projects={projects ?? []} r2Configured={r2Configured ?? false}/>
     );
 }
 

@@ -39,6 +39,9 @@ const baseVoiceApiUrl: string = `${baseApiUrl}/voice`;
 /** Base URL for file-picker endpoints */
 const baseFilePickerApiUrl: string = `${baseApiUrl}/file-picker`;
 
+/** Base URL for R2 endpoints */
+const baseR2ApiUrl: string = `${baseApiUrl}/r2`;
+
 /** Backend API endpoint URLs */
 const apis = {
     getSetupStatusApi: `${baseSetupApiUrl}/status`,
@@ -92,6 +95,8 @@ const apis = {
     saveTtsSettingsApi: `${baseVoiceApiUrl}/tts-settings`,
 
     openFolderPickerApi: `${baseFilePickerApiUrl}/folder`,
+
+    reclaimR2Api: `${baseR2ApiUrl}/reclaim`,
 };
 
 export {apis};

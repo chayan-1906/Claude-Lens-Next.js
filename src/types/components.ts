@@ -44,6 +44,7 @@ export interface IAppLayoutProps {
 
 export interface ISidebarClientProps {
     projects: IProject[];
+    r2Configured: boolean;
 }
 
 export interface ISessionPageProps {
@@ -161,6 +162,7 @@ export interface IMemoryViewProps {
 export interface IDeleteProjectButtonProps {
     projectDir: string;
     projectName: string;
+    r2Configured: boolean;
 }
 
 export interface IDeleteMemoryButtonProps {
@@ -170,6 +172,7 @@ export interface IDeleteMemoryButtonProps {
 export interface IDeleteSessionButtonProps {
     sessionId: string;
     sessionTitle: string;
+    r2Configured: boolean;
 }
 
 export interface IDeleteTasksButtonProps {
