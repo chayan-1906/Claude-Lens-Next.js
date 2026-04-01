@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     reactCompiler: true,
     reactStrictMode: false,
     cacheComponents: true,
-    allowedDevOrigins: ['192.168.7.5'],
+    allowedDevOrigins: ['192.168.7.8'],
     images: {
         remotePatterns: [
             {

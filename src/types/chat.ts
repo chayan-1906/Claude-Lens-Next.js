@@ -49,7 +49,7 @@ export interface IModelUsageEntry {
 /** stream-json event: always the first event — session metadata */
 export interface ISystemEvent {
     type: 'system';
-    subtype: 'init';
+    subtype: string;
     cwd: string;
     session_id: string;
     tools: string[];

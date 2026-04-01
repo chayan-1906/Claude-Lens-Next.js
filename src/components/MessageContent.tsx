@@ -85,7 +85,6 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                                 width={300}
                                 height={300}
                                 className={'rounded-lg max-w-72 max-h-72 object-contain'}
-                                loading="eager"
                             />
                         );
 

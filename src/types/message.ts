@@ -62,6 +62,7 @@ export type IAttachmentMeta = {
 export enum EMessageRole {
     USER = 'user',
     ASSISTANT = 'assistant',
+    SYSTEM = 'system',
 }
 
 export enum EUserMessageType {

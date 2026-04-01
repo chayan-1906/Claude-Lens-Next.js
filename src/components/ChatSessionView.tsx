@@ -3,7 +3,7 @@
 import React from "react";
 import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
-import {HiOutlineBeaker, HiOutlineChevronDoubleRight, HiOutlineCode, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineShieldCheck, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
+import {HiOutlineArchive, HiOutlineBeaker, HiOutlineChevronDoubleRight, HiOutlineCode, HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineShieldCheck, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {debug} from "@/utils/debug";
 import {routes} from "@/utils/routes";
@@ -52,7 +52,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
         if (!streamingContent || tts.activeMessageId !== STREAM_READ_ID) return;
         const fullText: string = extractSpeakableText(streamingContent);
         if (fullText) tts.pushStreamText(fullText);
-    }, [streamingContent, tts.activeMessageId]);
+    }, [streamingContent, tts]);
 
     /** Flush remaining buffer when the streaming response ends. */
     React.useEffect(() => {
@@ -61,7 +61,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
             tts.endStreamRead();
         }
         prevIsStreamingRef.current = isCurrentlyStreaming;
-    }, [streamingContent]);
+    }, [streamingContent, tts]);
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
@@ -475,6 +475,9 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
         return !(used !== undefined && window !== undefined && window > 0 && used / window < 0.95);
     }, [localHistoricalMessages, session?.contextTokensUsed, session?.contextWindowSize]);
 
+    // True when context limit is hit — combines live (is_error result) and historical ("Prompt is too long") signals
+    const isContextLimitReached: boolean = isHistoricalContextLimit || (status === EChatStatus.ERROR && !!error && error.includes('Context limit'));
+
     const hasNoMessages: boolean = !localHistoricalMessages.length && messages.length === 0 && !streamingContent;
     // Show bouncing dots when Claude is actively working and no text response is visible yet.
     // TOOL_RUNNING: always show dots — the LLM has finished its response and tools are executing
@@ -585,6 +588,10 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                     </div>
 
                     <div className={'flex items-center gap-2 shrink-0'}>
+                        <Button variant={'ghost'} size={'icon'} onClick={() => handleSend('/compact')} disabled={isChattingDisabled} className={'size-7 text-text-muted'}
+                                title={'Compact session — summarise conversation history to free up context'}>
+                            <HiOutlineArchive className={'size-3.5'}/>
+                        </Button>
                         <Button variant={'ghost'} size={'icon'} onClick={handleRefreshMessages} disabled={isRefreshingMessages || isChattingDisabled} className={'size-7 text-text-muted'}
                                 title={'Refresh session'}>
                             <HiOutlineRefresh className={cn('size-3.5', isRefreshingMessages && 'animate-spin')}/>
@@ -732,6 +739,19 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                                 const text: string = extractMessageText(msg.content).toLowerCase();
                                 return !text.includes('prompt is too long');
                             }).map((message: IChatMessage, index: number, filteredMessages: IChatMessage[]) => {
+                                // System notifications (e.g. compact_boundary) — render as inline divider
+                                if (message.role === EMessageRole.SYSTEM) {
+                                    return (
+                                        <div key={message.id} className={'flex items-center gap-3 my-1 px-1'}>
+                                            <div className={'flex-1 h-px bg-border/40'}/>
+                                            <span className={'text-xs text-text-muted/70 italic shrink-0'}>
+                                                {typeof message.content === 'string' ? message.content : ''}
+                                            </span>
+                                            <div className={'flex-1 h-px bg-border/40'}/>
+                                        </div>
+                                    );
+                                }
+
                                 const isUser: boolean = message.role === EMessageRole.USER;
 
                                 if (editingId === message.id) {
@@ -904,10 +924,16 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                 <div className={'flex items-center justify-end px-1 mb-1'}>
                     <VoiceSettingsPopover tts={tts}/>
                 </div>
+                {isContextLimitReached && (
+                    <div className={'flex items-center gap-2 rounded-xl px-4 py-2.5 mb-2 bg-error/10 border border-error/20 text-error text-xs'}>
+                        <HiOutlineExclamationCircle className={'size-4 shrink-0'}/>
+                        <span className={'flex-1'}>Context limit reached — click the compact button in the header to summarise history and continue!</span>
+                    </div>
+                )}
                 <ChatInput
                     onSend={handleSend}
                     onStop={stopExecution}
-                    disabled={disabled}
+                    disabled={disabled || isContextLimitReached}
                     isLoading={isLoading}
                     selectedModel={selectedModel}
                     selectedEffort={selectedEffort}

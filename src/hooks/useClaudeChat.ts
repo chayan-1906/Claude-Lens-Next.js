@@ -164,6 +164,23 @@ function useClaudeChat(): IUseClaudeChatReturn {
         switch (data.type) {
             case 'system': {
                 const event = data as ISystemEvent & { subtype?: string };
+
+                // compact_boundary — Claude CLI executed /compact. Insert an inline system
+                // notification so the user can see where in the conversation history was summarised.
+                if (event.subtype === 'compact_boundary') {
+                    console.log('[useClaudeChat] system → compact_boundary — inserting notification');
+                    setMessages((prev: IChatMessage[]) => [
+                        ...prev,
+                        {
+                            id: generateUUID(),
+                            role: EMessageRole.SYSTEM,
+                            content: 'Context compacted — conversation history summarised',
+                            timestamp: new Date(),
+                        },
+                    ]);
+                    break;
+                }
+
                 // Only 'init' carries session_id, model, tools — other subtypes
                 // (task_started, task_progress, etc.) are informational and safe to ignore.
                 if (event.subtype && event.subtype !== 'init') {
