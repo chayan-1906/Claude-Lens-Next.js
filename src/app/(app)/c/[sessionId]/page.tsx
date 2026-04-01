@@ -1,3 +1,4 @@
+import type {Metadata} from "next";
 import {notFound} from "next/navigation";
 import {getSession} from "@/actions/session.actions";
 import {getSetupStatus} from "@/actions/setup.actions";
@@ -6,6 +7,15 @@ import type {ISessionPageProps} from "@/types/components";
 import type {IGetSetupStatusResponse} from "@/types/setup";
 import {ChatSessionView} from "@/components/ChatSessionView";
 import {SESSION_MESSAGES_PAGE_SIZE} from "@/utils/pagination";
+
+export async function generateMetadata({params}: ISessionPageProps): Promise<Metadata> {
+    const {sessionId} = await params;
+    if (sessionId === 'new') {
+        return {title: 'New Chat | Claude Lens'};
+    }
+    const {session}: IGetSessionResponse = await getSession({sessionId, limit: SESSION_MESSAGES_PAGE_SIZE});
+    return {title: `${session?.title ?? 'Session'} | Claude Lens`};
+}
 
 async function SessionPage({params}: ISessionPageProps) {
     const {sessionId} = await params;

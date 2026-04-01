@@ -1,4 +1,9 @@
+import type {Metadata} from "next";
 import {HiOutlineChatAlt2} from "react-icons/hi";
+
+export const metadata: Metadata = {
+    title: 'Projects | Claude Lens',
+};
 
 function HomePage() {
     return (

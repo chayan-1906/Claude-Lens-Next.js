@@ -29,6 +29,7 @@ import {IOpenFolderPickerResponse} from "@/types/file";
 import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
 import {useTextToSpeech} from "@/hooks/useTextToSpeech";
+import useDocumentTitle from "@/hooks/useDocumentTitle";
 import {IChatSessionViewProps} from "@/types/components";
 import {MessageBubble} from "@/components/MessageBubble";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
@@ -125,6 +126,12 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     React.useEffect(() => {
         setLocalSession(session);
     }, [session]);
+
+    // Dynamic browser tab title
+    const isLive: boolean = status === EChatStatus.STREAMING || status === EChatStatus.SENDING || status === EChatStatus.TOOL_RUNNING;
+    const sessionTitle: string = isNewChat ? 'New Chat' : (localSession?.title ?? 'Session');
+    const documentTitle: string = isLive ? `(live) ${sessionTitle}` : sessionTitle;
+    useDocumentTitle(documentTitle);
 
     // Model/effort/thinking selection state
     const [selectedModel, setSelectedModel] = React.useState<string>('sonnet');

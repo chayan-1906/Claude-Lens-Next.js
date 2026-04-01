@@ -1,8 +1,16 @@
+import type {Metadata} from "next";
 import {notFound} from "next/navigation";
 import {TaskView} from "@/components/TaskView";
 import {getTask} from "@/actions/task.actions";
-import type {IGetTaskResponse} from "@/types/task";
 import type {ITaskPageProps} from "@/types/components";
+import type {IGetTaskResponse, ITask} from "@/types/task";
+
+export async function generateMetadata({params}: ITaskPageProps): Promise<Metadata> {
+    const {sessionId, taskId} = await params;
+    const {task}: IGetTaskResponse = await getTask({sessionId, taskId});
+    const taskTitle: string = (task as ITask | undefined)?.subject ?? 'Task';
+    return {title: `${taskTitle} | Claude Lens`};
+}
 
 async function TaskPage({params}: ITaskPageProps) {
     const {sessionId, taskId} = await params;

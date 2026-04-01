@@ -1,13 +1,27 @@
+import type {Metadata} from "next";
 import {notFound} from "next/navigation";
 import {MemoryView} from "@/components/MemoryView";
 import {getMemories} from "@/actions/memory.actions";
+import {getAllProjects} from "@/actions/project.actions";
 import type {IMemoryPageProps} from "@/types/components";
 import type {IGetMemoryResponse, IMemory} from "@/types/memory";
 import {DeleteMemoryButton} from "@/components/DeleteMemoryButton";
+import type {IGetAllProjectsResponse, IProject} from "@/types/project";
+
+export async function generateMetadata({params}: IMemoryPageProps): Promise<Metadata> {
+    const {projectDir} = await params;
+    const {projects} = await getAllProjects();
+    const rawProjectDir: string = projects?.find((project: IProject) => project.projectDir === projectDir)?.rawProjectDir ?? projectDir;
+    return {title: `${rawProjectDir} — Memories | Claude Lens`};
+}
 
 async function MemoryPage({params}: IMemoryPageProps) {
     const {projectDir} = await params;
-    const {success, memories, error}: IGetMemoryResponse = await getMemories({projectDir});
+    const [{success, memories, error}, {projects}]: [IGetMemoryResponse, IGetAllProjectsResponse] = await Promise.all([
+        getMemories({projectDir}),
+        getAllProjects(),
+    ]);
+    const rawProjectDir: string = projects?.find((project: IProject) => project.projectDir === projectDir)?.rawProjectDir ?? projectDir;
 
     if (!success || !memories || memories.length === 0) {
         if (error?.includes('Invalid projectDir') || error?.includes('No memories found')) {
@@ -39,7 +53,7 @@ async function MemoryPage({params}: IMemoryPageProps) {
                         <DeleteMemoryButton projectDir={projectDir}/>
                     </div>
                 </div>
-                <p className={'text-xs text-text-muted mt-0.5'}>{projectDir}</p>
+                <p className={'text-xs text-text-muted mt-0.5'}>{rawProjectDir}</p>
             </div>
 
             {/* Stacked memory files */}

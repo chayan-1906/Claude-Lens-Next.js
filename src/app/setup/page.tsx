@@ -5,7 +5,7 @@ import {getConfigurations, getPathMappings, getR2Config} from "@/actions/setup.a
 import type {IGetConfigurationsResponse, IGetPathMappingsResponse, IGetR2ConfigResponse, IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 
 export const metadata: Metadata = {
-    title: 'Setup — Claude Lens',
+    title: 'Setup | Claude Lens',
     description: 'Configure your MongoDB connection to get started!',
 };
 
