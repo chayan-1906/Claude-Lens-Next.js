@@ -38,6 +38,13 @@ export interface IApiResponse {
     error?: string;
 }
 
+export interface IGetSessionPagination {
+    limit: number;
+    totalCount: number;
+    hasMore: boolean;
+    nextCursor: string | null;
+}
+
 
 /** ------------- API response types ------------- */
 
@@ -49,6 +56,7 @@ export interface IGetAllSessionsResponse extends IApiResponse {
 export interface IGetSessionResponse extends IApiResponse {
     session?: ISession;
     messages?: IMessage[];
+    pagination?: IGetSessionPagination;
     localJsonlAvailable?: boolean;
 }
 
@@ -59,7 +67,8 @@ export interface IUpdateSessionResponse extends IApiResponse {
 export interface IDeleteSessionResponse extends IApiResponse {
     deletedSessions?: number;
     deletedMessages?: number;
-    deletedTasks?: number;deletedAttachments?: number;
+    deletedTasks?: number;
+    deletedAttachments?: number;
 }
 
 
@@ -75,6 +84,8 @@ export interface IGetAllSessionsParams {
 
 export interface IGetSessionParams {
     sessionId: string;
+    limit?: number;
+    cursor?: string;
 }
 
 export interface IUpdateSessionParams {

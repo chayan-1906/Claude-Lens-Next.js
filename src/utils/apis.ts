@@ -70,7 +70,14 @@ const apis = {
     deleteProjectApi: (projectDir: string) => `${baseProjectApiUrl}/${encodeURIComponent(projectDir)}`,
 
     getAllSessionsApi: baseSessionApiUrl,
-    getSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
+    getSessionApi: (sessionId: string, params?: { limit?: number; cursor?: string }) => {
+        const searchParams: URLSearchParams = new URLSearchParams();
+        if (params?.limit) searchParams.set('limit', String(params.limit));
+        if (params?.cursor) searchParams.set('cursor', params.cursor);
+
+        const queryString: string = searchParams.toString();
+        return `${baseSessionApiUrl}/${sessionId}${queryString ? `?${queryString}` : ''}`;
+    },
     updateSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     deleteSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     stubToolResultsApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}/messages/stub`,

@@ -5,6 +5,7 @@ import type {IGetSessionResponse} from "@/types/session";
 import type {ISessionPageProps} from "@/types/components";
 import type {IGetSetupStatusResponse} from "@/types/setup";
 import {ChatSessionView} from "@/components/ChatSessionView";
+import {SESSION_MESSAGES_PAGE_SIZE} from "@/utils/pagination";
 
 async function SessionPage({params}: ISessionPageProps) {
     const {sessionId} = await params;
@@ -17,9 +18,12 @@ async function SessionPage({params}: ISessionPageProps) {
         return <ChatSessionView key={instanceKey} isNewChat={true} r2Configured={r2Configured ?? false}/>;
     }
 
-    const {success, session, messages, localJsonlAvailable, error}: IGetSessionResponse = await getSession({sessionId});
+    const {success, session, messages, pagination, localJsonlAvailable, error}: IGetSessionResponse = await getSession({
+        sessionId,
+        limit: SESSION_MESSAGES_PAGE_SIZE,
+    });
 
-    if (!success || !session || !messages) {
+    if (!success || !session || !messages || !pagination) {
         if (error?.includes('Invalid sessionId') || error?.includes('No session found')) {
             notFound();
         }
@@ -32,7 +36,14 @@ async function SessionPage({params}: ISessionPageProps) {
     }
 
     return (
-        <ChatSessionView isNewChat={false} session={session} historicalMessages={messages} r2Configured={r2Configured ?? false} localJsonlAvailable={localJsonlAvailable ?? false}/>
+        <ChatSessionView
+            isNewChat={false}
+            session={session}
+            historicalMessages={messages}
+            initialPagination={pagination}
+            r2Configured={r2Configured ?? false}
+            localJsonlAvailable={localJsonlAvailable ?? false}
+        />
     );
 }
 

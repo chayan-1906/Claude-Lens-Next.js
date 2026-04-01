@@ -3,9 +3,8 @@
 import {cacheTag, updateTag} from "next/cache";
 import {apis} from "@/utils/apis";
 import {IMessage} from "@/types/message";
-import {getActiveBranch} from "@/utils/getActiveBranch";
 import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
-import {IDeleteSessionParams, IDeleteSessionResponse, IGetAllSessionsParams, IGetAllSessionsResponse, IGetSessionParams, IGetSessionResponse, IPagination, ISession, IUpdateSessionParams, IUpdateSessionResponse} from "@/types/session";
+import {IDeleteSessionParams, IDeleteSessionResponse, IGetAllSessionsParams, IGetAllSessionsResponse, IGetSessionPagination, IGetSessionParams, IGetSessionResponse, IPagination, ISession, IUpdateSessionParams, IUpdateSessionResponse} from "@/types/session";
 
 async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetAllSessionsResponse> {
     "use cache";
@@ -52,12 +51,12 @@ async function getAllSessions(params: IGetAllSessionsParams = {}): Promise<IGetA
     }
 }
 
-async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionResponse> {
+async function getSession({sessionId, limit, cursor}: IGetSessionParams): Promise<IGetSessionResponse> {
     // "use cache";
     // cacheTag('sessions');
 
     try {
-        const response: Response = await fetch(apis.getSessionApi(sessionId));
+        const response: Response = await fetch(apis.getSessionApi(sessionId, {limit, cursor}));
         const data: ApiResponseClass = await parseApiResponse(response);
 
         if (!response.ok || !data.success) {
@@ -67,6 +66,8 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
 
             if (errorCode === 'INVALID_SESSIONID') {
                 errorMessage = `Invalid sessionId: ${sessionId}`;
+            } else if (errorCode === 'INVALID_CURSOR') {
+                errorMessage = `Invalid cursor for sessionId: ${sessionId}`;
             } else if (errorCode === 'SESSION_NOT_FOUND') {
                 errorMessage = `No session found with sessionId: ${sessionId}`;
             }
@@ -79,14 +80,12 @@ async function getSession({sessionId}: IGetSessionParams): Promise<IGetSessionRe
 
         // console.log('getSession data:', JSON.stringify(data));
 
-        const allMessages: IMessage[] = data.messages as IMessage[];
-        const activeMessages: IMessage[] = getActiveBranch(allMessages);
-
         return {
             success: true,
             message: data.message,
             session: data.session as ISession,
-            messages: allMessages,
+            messages: data.messages as IMessage[],
+            pagination: data.pagination as IGetSessionPagination,
             localJsonlAvailable: data.localJsonlAvailable as boolean ?? false,
         };
     } catch (error: unknown) {

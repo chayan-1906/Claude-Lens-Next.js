@@ -3,12 +3,26 @@
 import React from "react";
 import {useRouter} from "next/navigation";
 import {FaArrowDown} from "react-icons/fa";
-import {HiOutlineArchive, HiOutlineBeaker, HiOutlineChevronDoubleRight, HiOutlineCode, HiOutlineExclamationCircle, HiOutlineFolder, HiOutlineRefresh, HiOutlineSearch, HiOutlineShieldCheck, HiOutlineTerminal, HiOutlineWifi} from "react-icons/hi";
+import {IoMdRefresh} from "react-icons/io";
+import {
+    HiOutlineArchive,
+    HiOutlineBeaker,
+    HiOutlineChevronDoubleRight,
+    HiOutlineCode,
+    HiOutlineExclamationCircle,
+    HiOutlineFolder,
+    HiOutlineRefresh,
+    HiOutlineSearch,
+    HiOutlineShieldCheck,
+    HiOutlineTerminal,
+    HiOutlineWifi
+} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {debug} from "@/utils/debug";
 import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
+import {IUseTextToSpeechReturn} from "@/types/tts";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
 import {BubbleShell} from "@/components/BubbleShell";
 import {IOpenFolderPickerResponse} from "@/types/file";
@@ -20,7 +34,7 @@ import {MessageBubble} from "@/components/MessageBubble";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {MessageContent} from "@/components/MessageContent";
 import {ReadAloudButton} from "@/components/ReadAloudButton";
-import {IGetSessionResponse, ISession} from "@/types/session";
+import {SESSION_MESSAGES_PAGE_SIZE} from "@/utils/pagination";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ToolApprovalPrompt} from "@/components/ToolApprovalPrompt";
 import {RenameSessionModal} from "@/components/RenameSessionModal";
@@ -29,16 +43,20 @@ import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {VoiceSettingsPopover} from "@/components/VoiceSettingsPopover";
+import {IGetSessionPagination, IGetSessionResponse, ISession} from "@/types/session";
 import {extractMessageText, extractSpeakableText, normalizeToolResultContent} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
 
-function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, localJsonlAvailable}: IChatSessionViewProps) {
+const SCROLL_THRESHOLD: number = 50;
+const LOAD_MORE_THRESHOLD: number = 120;
+
+function ChatSessionView({isNewChat, session, historicalMessages, initialPagination, r2Configured, localJsonlAvailable}: IChatSessionViewProps) {
     const router = useRouter();
     const {
         status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval,
         sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, backupSession, stopExecution, retry, clearMessages, clearError,
     } = useClaudeChat();
-    const tts = useTextToSpeech();
+    const tts: IUseTextToSpeechReturn = useTextToSpeech();
 
     /** Sentinel messageId used while stream-reading a live response. */
     const STREAM_READ_ID: string = '__streaming__';
@@ -74,6 +92,8 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
 
     // Local copy of historical messages — enables optimistic stub updates without a full page refresh
     const [localHistoricalMessages, setLocalHistoricalMessages] = React.useState<IMessage[]>(historicalMessages ?? []);
+    const [messagePagination, setMessagePagination] = React.useState<IGetSessionPagination | undefined>(initialPagination);
+    const [isLoadingOlderMessages, setIsLoadingOlderMessages] = React.useState<boolean>(false);
 
     // Edit state: which message is being edited, and how many historical messages to show
     const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -91,9 +111,20 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
         }
     }, [isNewChat, historicalMessages]);
 
+    React.useEffect(() => {
+        if (isNewChat) return;
+        setLocalHistoricalMessages(historicalMessages ?? []);
+        setMessagePagination(initialPagination);
+        setHistoricalCutoffIndex(null);
+    }, [isNewChat, historicalMessages, initialPagination]);
+
     // Local session state — enables optimistic title/description updates after rename
     const [localSession, setLocalSession] = React.useState<ISession | undefined>(session);
     const [isRenameModalOpen, setIsRenameModalOpen] = React.useState<boolean>(false);
+
+    React.useEffect(() => {
+        setLocalSession(session);
+    }, [session]);
 
     // Model/effort/thinking selection state
     const [selectedModel, setSelectedModel] = React.useState<string>('sonnet');
@@ -180,20 +211,12 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
         || status === EChatStatus.TOOL_RUNNING;
 
     // Auto-scroll: detect whether user is at (or near) the bottom
-    const SCROLL_THRESHOLD: number = 50;
     const scrollRafRef = React.useRef<number | null>(null);
+    const isLoadingOlderMessagesRef = React.useRef<boolean>(false);
 
-    const handleScroll = React.useCallback((): void => {
-        if (scrollRafRef.current !== null) return;
-        scrollRafRef.current = requestAnimationFrame((): void => {
-            scrollRafRef.current = null;
-            const el: HTMLDivElement | null = scrollContainerRef.current;
-            if (!el) return;
-            const atBottom: boolean = el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD;
-            isAtBottomRef.current = atBottom;
-            setShowScrollButton(!atBottom);
-        });
-    }, []);
+    React.useEffect(() => {
+        isLoadingOlderMessagesRef.current = isLoadingOlderMessages;
+    }, [isLoadingOlderMessages]);
 
     // Cancel pending rAF on unmount
     React.useEffect(() => {
@@ -209,6 +232,64 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
         if (!el) return;
         el.scrollTo({top: el.scrollHeight, behavior});
     }, []);
+
+    const loadOlderMessages = React.useCallback(async (): Promise<void> => {
+        const sessionId: string | undefined = session?.sessionId;
+        const nextCursor: string | null | undefined = messagePagination?.nextCursor;
+        const hasMore: boolean = messagePagination?.hasMore ?? false;
+
+        if (!sessionId || !hasMore || !nextCursor || isLoadingOlderMessagesRef.current) {
+            return;
+        }
+
+        const container: HTMLDivElement | null = scrollContainerRef.current;
+        const previousScrollHeight: number = container?.scrollHeight ?? 0;
+        const previousScrollTop: number = container?.scrollTop ?? 0;
+
+        isLoadingOlderMessagesRef.current = true;
+        setIsLoadingOlderMessages(true);
+
+        const result: IGetSessionResponse = await getSession({
+            sessionId,
+            limit: messagePagination?.limit ?? SESSION_MESSAGES_PAGE_SIZE,
+            cursor: nextCursor,
+        });
+
+        if (result.success && result.messages && result.pagination) {
+            setLocalHistoricalMessages((previousMessages: IMessage[]) => {
+                const existingIds: Set<string> = new Set(previousMessages.map((message: IMessage) => message.messageId));
+                const olderMessages: IMessage[] = result.messages!.filter((message: IMessage) => !existingIds.has(message.messageId));
+                return [...olderMessages, ...previousMessages];
+            });
+            setMessagePagination(result.pagination);
+
+            requestAnimationFrame((): void => {
+                const currentContainer: HTMLDivElement | null = scrollContainerRef.current;
+                if (!currentContainer) return;
+                const heightDelta: number = currentContainer.scrollHeight - previousScrollHeight;
+                currentContainer.scrollTop = previousScrollTop + heightDelta;
+            });
+        }
+
+        isLoadingOlderMessagesRef.current = false;
+        setIsLoadingOlderMessages(false);
+    }, [session?.sessionId, messagePagination]);
+
+    const handleScroll = React.useCallback((): void => {
+        if (scrollRafRef.current !== null) return;
+        scrollRafRef.current = requestAnimationFrame((): void => {
+            scrollRafRef.current = null;
+            const el: HTMLDivElement | null = scrollContainerRef.current;
+            if (!el) return;
+            const atBottom: boolean = el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD;
+            isAtBottomRef.current = atBottom;
+            setShowScrollButton(!atBottom);
+
+            if (el.scrollTop <= LOAD_MORE_THRESHOLD) {
+                void loadOlderMessages();
+            }
+        });
+    }, [loadOlderMessages]);
 
     const handleScrollToBottomClick = React.useCallback((): void => {
         isAtBottomRef.current = true;
@@ -359,16 +440,20 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
             return;
         }
         setIsRefreshingMessages(true);
-        const result: IGetSessionResponse = await getSession({sessionId});
-        if (result.success && result.messages) {
+        const result: IGetSessionResponse = await getSession({
+            sessionId,
+            limit: Math.max(localHistoricalMessages.length, SESSION_MESSAGES_PAGE_SIZE),
+        });
+        if (result.success && result.messages && result.pagination) {
             clearMessages();
             clearError();
             setLocalHistoricalMessages(result.messages);
+            setMessagePagination(result.pagination);
             setHistoricalCutoffIndex(null);
             debug(`[ChatSessionView] Messages refreshed — ${result.messages.length} messages loaded`);
         }
         setIsRefreshingMessages(false);
-    }, [session?.sessionId, clearMessages, clearError]);
+    }, [session?.sessionId, localHistoricalMessages.length, clearMessages, clearError]);
 
     // Refetch messages from MongoDB when backend sends sync_complete.
     // This ensures the human-typed user message (only in JSONL, not in stream output)
@@ -693,6 +778,21 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                         </div>
                     ) : (
                         <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
+                            {isLoadingOlderMessages && (
+                                <div className={'flex items-center justify-center py-1'}>
+                                    <div className={'inline-flex items-center gap-2 text-xs text-text-muted'}>
+                                        <IoMdRefresh className={'size-4 animate-spin'}/>
+                                        <span>Loading older messages...</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!isLoadingOlderMessages && localHistoricalMessages.length > 0 && !(messagePagination?.hasMore ?? false) && (
+                                <div className={'flex items-center justify-center py-1'}>
+                                    <span className={'text-[11px] text-text-muted/70'}>Start of conversation</span>
+                                </div>
+                            )}
+
                             {/* Historical messages — sliced at edit cutoff when user edits from history */}
                             {visibleHistoricalMessages.map((message: IMessage, index: number) => {
                                 const isUser: boolean = message.role === EMessageRole.USER;
@@ -859,12 +959,11 @@ function ChatSessionView({isNewChat, session, historicalMessages, r2Configured, 
                                 const speakableStreamText: string = extractSpeakableText(streamingContent);
                                 return (
                                     <BubbleShell isUser={false} hasNonTextBlock={streamingContent.some((block: ContentBlock) => block.type !== 'text')}
-                                        metadata={speakableStreamText ? (
-                                            <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                                <ReadAloudButton text={''} messageId={STREAM_READ_ID} tts={tts}
-                                                    onSpeak={() => tts.startStreamRead(STREAM_READ_ID)}/>
-                                            </div>
-                                        ) : undefined}
+                                                 metadata={speakableStreamText ? (
+                                                     <div className={'flex items-center gap-2 mt-1 px-1'}>
+                                                         <ReadAloudButton text={''} messageId={STREAM_READ_ID} tts={tts} onSpeak={() => tts.startStreamRead(STREAM_READ_ID)}/>
+                                                     </div>
+                                                 ) : undefined}
                                     >
                                         <MessageContent content={streamingContent}/>
                                     </BubbleShell>

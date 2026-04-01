@@ -2,8 +2,8 @@ import React from "react";
 import type {ITask} from "@/types/task";
 import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
-import type {ISession} from "@/types/session";
 import type {IUseTextToSpeechReturn} from "@/types/tts";
+import type {IGetSessionPagination, ISession} from "@/types/session";
 import type {IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 import {IAttachment, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
@@ -221,6 +221,7 @@ export interface IChatSessionViewProps {
     isNewChat: boolean;
     session?: ISession;
     historicalMessages?: IMessage[];
+    initialPagination?: IGetSessionPagination;
     r2Configured: boolean;
     localJsonlAvailable?: boolean;
 }
