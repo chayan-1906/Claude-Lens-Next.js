@@ -2,13 +2,14 @@ import React from "react";
 import dynamic from "next/dynamic";
 import remarkGfm from "remark-gfm";
 import Markdown from "react-markdown";
-import {HiOutlineDocument} from "react-icons/hi";
+import {HiOutlineDocument, HiOutlinePhotograph} from "react-icons/hi";
 import {stripAnsiCodes} from "@/utils/stripAnsiCodes";
 import {IMessageContentProps} from "@/types/components";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
-import {renderCode, renderPre, renderLink} from "@/components/CodeBlock";
+import {renderCode, renderLink, renderPre} from "@/components/CodeBlock";
+import {IMAGE_EXTENSION_REGEX, LOCAL_IMAGE_REF_REGEX} from "@/utils/constants";
 import {ContentBlock, DocumentBlock, EUserMessageType, ImageBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
 // Lazy load heavy sub-components via next/dynamic — only loaded when the block type is actually rendered
@@ -37,6 +38,22 @@ const ToolResultContentBlock = dynamic(
 
 const markdownComponents = {code: renderCode, pre: renderPre, a: renderLink};
 
+
+/** Renders a local-file placeholder (image or document) that can't be fetched remotely */
+function LocalFilePlaceholder({filePath}: { filePath: string }): React.ReactElement {
+    const fileName: string = filePath.split('/').pop() ?? filePath;
+    const isImage: boolean = IMAGE_EXTENSION_REGEX.test(fileName);
+    return (
+        <div className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2 w-fit'}>
+            {isImage
+                ? <HiOutlinePhotograph className={'size-4 text-text-muted shrink-0'}/>
+                : <HiOutlineDocument className={'size-4 text-text-muted shrink-0'}/>
+            }
+            <span className={'text-xs font-medium text-text-muted'}>{fileName}</span>
+        </div>
+    );
+}
+
 const MessageContent = React.memo(function MessageContent({content, sessionId, messageId, onStubbed}: IMessageContentProps) {
     if (typeof content === 'string') {
         return (
@@ -57,6 +74,12 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                         const cleaned: string = stripSystemTags(block.text);
                         if (!cleaned) return null;
 
+                        // Local image reference written by Claude Code terminal: "[Image: source: /path]"
+                        const localRef: RegExpExecArray | null = LOCAL_IMAGE_REF_REGEX.exec(cleaned.trim());
+                        if (localRef) {
+                            return <LocalFilePlaceholder key={index} filePath={localRef[1]}/>;
+                        }
+
                         return (
                             <div key={index} className={'markdown-content'}>
                                 <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
@@ -76,21 +99,28 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                             <ToolResultContentBlock key={index} block={block as ToolResultBlock} sessionId={sessionId} messageId={messageId} onStubbed={onStubbed}/>
                         );
 
-                    case 'image':
+                    case 'image': {
+                        const imageUrl: string | undefined = (block as ImageBlock).source?.url;
+                        const isRemote: boolean = !!imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'));
+                        if (!imageUrl || !isRemote) {
+                            return <LocalFilePlaceholder key={index} filePath={imageUrl ?? 'image'}/>;
+                        }
                         return (
                             <ImageThumbnail
                                 key={index}
-                                src={(block as ImageBlock).source.url}
+                                src={imageUrl}
                                 alt={'Attachment'}
                                 width={300}
                                 height={300}
                                 className={'rounded-lg max-w-72 max-h-72 object-contain'}
                             />
                         );
+                    }
 
                     case 'document':
                         return (
-                            <a key={index} href={(block as DocumentBlock).source.url} target={'_blank'} rel={'noopener noreferrer'} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2 w-fit hover:bg-background transition-colors'}>
+                            <a key={index} href={(block as DocumentBlock).source.url} target={'_blank'} rel={'noopener noreferrer'}
+                               className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2 w-fit hover:bg-background transition-colors'}>
                                 <HiOutlineDocument className={'size-4 text-text-muted'}/>
                                 <span className={'text-xs font-medium text-primary'}>PDF Document</span>
                             </a>
@@ -143,6 +173,12 @@ function renderStringContent(text: string): React.ReactNode {
         default: {
             const cleaned: string = stripSystemTags(parsed.text);
             if (!cleaned) return null;
+
+            // Local image reference written by Claude Code terminal: "[Image: source: /path]"
+            const localRef: RegExpExecArray | null = LOCAL_IMAGE_REF_REGEX.exec(cleaned.trim());
+            if (localRef) {
+                return <LocalFilePlaceholder filePath={localRef[1]}/>;
+            }
 
             return (
                 <div className={'markdown-content'}>

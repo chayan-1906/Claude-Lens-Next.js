@@ -16,6 +16,11 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
 
     const isCommandOutput: boolean = isUserMessage && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
     const isToolResult: boolean = isUserMessage && Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_result');
+    // Compact summary — Claude CLI injects this as a user message after /compact.
+    // Render left-aligned (assistant side) since it is a system-generated notice, not a human turn.
+    const isCompactSummary: boolean = isUserMessage
+        && typeof message.content === 'string'
+        && message.content.startsWith('This session is being continued from a previous conversation that ran out of context');
 
     if (isUserMessage && typeof message.content === 'string') {
         const parsed = parseUserMessage(message.content);
@@ -53,7 +58,7 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
     return (
         <BubbleShell
             isUser={isUserMessage}
-            isSystemUser={isCommandOutput || isToolResult}
+            isSystemUser={isCommandOutput || isToolResult || isCompactSummary}
             isSubAgentPrompt={isSubAgentPrompt}
             hasNonTextBlock={hasNonTextBlock}
             metadata={
