@@ -19,14 +19,15 @@ import {
     IIdeSelectionChangedMessage,
     IIdeStatus,
     IPendingToolApproval,
-    IToolApprovalAutoResolvedMessage,
+    IProjectNotAvailableMessage,
     IResultEvent,
     ISendMessageOptions,
     IStreamEvent,
     IStreamInnerEvent,
-    ISystemEvent, ITokenUsage,
+    ISystemEvent,
+    ITokenUsage,
+    IToolApprovalAutoResolvedMessage,
     IToolApprovalRequestMessage,
-    IProjectNotAvailableMessage,
     IUseClaudeChatReturn,
     IUserEvent,
     IWsErrorMessage,
@@ -521,7 +522,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
                         if (json) {
                             try {
                                 (buffer[inner.index] as ToolUseBlock).input = JSON.parse(json);
-                            } catch { /* partial JSON — leave input as {} */ }
+                            } catch { /* partial JSON — leave input as {} */
+                            }
                             delete inputJsonBufferRef.current[inner.index];
                         }
                     }
@@ -649,11 +651,29 @@ function useClaudeChat(): IUseClaudeChatReturn {
             console.log(`[useClaudeChat] Sending edit_session (sessionId: ${options.sessionId}, editAtUuid: ${options.editAtUuid ?? 'none'}, text: "${text.slice(0, 50)}...")`);
         } else if (!isSessionActiveRef.current) {
             if (options?.sessionId) {
-                clientMessage = {type: 'resume_session', sessionId: options.sessionId, text, model: options?.model, effort: options?.effort, thinking: options?.thinking, attachments: options?.attachments};
-                console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, model: ${options?.model ?? 'default'}, thinking: ${options?.thinking ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
+                clientMessage = {
+                    type: 'resume_session',
+                    sessionId: options.sessionId,
+                    text,
+                    model: options?.model,
+                    effort: options?.effort,
+                    thinking: options?.thinking,
+                    attachments: options?.attachments,
+                    allowedDirs: options?.allowedDirs,
+                };
+                console.log(`[useClaudeChat] Sending resume_session (sessionId: ${options.sessionId}, model: ${options?.model ?? 'default'}, thinking: ${options?.thinking ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, allowedDirs: ${options?.allowedDirs?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
             } else {
-                clientMessage = {type: 'new_session', text, projectDir: options?.projectDir, model: options?.model, effort: options?.effort, thinking: options?.thinking, attachments: options?.attachments};
-                console.log(`[useClaudeChat] Sending new_session (projectDir: ${options?.projectDir ?? 'none'}, model: ${options?.model ?? 'default'}, thinking: ${options?.thinking ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
+                clientMessage = {
+                    type: 'new_session',
+                    text,
+                    projectDir: options?.projectDir,
+                    model: options?.model,
+                    effort: options?.effort,
+                    thinking: options?.thinking,
+                    attachments: options?.attachments,
+                    allowedDirs: options?.allowedDirs,
+                };
+                console.log(`[useClaudeChat] Sending new_session (projectDir: ${options?.projectDir ?? 'none'}, model: ${options?.model ?? 'default'}, thinking: ${options?.thinking ?? 'default'}, attachments: ${options?.attachments?.length ?? 0}, allowedDirs: ${options?.allowedDirs?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
             }
             isSessionActiveRef.current = true;
         } else {
@@ -985,7 +1005,28 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
     }, [stopHeartbeat]);
 
-    return {status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval, sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, backupSession, stopExecution, disconnect, retry, clearMessages, clearError};
+    return {
+        status,
+        messages,
+        streamingContent,
+        contextInfo,
+        ideStatus,
+        error,
+        retryable,
+        forkedSessionId,
+        pendingApproval,
+        sendMessage,
+        editMessage,
+        regenerateMessage,
+        respondToApproval,
+        switchModel,
+        backupSession,
+        stopExecution,
+        disconnect,
+        retry,
+        clearMessages,
+        clearError,
+    };
 }
 
 export {useClaudeChat};

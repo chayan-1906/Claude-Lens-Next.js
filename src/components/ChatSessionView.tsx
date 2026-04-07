@@ -156,6 +156,11 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     // Project directory state for new chats
     const [projectDir, setProjectDir] = React.useState<string>('');
     const [isBrowsing, setIsBrowsing] = React.useState<boolean>(false);
+
+    // Allowed directories state for new chats
+    const [allowedDirs, setAllowedDirs] = React.useState<string[]>([]);
+    const [allowedDirInput, setAllowedDirInput] = React.useState<string>('');
+    const [isBrowsingAllowedDir, setIsBrowsingAllowedDir] = React.useState<boolean>(false);
     const [isRefreshingMessages, setIsRefreshingMessages] = React.useState<boolean>(false);
     const [showScrollButton, setShowScrollButton] = React.useState<boolean>(false);
 
@@ -339,11 +344,12 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         // where replaceState updated the URL but the prop never changed after pause)
         const resolvedSessionId: string | undefined = session?.sessionId ?? contextInfo?.sessionId;
         const attachmentOpts: { attachments?: IAttachment[] } = attachments?.length ? {attachments} : {};
+        const allowedDirsOpt: { allowedDirs?: string[] } = allowedDirs.length ? {allowedDirs} : {};
         sendMessage(text, isNewChat && !resolvedSessionId
-            ? {projectDir: projectDir || undefined, ...modelOpts, ...attachmentOpts}
-            : {sessionId: resolvedSessionId, ...modelOpts, ...attachmentOpts},
+            ? {projectDir: projectDir || undefined, ...modelOpts, ...attachmentOpts, ...allowedDirsOpt}
+            : {sessionId: resolvedSessionId, ...modelOpts, ...attachmentOpts, ...allowedDirsOpt},
         );
-    }, [sendMessage, isNewChat, session?.sessionId, contextInfo?.sessionId, projectDir, selectedModel, selectedEffort, thinking, scrollToBottom]);
+    }, [sendMessage, isNewChat, session?.sessionId, contextInfo?.sessionId, projectDir, allowedDirs, selectedModel, selectedEffort, thinking, scrollToBottom]);
 
     const handleSwitchModel = React.useCallback((model: string): void => {
         setSelectedModel(model);
@@ -439,6 +445,26 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         if (result.success && result.path) {
             setProjectDir(result.path);
         }
+    }, []);
+
+    const handleBrowseAllowedDir = React.useCallback(async (): Promise<void> => {
+        setIsBrowsingAllowedDir(true);
+        const result: IOpenFolderPickerResponse = await openFolderPicker();
+        setIsBrowsingAllowedDir(false);
+        if (result.success && result.path) {
+            setAllowedDirInput(result.path);
+        }
+    }, []);
+
+    const handleAddAllowedDir = React.useCallback((): void => {
+        const trimmed: string = allowedDirInput.trim();
+        if (!trimmed || allowedDirs.includes(trimmed)) return;
+        setAllowedDirs((prev: string[]) => [...prev, trimmed]);
+        setAllowedDirInput('');
+    }, [allowedDirInput, allowedDirs]);
+
+    const handleRemoveAllowedDir = React.useCallback((directory: string): void => {
+        setAllowedDirs((prev: string[]) => prev.filter((dir: string) => dir !== directory));
     }, []);
 
     const handleRefreshMessages = React.useCallback(async (): Promise<void> => {
@@ -739,6 +765,43 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                             Browse...
                                         </Button>
                                     </div>
+                                </div>
+
+                                {/* Allowed directories */}
+                                <div className={'w-full'}>
+                                    <label className={'block text-xs text-text-muted mb-1.5'}>Allowed directories (optional)</label>
+                                    <div className={'flex items-center gap-2'}>
+                                        <input
+                                            type={'text'}
+                                            value={allowedDirInput}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowedDirInput(e.target.value)}
+                                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                                if (e.key === 'Enter') handleAddAllowedDir();
+                                            }}
+                                            placeholder={'/Volumes/external-drive'}
+                                            className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
+                                        />
+                                        <Button variant={'ghost'} size={'sm'} onClick={handleBrowseAllowedDir} isLoading={isBrowsingAllowedDir} disabled={isBrowsingAllowedDir}>
+                                            <HiOutlineFolder className={'size-4'}/>
+                                            Browse...
+                                        </Button>
+                                        <Button variant={'primary'} size={'sm'} onClick={handleAddAllowedDir} disabled={!allowedDirInput.trim()}>
+                                            Add
+                                        </Button>
+                                    </div>
+                                    {allowedDirs.length > 0 && (
+                                        <ul className={'mt-2 space-y-1'}>
+                                            {allowedDirs.map((allowedDir: string) => (
+                                                <li key={allowedDir} className={'flex items-center justify-between gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-md'}>
+                                                    <span className={'text-xs font-mono text-text truncate'}>{allowedDir}</span>
+                                                    <Button onClick={() => handleRemoveAllowedDir(allowedDir)} className={'text-text-muted hover:text-error shrink-0 text-xs leading-none'}
+                                                            aria-label={'Remove'}>
+                                                        ✕
+                                                    </Button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
 
                                 {/* How it works */}

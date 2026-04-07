@@ -316,6 +316,7 @@ export interface INewSessionMessage {
     effort?: string;
     thinking?: boolean;
     attachments?: IAttachment[];
+    allowedDirs?: string[];
 }
 
 /** Client → Server: resume an existing session */
@@ -327,6 +328,7 @@ export interface IResumeSessionMessage {
     effort?: string;
     thinking?: boolean;
     attachments?: IAttachment[];
+    allowedDirs?: string[];
 }
 
 /** Client → Server: send follow-up message to active session */
@@ -369,6 +371,7 @@ export interface ISendMessageOptions {
     effort?: string;          // effort level (low/medium/high/max) — model-dependent
     thinking?: boolean;       // extended thinking toggle — true = enabled, false = disabled
     attachments?: IAttachment[];  // file attachments (base64) — uploaded to R2 by backend
+    allowedDirs?: string[];   // extra directories to grant Claude CLI access to (--add-dir per entry)
 }
 
 /** Client → Server: fork or reconstruct a session at an edit/regenerate point */
