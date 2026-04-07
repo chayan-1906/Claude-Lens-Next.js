@@ -70,7 +70,8 @@ function PathMappingFormModal({isOpen, onOpenChange, editingMapping, onSaved}: I
             return;
         }
 
-        const canonicalPath: string = trimmedPaths[canonicalIndex] || trimmedPaths[0];
+        const selectedRawPath: string = paths[canonicalIndex]?.trim() || '';
+        const canonicalPath: string = trimmedPaths.includes(selectedRawPath) ? selectedRawPath : trimmedPaths[0];
 
         if (isEditMode && editingMapping) {
             const response: IUpdatePathMappingResponse = await updatePathMapping({
