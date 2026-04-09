@@ -2,11 +2,14 @@
 
 import {cookies} from "next/headers";
 import {apis} from "@/utils/apis";
+import {refreshSidebar} from "@/actions/session.actions";
+import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
 import {
     IActivateConfigurationParams,
     IActivateConfigurationResponse,
     IAddConfigurationParams,
     IAddConfigurationResponse,
+    IClaudeAccount,
     ICreatePathMappingParams,
     ICreatePathMappingResponse,
     IDeleteConfigurationParams,
@@ -15,6 +18,8 @@ import {
     IDeletePathMappingResponse,
     IEditConfigurationParams,
     IEditConfigurationResponse,
+    IGetAccountsResponse,
+    IGetClaudeAccountResponse,
     IGetConfigProjectsParams,
     IGetConfigProjectsResponse,
     IGetConfigurationsResponse,
@@ -26,6 +31,8 @@ import {
     IMongoConfig,
     IPathMapping,
     IR2Config,
+    ISaveClaudeAccountParams,
+    ISaveClaudeAccountResponse,
     ISaveR2ConfigParams,
     ISaveR2ConfigResponse,
     ITestConfigurationParams,
@@ -34,8 +41,6 @@ import {
     IUpdatePathMappingResponse,
     SETUP_CONFIGURED_COOKIE
 } from "@/types/setup";
-import {refreshSidebar} from "@/actions/session.actions";
-import {ApiResponseClass, parseApiResponse} from "@/utils/ApiResponse";
 
 async function getSetupStatus(): Promise<IGetSetupStatusResponse> {
     try {
@@ -582,6 +587,107 @@ async function saveR2Config({accessKeyId, secretAccessKey, endpoint, publicUrl, 
     }
 }
 
+// ======================== Claude Account Actions ========================
+
+async function getClaudeAccount(): Promise<IGetClaudeAccountResponse> {
+    try {
+        const response: Response = await fetch(apis.getClaudeAccountApi);
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = 'Failed to fetch Claude account!';
+            console.error('Getting Claude account failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            claudeConfigDir: data.claudeConfigDir as string | null,
+        };
+    } catch (error: unknown) {
+        console.error('Get Claude account error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function getAccounts(): Promise<IGetAccountsResponse> {
+    try {
+        const response: Response = await fetch(apis.getAccountsApi);
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = 'Failed to fetch Claude accounts!';
+            console.error('Getting accounts failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            accounts: data.accounts as IClaudeAccount[],
+        };
+    } catch (error: unknown) {
+        console.error('Get accounts error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function saveClaudeAccount({claudeConfigDir}: ISaveClaudeAccountParams): Promise<ISaveClaudeAccountResponse> {
+    try {
+        const response: Response = await fetch(apis.saveClaudeAccountApi, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({claudeConfigDir}),
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to save Claude account!';
+            console.error('Save claude account failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'CLAUDECONFIGDIR_MISSING') {
+                errorMessage = 'Claude config dir is required!';
+            } else if (errorCode === 'INVALID_CLAUDECONFIGDIR') {
+                errorMessage = data.error?.message || 'Invalid Claude config dir!';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+        };
+    } catch (error: unknown) {
+        console.error('Save claude account error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
 export {
     getSetupStatus,
     getConfigurations,
@@ -599,4 +705,7 @@ export {
     mergePathMapping,
     getR2Config,
     saveR2Config,
+    getClaudeAccount,
+    getAccounts,
+    saveClaudeAccount,
 };

@@ -4,9 +4,9 @@ import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {IUseTextToSpeechReturn} from "@/types/tts";
 import type {IGetSessionPagination, ISession} from "@/types/session";
-import type {IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 import {IAttachment, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
+import type {IClaudeAccount, IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 
 /** ------------- Constants and Type Aliases ------------- */
 
@@ -253,6 +253,8 @@ export interface ISetupFormProps {
     initialActiveConfigId: string;
     initialPathMappings: IPathMapping[];
     initialR2Config: IR2Config | null;
+    initialAccounts: IClaudeAccount[];
+    initialClaudeConfigDir: string | null;
 }
 
 export interface IConfigCardProps {

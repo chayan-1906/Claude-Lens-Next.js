@@ -31,6 +31,14 @@ export interface IPathMapping {
     canonicalPath: string;
 }
 
+/** A detected Claude account from a ~/.claude-.../ directory */
+export interface IClaudeAccount {
+    configDir: string;
+    email: string | null;
+    label: string;
+    isLoggedIn: boolean;
+}
+
 
 /** ------------- API response types ------------- */
 
@@ -89,6 +97,16 @@ export interface IGetR2ConfigResponse extends IApiResponse {
 export interface ISaveR2ConfigResponse extends IApiResponse {
     r2Config?: IR2Config;
 }
+
+export interface IGetAccountsResponse extends IApiResponse {
+    accounts?: IClaudeAccount[];
+}
+
+export interface IGetClaudeAccountResponse extends IApiResponse {
+    claudeConfigDir?: string | null;
+}
+
+export type ISaveClaudeAccountResponse = IApiResponse;
 
 
 /** ------------- function params ------------- */
@@ -151,4 +169,8 @@ export interface ISaveR2ConfigParams {
     endpoint: string;
     publicUrl: string;
     bucketName: string;
+}
+
+export interface ISaveClaudeAccountParams {
+    claudeConfigDir: string;
 }

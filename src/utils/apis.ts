@@ -57,6 +57,10 @@ const apis = {
     getR2ConfigApi: `${baseSetupApiUrl}/r2-config`,
     saveR2ConfigApi: `${baseSetupApiUrl}/r2-config`,
 
+    getAccountsApi: `${baseSetupApiUrl}/accounts`,
+    getClaudeAccountApi: `${baseSetupApiUrl}/claude-account`,
+    saveClaudeAccountApi: `${baseSetupApiUrl}/claude-account`,
+
     getPathMappingsApi: basePathMappingsApiUrl,
     createPathMappingApi: basePathMappingsApiUrl,
     updatePathMappingApi: (mappingId: string) => `${basePathMappingsApiUrl}/${mappingId}`,

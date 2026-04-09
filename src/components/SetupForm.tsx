@@ -10,10 +10,33 @@ import type {ISetupFormProps} from "@/types/components";
 import {ConfigFormModal} from "@/components/ConfigFormModal";
 import {PathMappingCard} from "@/components/PathMappingCard";
 import {PathMappingFormModal} from "@/components/PathMappingFormModal";
-import {activateConfiguration, addConfiguration, deleteConfiguration, deletePathMapping, getConfigProjects, mergePathMapping, saveR2Config, testConfiguration} from "@/actions/setup.actions";
-import type {IActivateConfigurationResponse, IAddConfigurationResponse, IDeleteConfigurationResponse, IDeletePathMappingResponse, IGetConfigProjectsResponse, IMergePathMappingResponse, IMongoConfig, IPathMapping, ISaveR2ConfigResponse, ITestConfigurationResponse} from "@/types/setup";
+import {
+    activateConfiguration,
+    addConfiguration,
+    deleteConfiguration,
+    deletePathMapping,
+    getConfigProjects,
+    mergePathMapping,
+    saveClaudeAccount,
+    saveR2Config,
+    testConfiguration
+} from "@/actions/setup.actions";
+import type {
+    IActivateConfigurationResponse,
+    IAddConfigurationResponse,
+    IClaudeAccount,
+    IDeleteConfigurationResponse,
+    IDeletePathMappingResponse,
+    IGetConfigProjectsResponse,
+    IMergePathMappingResponse,
+    IMongoConfig,
+    IPathMapping,
+    ISaveClaudeAccountResponse,
+    ISaveR2ConfigResponse,
+    ITestConfigurationResponse
+} from "@/types/setup";
 
-function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMappings, initialR2Config}: ISetupFormProps) {
+function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMappings, initialR2Config, initialAccounts, initialClaudeConfigDir}: ISetupFormProps) {
     const router = useRouter();
     const hasConfigs: boolean = initialConfigurations.length > 0;
 
@@ -21,6 +44,12 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
     const [mongoUri, setMongoUri] = React.useState<string>('');
     const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
     const [error, setError] = React.useState<string | null>(null);
+    const [selectedConfigDir, setSelectedConfigDir] = React.useState<string>(initialClaudeConfigDir ?? '');
+
+    // Claude account section (management mode)
+    const [accountConfigDir, setAccountConfigDir] = React.useState<string>(initialClaudeConfigDir ?? '');
+    const [isAccountSaving, setIsAccountSaving] = React.useState<boolean>(false);
+    const [accountResult, setAccountResult] = React.useState<{ success: boolean; message: string } | null>(null);
 
     // Config management state
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
@@ -44,7 +73,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
     const [isR2Saving, setIsR2Saving] = React.useState<boolean>(false);
     const [r2Result, setR2Result] = React.useState<{ success: boolean; message: string } | null>(null);
 
-    // First-run submit handler: add a "Default" config and activate it
+    // First-run submit handler: add a "Default" config, activate it, and save selected Claude account
     const handleFirstRunSubmit = React.useCallback(async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -71,8 +100,17 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
             return;
         }
 
+        if (selectedConfigDir) {
+            const accountResponse: ISaveClaudeAccountResponse = await saveClaudeAccount({claudeConfigDir: selectedConfigDir});
+            if (!accountResponse.success) {
+                setError(accountResponse.error || 'Failed to save Claude account!');
+                setIsSubmitting(false);
+                return;
+            }
+        }
+
         router.push(routes.homePath);
-    }, [mongoUri, router]);
+    }, [mongoUri, router, selectedConfigDir]);
 
     // Config management handlers
     const handleAddNew = React.useCallback((): void => {
@@ -171,7 +209,11 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
         const response: IMergePathMappingResponse = await mergePathMapping({mappingId: mapping.id});
 
         if (response.success) {
-            setMergeResult({mappingId: mapping.id, success: true, message: response.message || `Merged! ${response.sessionsUpdated} session(s) and ${response.memoriesUpdated} memory doc(s) updated.`});
+            setMergeResult({
+                mappingId: mapping.id,
+                success: true,
+                message: response.message || `Merged! ${response.sessionsUpdated} session(s) and ${response.memoriesUpdated} memory doc(s) updated.`
+            });
         } else {
             setMergeResult({mappingId: mapping.id, success: false, message: response.error || 'Merge failed!'});
         }
@@ -208,6 +250,22 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
         setIsR2Saving(false);
     }, [r2AccessKeyId, r2SecretAccessKey, r2Endpoint, r2PublicUrl, r2BucketName]);
 
+    // Claude account save handler (management mode)
+    const handleAccountSave = React.useCallback(async (): Promise<void> => {
+        setIsAccountSaving(true);
+        setAccountResult(null);
+
+        const {success, message, error} = await saveClaudeAccount({claudeConfigDir: accountConfigDir});
+
+        if (success) {
+            setAccountResult({success: true, message: message || 'Claude account saved!'});
+        } else {
+            setAccountResult({success: false, message: error || 'Failed to save Claude account!'});
+        }
+
+        setIsAccountSaving(false);
+    }, [accountConfigDir]);
+
     // First-run mode: simple URI input form
     if (!hasConfigs) {
         return (
@@ -225,6 +283,28 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                     disabled={isSubmitting}
                     autoFocus
                 />
+
+                {initialAccounts.length > 0 && (
+                    <div className={'mt-4'}>
+                        <label htmlFor={'claude-account'} className={'block text-sm font-medium text-text mb-1.5'}>
+                            Claude Account
+                        </label>
+                        <select
+                            id={'claude-account'}
+                            value={selectedConfigDir}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedConfigDir(e.target.value)}
+                            className={'w-full px-3 py-2.5 rounded-md border border-border bg-surface text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            disabled={isSubmitting}
+                        >
+                            <option value={''}>System default (no override)</option>
+                            {initialAccounts.map((account: IClaudeAccount) => (
+                                <option key={account.configDir} value={account.configDir}>
+                                    {account.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 {error && (
                     <p className={'text-sm text-error mt-3 bg-error/10 px-3 py-2 rounded-md'}>{error}</p>
@@ -436,6 +516,48 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                     </Button>
                 </form>
             </div>
+
+            {/* ======================== Claude Account Section ======================== */}
+            {initialAccounts.length > 0 && (
+                <div className={'mt-8 pt-6 border-t border-border'}>
+                    <div className={'mb-4'}>
+                        <h2 className={'text-lg font-semibold text-text'}>Claude Account</h2>
+                        <p className={'text-xs text-text-muted mt-0.5'}>
+                            Select which Claude config directory to use when spawning the CLI
+                        </p>
+                    </div>
+
+                    {initialAccounts.length === 1 ? (
+                        <div className={'px-3 py-2.5 rounded-md border border-border bg-surface text-text text-sm'}>
+                            {initialClaudeConfigDir ? initialAccounts[0].label : 'System default (no override)'}
+                        </div>
+                    ) : (
+                        <select
+                            value={accountConfigDir}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAccountConfigDir(e.target.value)}
+                            className={'w-full px-3 py-2.5 rounded-md border border-border bg-surface text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            disabled={isAccountSaving}
+                        >
+                            <option value={''}>System default (no override)</option>
+                            {initialAccounts.map((account: IClaudeAccount) => (
+                                <option key={account.configDir} value={account.configDir}>
+                                    {account.label}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+
+                    {accountResult && (
+                        <div className={`text-xs px-3 py-2 rounded-md mt-3 ${accountResult.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
+                            {accountResult.message}
+                        </div>
+                    )}
+
+                    <Button variant={'primary'} size={'sm'} isLoading={isAccountSaving} disabled={isAccountSaving} onClick={handleAccountSave} className={'w-full mt-3'}>
+                        Save Account
+                    </Button>
+                </div>
+            )}
 
             {/* Home link when configured */}
             {initialActiveConfigId && (
