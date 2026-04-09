@@ -346,7 +346,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
 
     const r2Disabled: boolean = !r2Configured;
     const effectiveDisabled: boolean = disabled || r2Disabled;
-    const canSend: boolean = (text.trim().length > 0 || attachments.length > 0) && !effectiveDisabled && !isRecording;
+    const canSend: boolean = text.trim().length > 0 && !effectiveDisabled && !isRecording;
     const r2Tooltip: string | undefined = r2Disabled ? 'Please configure Cloudflare R2 in Setup to start chatting' : undefined;
 
     // Single action button — one of: Stop stream | Voice spinner | Stop recording | Send | Mic
