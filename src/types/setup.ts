@@ -23,6 +23,11 @@ export interface IR2Config {
     bucketName: string;
 }
 
+/** Groq API credentials for Speech-to-Text */
+export interface IGroqConfig {
+    apiKey: string;
+}
+
 /** A single path mapping — maps multiple absolute paths to one canonical path */
 export interface IPathMapping {
     id: string;
@@ -46,6 +51,7 @@ export interface IGetSetupStatusResponse extends IApiResponse {
     configured?: boolean;
     hasLocalConfig?: boolean;
     r2Configured?: boolean;
+    groqConfigured?: boolean;
 }
 
 export interface IGetConfigurationsResponse extends IApiResponse {
@@ -96,6 +102,14 @@ export interface IGetR2ConfigResponse extends IApiResponse {
 
 export interface ISaveR2ConfigResponse extends IApiResponse {
     r2Config?: IR2Config;
+}
+
+export interface IGetGroqConfigResponse extends IApiResponse {
+    groqConfig?: IGroqConfig | null;
+}
+
+export interface ISaveGroqConfigResponse extends IApiResponse {
+    groqConfig?: IGroqConfig;
 }
 
 export interface IGetAccountsResponse extends IApiResponse {
@@ -169,6 +183,10 @@ export interface ISaveR2ConfigParams {
     endpoint: string;
     publicUrl: string;
     bucketName: string;
+}
+
+export interface ISaveGroqConfigParams {
+    apiKey: string;
 }
 
 export interface ISaveClaudeAccountParams {

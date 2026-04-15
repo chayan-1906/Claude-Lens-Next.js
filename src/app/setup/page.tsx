@@ -1,14 +1,16 @@
 import type {Metadata} from "next";
 import {connection} from "next/server";
 import {SetupForm} from "@/components/SetupForm";
-import {getAccounts, getClaudeAccount, getConfigurations, getPathMappings, getR2Config} from "@/actions/setup.actions";
+import {getAccounts, getClaudeAccount, getConfigurations, getGroqConfig, getPathMappings, getR2Config} from "@/actions/setup.actions";
 import type {
     IClaudeAccount,
     IGetAccountsResponse,
     IGetClaudeAccountResponse,
     IGetConfigurationsResponse,
+    IGetGroqConfigResponse,
     IGetPathMappingsResponse,
     IGetR2ConfigResponse,
+    IGroqConfig,
     IMongoConfig,
     IPathMapping,
     IR2Config,
@@ -24,10 +26,11 @@ async function SetupPage() {
     const [{
         configurations,
         activeConfigId
-    }, {pathMappings}, {r2Config}, {accounts}, {claudeConfigDir}]: [IGetConfigurationsResponse, IGetPathMappingsResponse, IGetR2ConfigResponse, IGetAccountsResponse, IGetClaudeAccountResponse] = await Promise.all([
+    }, {pathMappings}, {r2Config}, {groqConfig}, {accounts}, {claudeConfigDir}]: [IGetConfigurationsResponse, IGetPathMappingsResponse, IGetR2ConfigResponse, IGetGroqConfigResponse, IGetAccountsResponse, IGetClaudeAccountResponse] = await Promise.all([
         getConfigurations(),
         getPathMappings(),
         getR2Config(),
+        getGroqConfig(),
         getAccounts(),
         getClaudeAccount(),
     ]);
@@ -50,6 +53,7 @@ async function SetupPage() {
                     initialActiveConfigId={activeConfigId ?? ''}
                     initialPathMappings={pathMappings as IPathMapping[] ?? []}
                     initialR2Config={r2Config as IR2Config ?? null}
+                    initialGroqConfig={groqConfig as IGroqConfig ?? null}
                     initialAccounts={accounts as IClaudeAccount[] ?? []}
                     initialClaudeConfigDir={claudeConfigDir as string ?? null}
                 />

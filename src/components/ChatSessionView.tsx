@@ -51,7 +51,7 @@ import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResu
 const SCROLL_THRESHOLD: number = 50;
 const LOAD_MORE_THRESHOLD: number = 120;
 
-function ChatSessionView({isNewChat, session, historicalMessages, initialPagination, r2Configured, localJsonlAvailable}: IChatSessionViewProps) {
+function ChatSessionView({isNewChat, session, historicalMessages, initialPagination, r2Configured, groqConfigured, localJsonlAvailable}: IChatSessionViewProps) {
     const router = useRouter();
     const {
         status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval,
@@ -1112,6 +1112,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                     onThinkingChange={handleThinkingChange}
                     ideStatus={ideStatus}
                     r2Configured={r2Configured}
+                    groqConfigured={groqConfigured}
                 />
             </div>
         </div>

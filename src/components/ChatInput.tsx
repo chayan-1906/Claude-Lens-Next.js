@@ -81,7 +81,7 @@ async function resizeAndCompressImage(base64: string, mimeType: string): Promise
 // Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
 let draftText: string = '';
 
-function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, ideStatus, r2Configured}: IChatInputProps) {
+function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, ideStatus, r2Configured, groqConfigured}: IChatInputProps) {
     const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const [attachments, setAttachments] = React.useState<IAttachment[]>([]);
@@ -345,9 +345,11 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
     }, [isVoiceProcessing, isRecording, stopRecording, resetVoice, startRecording]);
 
     const r2Disabled: boolean = !r2Configured;
+    const micDisabled: boolean = !groqConfigured;
     const effectiveDisabled: boolean = disabled || r2Disabled;
     const canSend: boolean = text.trim().length > 0 && !effectiveDisabled && !isRecording;
     const r2Tooltip: string | undefined = r2Disabled ? 'Please configure Cloudflare R2 in Setup to start chatting' : undefined;
+    const micTooltip: string | undefined = micDisabled ? 'Configure a Groq API key in Setup to enable voice input' : undefined;
 
     // Single action button — one of: Stop stream | Voice spinner | Stop recording | Send | Mic
     const renderActionButton = (): React.ReactElement => {
@@ -382,9 +384,9 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
                 </Button>
             );
         }
-        // Default: idle mic
+
         return (
-            <Button variant={'ghost'} size={'icon'} onClick={handleMicClick} disabled={effectiveDisabled} title={r2Tooltip} aria-label={'Start recording'} className={'shrink-0 size-8 rounded-lg'}>
+            <Button variant={'ghost'} size={'icon'} onClick={handleMicClick} disabled={effectiveDisabled || micDisabled} title={micTooltip ?? r2Tooltip} aria-label={'Start recording'} className={'shrink-0 size-8 rounded-lg'}>
                 <FaMicrophone className={'size-3.5'}/>
             </Button>
         );

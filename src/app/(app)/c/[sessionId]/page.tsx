@@ -21,11 +21,13 @@ async function SessionPage({params}: ISessionPageProps) {
     const {sessionId} = await params;
     const isNewChat: boolean = sessionId === 'new';
 
-    const {r2Configured}: IGetSetupStatusResponse = await getSetupStatus();
+    const {r2Configured, groqConfigured}: IGetSetupStatusResponse = await getSetupStatus();
 
     if (isNewChat) {
         const instanceKey: string = crypto.randomUUID();
-        return <ChatSessionView key={instanceKey} isNewChat={true} r2Configured={r2Configured ?? false}/>;
+        return (
+            <ChatSessionView key={instanceKey} isNewChat={true} r2Configured={r2Configured ?? false} groqConfigured={groqConfigured ?? false}/>
+        );
     }
 
     const {success, session, messages, pagination, localJsonlAvailable, error}: IGetSessionResponse = await getSession({
@@ -52,6 +54,7 @@ async function SessionPage({params}: ISessionPageProps) {
             historicalMessages={messages}
             initialPagination={pagination}
             r2Configured={r2Configured ?? false}
+            groqConfigured={groqConfigured ?? false}
             localJsonlAvailable={localJsonlAvailable ?? false}
         />
     );

@@ -18,8 +18,9 @@ import {
     getConfigProjects,
     mergePathMapping,
     saveClaudeAccount,
+    saveGroqConfig,
     saveR2Config,
-    testConfiguration
+    testConfiguration,
 } from "@/actions/setup.actions";
 import type {
     IActivateConfigurationResponse,
@@ -32,11 +33,12 @@ import type {
     IMongoConfig,
     IPathMapping,
     ISaveClaudeAccountResponse,
+    ISaveGroqConfigResponse,
     ISaveR2ConfigResponse,
-    ITestConfigurationResponse
+    ITestConfigurationResponse,
 } from "@/types/setup";
 
-function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMappings, initialR2Config, initialAccounts, initialClaudeConfigDir}: ISetupFormProps) {
+function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMappings, initialR2Config, initialGroqConfig, initialAccounts, initialClaudeConfigDir}: ISetupFormProps) {
     const router = useRouter();
     const hasConfigs: boolean = initialConfigurations.length > 0;
 
@@ -72,6 +74,11 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
     const [r2BucketName, setR2BucketName] = React.useState<string>(initialR2Config?.bucketName ?? '');
     const [isR2Saving, setIsR2Saving] = React.useState<boolean>(false);
     const [r2Result, setR2Result] = React.useState<{ success: boolean; message: string } | null>(null);
+
+    // Groq config state
+    const [groqApiKey, setGroqApiKey] = React.useState<string>(initialGroqConfig?.apiKey ?? '');
+    const [isGroqSaving, setIsGroqSaving] = React.useState<boolean>(false);
+    const [groqResult, setGroqResult] = React.useState<{ success: boolean; message: string } | null>(null);
 
     // First-run submit handler: add a "Default" config, activate it, and save selected Claude account
     const handleFirstRunSubmit = React.useCallback(async (e: React.FormEvent): Promise<void> => {
@@ -249,6 +256,25 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
 
         setIsR2Saving(false);
     }, [r2AccessKeyId, r2SecretAccessKey, r2Endpoint, r2PublicUrl, r2BucketName]);
+
+    // Groq config handler
+    const handleGroqSave = React.useCallback(async (e: React.FormEvent): Promise<void> => {
+        e.preventDefault();
+        setIsGroqSaving(true);
+        setGroqResult(null);
+
+        const response: ISaveGroqConfigResponse = await saveGroqConfig({
+            apiKey: groqApiKey.trim(),
+        });
+
+        if (response.success) {
+            setGroqResult({success: true, message: response.message || 'Groq config saved!'});
+        } else {
+            setGroqResult({success: false, message: response.error || 'Failed to save Groq config!'});
+        }
+
+        setIsGroqSaving(false);
+    }, [groqApiKey]);
 
     // Claude account save handler (management mode)
     const handleAccountSave = React.useCallback(async (): Promise<void> => {
@@ -513,6 +539,44 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
 
                     <Button type={'submit'} variant={'primary'} size={'sm'} isLoading={isR2Saving} disabled={!r2FieldsFilled || isR2Saving} className={'w-full'}>
                         Save R2 Config
+                    </Button>
+                </form>
+            </div>
+
+            {/* ======================== Groq API Key Section ======================== */}
+            <div className={'mt-8 pt-6 border-t border-border'}>
+                <div className={'mb-4'}>
+                    <h2 className={'text-lg font-semibold text-text'}>Groq API Key</h2>
+                    <p className={'text-xs text-text-muted mt-0.5'}>
+                        API key for Speech-to-Text (Whisper) — required to enable the mic button
+                    </p>
+                </div>
+
+                <form onSubmit={handleGroqSave} className={'space-y-3'}>
+                    <div>
+                        <label htmlFor={'groq-api-key'} className={'block text-xs font-medium text-text mb-1'}>
+                            API Key
+                        </label>
+                        <input
+                            id={'groq-api-key'}
+                            type={'text'}
+                            value={groqApiKey}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGroqApiKey(e.target.value)}
+                            placeholder={'gsk_...'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            disabled={isGroqSaving}
+                        />
+                    </div>
+
+                    {/* Groq result feedback */}
+                    {groqResult && (
+                        <div className={`text-xs px-3 py-2 rounded-md ${groqResult.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
+                            {groqResult.message}
+                        </div>
+                    )}
+
+                    <Button type={'submit'} variant={'primary'} size={'sm'} isLoading={isGroqSaving} disabled={!groqApiKey.trim() || isGroqSaving} className={'w-full'}>
+                        Save Groq API Key
                     </Button>
                 </form>
             </div>

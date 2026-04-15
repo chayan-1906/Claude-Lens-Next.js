@@ -23,9 +23,11 @@ import {
     IGetConfigProjectsParams,
     IGetConfigProjectsResponse,
     IGetConfigurationsResponse,
+    IGetGroqConfigResponse,
     IGetPathMappingsResponse,
     IGetR2ConfigResponse,
     IGetSetupStatusResponse,
+    IGroqConfig,
     IMergePathMappingParams,
     IMergePathMappingResponse,
     IMongoConfig,
@@ -33,6 +35,8 @@ import {
     IR2Config,
     ISaveClaudeAccountParams,
     ISaveClaudeAccountResponse,
+    ISaveGroqConfigParams,
+    ISaveGroqConfigResponse,
     ISaveR2ConfigParams,
     ISaveR2ConfigResponse,
     ITestConfigurationParams,
@@ -64,6 +68,7 @@ async function getSetupStatus(): Promise<IGetSetupStatusResponse> {
             configured: data.configured as boolean,
             hasLocalConfig: data.hasLocalConfig as boolean,
             r2Configured: data.r2Configured as boolean,
+            groqConfigured: data.groqConfigured as boolean,
         };
     } catch (error: unknown) {
         console.error('Get setup status error:', error);
@@ -587,6 +592,78 @@ async function saveR2Config({accessKeyId, secretAccessKey, endpoint, publicUrl, 
     }
 }
 
+// ======================== Groq Config Actions ========================
+
+async function getGroqConfig(): Promise<IGetGroqConfigResponse> {
+    try {
+        const response: Response = await fetch(apis.getGroqConfigApi);
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            const errorMessage: string = 'Failed to fetch Groq config!';
+            console.error('Getting Groq config failed:', {code: errorCode, message: data.error?.message});
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            groqConfig: data.groqConfig as IGroqConfig | null,
+        };
+    } catch (error: unknown) {
+        console.error('Get Groq config error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
+async function saveGroqConfig({apiKey}: ISaveGroqConfigParams): Promise<ISaveGroqConfigResponse> {
+    try {
+        const response: Response = await fetch(apis.saveGroqConfigApi, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({apiKey}),
+        });
+        const data: ApiResponseClass = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+            const errorCode: string | number = data.error?.code || '';
+            let errorMessage: string = 'Failed to save Groq config!';
+            console.error('Save Groq config failed:', {code: errorCode, message: data.error?.message});
+
+            if (errorCode === 'APIKEY_MISSING') {
+                errorMessage = 'API Key is required!';
+            } else if (errorCode === 'INVALID_APIKEY') {
+                errorMessage = data.error?.message || 'Invalid API Key!';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            groqConfig: data.groqConfig as IGroqConfig,
+        };
+    } catch (error: unknown) {
+        console.error('Save Groq config error:', error);
+        return {
+            success: false,
+            error: 'Something went wrong. Please try again!',
+        };
+    }
+}
+
 // ======================== Claude Account Actions ========================
 
 async function getClaudeAccount(): Promise<IGetClaudeAccountResponse> {
@@ -705,6 +782,8 @@ export {
     mergePathMapping,
     getR2Config,
     saveR2Config,
+    getGroqConfig,
+    saveGroqConfig,
     getClaudeAccount,
     getAccounts,
     saveClaudeAccount,

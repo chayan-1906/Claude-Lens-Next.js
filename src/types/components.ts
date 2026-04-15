@@ -6,7 +6,7 @@ import type {IUseTextToSpeechReturn} from "@/types/tts";
 import type {IGetSessionPagination, ISession} from "@/types/session";
 import {IAttachment, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
-import type {IClaudeAccount, IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
+import type {IClaudeAccount, IGroqConfig, IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 
 /** ------------- Constants and Type Aliases ------------- */
 
@@ -205,6 +205,7 @@ export interface IChatInputProps {
     onThinkingChange: (thinking: boolean) => void;
     ideStatus?: IIdeStatus | null;
     r2Configured: boolean;
+    groqConfigured: boolean;
 }
 
 export interface IScrollToBottomProps {
@@ -223,6 +224,7 @@ export interface IChatSessionViewProps {
     historicalMessages?: IMessage[];
     initialPagination?: IGetSessionPagination;
     r2Configured: boolean;
+    groqConfigured: boolean;
     localJsonlAvailable?: boolean;
 }
 
@@ -253,6 +255,7 @@ export interface ISetupFormProps {
     initialActiveConfigId: string;
     initialPathMappings: IPathMapping[];
     initialR2Config: IR2Config | null;
+    initialGroqConfig: IGroqConfig | null;
     initialAccounts: IClaudeAccount[];
     initialClaudeConfigDir: string | null;
 }

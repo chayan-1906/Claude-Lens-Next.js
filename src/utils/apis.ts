@@ -57,6 +57,9 @@ const apis = {
     getR2ConfigApi: `${baseSetupApiUrl}/r2-config`,
     saveR2ConfigApi: `${baseSetupApiUrl}/r2-config`,
 
+    getGroqConfigApi: `${baseSetupApiUrl}/groq-config`,
+    saveGroqConfigApi: `${baseSetupApiUrl}/groq-config`,
+
     getAccountsApi: `${baseSetupApiUrl}/accounts`,
     getClaudeAccountApi: `${baseSetupApiUrl}/claude-account`,
     saveClaudeAccountApi: `${baseSetupApiUrl}/claude-account`,
