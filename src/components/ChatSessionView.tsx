@@ -680,33 +680,27 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
 
             {/* Header (existing sessions only) */}
             {localSession && (
-                <div className={'flex px-6 py-3 items-center justify-between border-b border-border shrink-0'}>
+                <div className={'flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 border-b border-border shrink-0'}>
                     <div className={'flex flex-col justify-center min-w-0'}>
-                        <div className={'flex gap-2 items-end'}>
-                            <h1 className={'text-sm font-semibold truncate text-primary cursor-pointer hover:underline'} onClick={() => setIsRenameModalOpen(true)} title={'Click to rename session'}>
-                                {localSession.title}
-                            </h1>
-                            <p className={'text-xs text-primary/80 font-semibold'}>({localSession.rawProjectDir})</p>
-                        </div>
+                        <h1 className={'text-sm font-semibold truncate text-primary cursor-pointer hover:underline'} onClick={() => setIsRenameModalOpen(true)} title={'Click to rename session'}>
+                            {localSession.title}
+                        </h1>
 
                         {localSession.description && (
-                            <p className={'text-xs text-text-muted truncate mt-0.5'}>{localSession.description}</p>
+                            <p className={'text-xs text-text-muted truncate'}>{localSession.description}</p>
                         )}
 
-                        <div className={'flex items-center gap-1 text-xs text-primary'}>
-                            {localSession.aiModel && (
-                                <span>{localSession.aiModel}</span>
-                            )}
-                            {(localSession.aiModel && localSession.gitBranch) && (
-                                <span>•</span>
-                            )}{localSession.gitBranch && (
-                            <span>{localSession.gitBranch}</span>
+                        {(localSession.aiModel || localSession.gitBranch) && (
+                            <p className={'text-xs text-primary/70'}>
+                                {[localSession.aiModel, localSession.gitBranch].filter(Boolean).join(' • ')}
+                            </p>
                         )}
-                        </div>
+
+                        <p className={'text-xs text-primary/50 truncate'}>{localSession.rawProjectDir}</p>
                     </div>
 
-                    <div className={'flex items-center gap-2 shrink-0'}>
-                        <Button variant={'ghost'} size={'icon'} onClick={() => handleSend('/compact')} disabled={isChattingDisabled} className={'size-7 text-text-muted'}
+                    <div className={'flex items-center gap-1 sm:gap-2 shrink-0'}>
+                        <Button variant={'ghost'} size={'icon'} onClick={() => handleSend('/compact')} disabled={isChattingDisabled} className={'hidden sm:flex size-7 text-text-muted'}
                                 title={'Compact session — summarise conversation history to free up context'}>
                             <HiOutlineArchive className={'size-3.5'}/>
                         </Button>
@@ -715,7 +709,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                             <HiOutlineRefresh className={cn('size-3.5', isRefreshingMessages && 'animate-spin')}/>
                         </Button>
                         {r2Configured && localJsonlAvailable && (
-                            <Button variant={'ghost'} size={'icon'} onClick={() => backupSession(localSession.sessionId)} className={'size-7 text-text-muted'} title={'Backup session JSONL to R2'}>
+                            <Button variant={'ghost'} size={'icon'} onClick={() => backupSession(localSession.sessionId)} className={'hidden sm:flex size-7 text-text-muted'} title={'Backup session JSONL to R2'}>
                                 <HiOutlineShieldCheck className={'size-3.5'}/>
                             </Button>
                         )}

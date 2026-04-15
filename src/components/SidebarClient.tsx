@@ -418,7 +418,9 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
                 const parentSessionIds: Set<string> = new Set(
                     allSessions.filter((session: ISession) => session.parentSessionId).map((session: ISession) => session.parentSessionId!),
                 );
-                const sessions: ISession[] = allSessions.filter((s: ISession) => !parentSessionIds.has(s.sessionId));
+                const sessions: ISession[] = allSessions
+                    .filter((s: ISession) => !parentSessionIds.has(s.sessionId))
+                    .sort((a: ISession, b: ISession) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
                 const memories: IMemory[] = memoriesMap[projectDir] ?? [];
                 const isLoading: boolean = loadingProject === projectDir;
 
