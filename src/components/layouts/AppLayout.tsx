@@ -11,18 +11,16 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type {IAppLayoutProps} from "@/types/components";
 
 function AppLayout({children, sidebar, sidebarTitle = 'Projects'}: IAppLayoutProps) {
-    const [sidebarOpen, setSidebarOpen] = React.useState<boolean>(true);
+    const [sidebarOpen, setSidebarOpen] = React.useState<boolean>(false);
     const [isMobile, setIsMobile] = React.useState<boolean>(false);
 
-    const toggleSidebar = (): void => setSidebarOpen((prev: boolean) => !prev);
+    const toggleSidebar = React.useCallback(() => setSidebarOpen((prev: boolean) => !prev), []);
 
     React.useEffect(() => {
         function handleResize(): void {
             const isMobileView: boolean = window.innerWidth < 768;
             setIsMobile(isMobileView);
-            if (!isMobileView) {
-                setSidebarOpen(true);
-            }
+            setSidebarOpen(!isMobileView);
         }
 
         handleResize();
@@ -66,7 +64,8 @@ function AppLayout({children, sidebar, sidebarTitle = 'Projects'}: IAppLayoutPro
                     <div className={'flex-1'}/>
 
                     <SyncButton/>
-                    <Link href={routes.setupPath} title={'Settings'} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-all duration-150'}>
+                    <Link href={routes.setupPath} title={'Settings'}
+                          className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-all duration-150'}>
                         <HiOutlineCog className={'size-4'}/>
                     </Link>
                     <ThemeSwitcher/>
