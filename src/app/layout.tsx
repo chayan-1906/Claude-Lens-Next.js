@@ -14,6 +14,10 @@ const inter: NextFontWithVariable = Inter({
 export const metadata: Metadata = {
     title: 'Claude Lens',
     description: 'Browse Claude Code sessions from any device',
+    icons: {
+        icon: '/assets/logo.png',
+        apple: '/assets/logo.png',
+    },
 };
 
 /** Inline script to set theme data attributes synchronously before paint (prevents FOUC) */

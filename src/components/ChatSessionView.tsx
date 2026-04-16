@@ -680,23 +680,33 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
 
             {/* Header (existing sessions only) */}
             {localSession && (
-                <div className={'flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 border-b border-border shrink-0'}>
-                    <div className={'flex flex-col justify-center min-w-0'}>
-                        <h1 className={'text-sm font-semibold truncate text-primary cursor-pointer hover:underline'} onClick={() => setIsRenameModalOpen(true)} title={'Click to rename session'}>
+                <div className={'flex items-center justify-between px-3 sm:px-6 py-3 border-b border-border bg-linear-to-r from-primary/6 to-surface shrink-0'}>
+                    <div className={'flex flex-col justify-center min-w-0 gap-1'}>
+                        <h1 className={'text-sm font-semibold truncate text-text cursor-pointer hover:text-primary transition-colors leading-tight'} onClick={() => setIsRenameModalOpen(true)} title={'Click to rename session'}>
                             {localSession.title}
                         </h1>
 
                         {localSession.description && (
-                            <p className={'text-xs text-text-muted truncate'}>{localSession.description}</p>
+                            <p className={'text-xs text-text-muted truncate leading-tight'}>{localSession.description}</p>
                         )}
 
                         {(localSession.aiModel || localSession.gitBranch) && (
-                            <p className={'text-xs text-primary/70'}>
-                                {[localSession.aiModel, localSession.gitBranch].filter(Boolean).join(' • ')}
-                            </p>
+                            <div className={'flex items-center gap-1.5 flex-wrap'}>
+                                {localSession.aiModel && (
+                                    <span className={'inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/8 text-[10px] font-medium text-primary/70 leading-none'}>
+                                        {localSession.aiModel}
+                                    </span>
+                                )}
+                                {localSession.gitBranch && (
+                                    <span className={'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-success/10 text-[10px] font-medium text-success/80 leading-none'}>
+                                        <HiOutlineCode className={'size-2.5 shrink-0'}/>
+                                        {localSession.gitBranch}
+                                    </span>
+                                )}
+                            </div>
                         )}
 
-                        <p className={'text-xs text-primary/50 truncate'}>{localSession.rawProjectDir}</p>
+                        <p className={'text-[10px] font-mono text-text-muted/50 truncate leading-tight'}>{localSession.rawProjectDir}</p>
                     </div>
 
                     <div className={'flex items-center gap-1 sm:gap-2 shrink-0'}>

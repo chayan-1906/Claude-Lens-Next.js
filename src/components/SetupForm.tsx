@@ -2,6 +2,7 @@
 
 import React from "react";
 import {FaPlus} from "react-icons/fa";
+import {HiOutlineCloud, HiOutlineDatabase, HiOutlineMicrophone, HiOutlineSwitchHorizontal, HiOutlineUserCircle} from "react-icons/hi";
 import {useRouter} from "next/navigation";
 import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
@@ -295,7 +296,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
     // First-run mode: simple URI input form
     if (!hasConfigs) {
         return (
-            <form onSubmit={handleFirstRunSubmit} className={'mt-6'}>
+            <form onSubmit={handleFirstRunSubmit}>
                 <label htmlFor={'mongo-uri'} className={'block text-sm font-medium text-text mb-1.5'}>
                     MongoDB Connection String
                 </label>
@@ -305,7 +306,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                     value={mongoUri}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMongoUri(e.target.value)}
                     placeholder={'mongodb+srv://user:password@cluster.mongodb.net/dbname'}
-                    className={'w-full px-3 py-2.5 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                    className={'w-full px-3 py-2.5 rounded-md border border-border bg-background text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                     disabled={isSubmitting}
                     autoFocus
                 />
@@ -319,7 +320,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                             id={'claude-account'}
                             value={selectedConfigDir}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedConfigDir(e.target.value)}
-                            className={'w-full px-3 py-2.5 rounded-md border border-border bg-surface text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            className={'w-full px-3 py-2.5 rounded-md border border-border bg-background text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isSubmitting}
                         >
                             <option value={''}>System default (no override)</option>
@@ -345,68 +346,81 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
 
     // Config management mode
     return (
-        <div className={'mt-6'}>
-            {/* Add New button */}
-            <div className={'flex justify-end mb-4'}>
-                <Button variant={'primary'} size={'sm'} onClick={handleAddNew}>
-                    <FaPlus/>
-                    Add New
-                </Button>
-            </div>
-
+        <div className={'space-y-5'}>
             {/* Error */}
             {error && (
-                <p className={'text-sm text-error bg-error/10 px-3 py-2 rounded-md mb-4'}>{error}</p>
+                <p className={'text-sm text-error bg-error/10 px-3 py-2 rounded-md'}>{error}</p>
             )}
 
-            {/* Config cards */}
-            <div className={'grid gap-3'}>
-                {initialConfigurations.map((config: IMongoConfig) => (
-                    <React.Fragment key={config.id}>
-                        <ConfigCard
-                            config={config}
-                            isActive={config.id === initialActiveConfigId}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            onActivate={handleActivate}
-                            onTest={handleTest}
-                            isActivating={activatingId === config.id}
-                        />
+            {/* ======================== MongoDB Configurations ======================== */}
+            <div className={'bg-surface border border-border rounded-xl p-5'}>
+                <div className={'flex items-center justify-between mb-4'}>
+                    <div className={'flex items-center gap-3'}>
+                        <div className={'size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0'}>
+                            <HiOutlineDatabase className={'size-4 text-primary'}/>
+                        </div>
+                        <div>
+                            <h2 className={'text-sm font-semibold text-text'}>MongoDB Configurations</h2>
+                            <p className={'text-xs text-text-muted mt-0.5'}>Manage your database connections</p>
+                        </div>
+                    </div>
+                    <Button variant={'primary'} size={'sm'} onClick={handleAddNew}>
+                        <FaPlus/>
+                        Add New
+                    </Button>
+                </div>
 
-                        {/* Test result */}
-                        {testResult && testResult.configId === config.id && (
-                            <div className={`text-xs px-3 py-2 rounded-md ${testResult.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
-                                {testResult.message}
-                            </div>
-                        )}
+                <div className={'grid gap-3'}>
+                    {initialConfigurations.map((config: IMongoConfig) => (
+                        <React.Fragment key={config.id}>
+                            <ConfigCard
+                                config={config}
+                                isActive={config.id === initialActiveConfigId}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                onActivate={handleActivate}
+                                onTest={handleTest}
+                                isActivating={activatingId === config.id}
+                            />
 
-                        {/* Projects preview */}
-                        {projectsPreview && projectsPreview.configId === config.id && projectsPreview.projects.length > 0 && (
-                            <div className={'text-xs bg-surface border border-border rounded-md px-3 py-2'}>
-                                <p className={'font-medium text-text mb-1'}>
-                                    Projects ({projectsPreview.projects.length}):
-                                </p>
-                                <ul className={'space-y-0.5'}>
-                                    {projectsPreview.projects.map((project) => (
-                                        <li key={project.projectDir} className={'text-text-muted truncate'}>
-                                            {project.rawProjectDir}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </React.Fragment>
-                ))}
+                            {testResult && testResult.configId === config.id && (
+                                <div className={`text-xs px-3 py-2 rounded-md ${testResult.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
+                                    {testResult.message}
+                                </div>
+                            )}
+
+                            {projectsPreview && projectsPreview.configId === config.id && projectsPreview.projects.length > 0 && (
+                                <div className={'text-xs bg-background border border-border rounded-md px-3 py-2'}>
+                                    <p className={'font-medium text-text mb-1'}>
+                                        Projects ({projectsPreview.projects.length}):
+                                    </p>
+                                    <ul className={'space-y-0.5'}>
+                                        {projectsPreview.projects.map((project) => (
+                                            <li key={project.projectDir} className={'text-text-muted truncate'}>
+                                                {project.rawProjectDir}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
             </div>
 
             {/* ======================== Path Mappings Section ======================== */}
-            <div className={'mt-8 pt-6 border-t border-border'}>
+            <div className={'bg-surface border border-border rounded-xl p-5'}>
                 <div className={'flex items-center justify-between mb-4'}>
-                    <div>
-                        <h2 className={'text-lg font-semibold text-text'}>Path Mappings</h2>
-                        <p className={'text-xs text-text-muted mt-0.5'}>
-                            Map multiple machine paths to a single canonical project
-                        </p>
+                    <div className={'flex items-center gap-3'}>
+                        <div className={'size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0'}>
+                            <HiOutlineSwitchHorizontal className={'size-4 text-primary'}/>
+                        </div>
+                        <div>
+                            <h2 className={'text-sm font-semibold text-text'}>Path Mappings</h2>
+                            <p className={'text-xs text-text-muted mt-0.5'}>
+                                Map multiple machine paths to a single canonical project
+                            </p>
+                        </div>
                     </div>
                     <Button variant={'primary'} size={'sm'} onClick={handleAddMapping}>
                         <FaPlus/>
@@ -416,7 +430,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
 
                 {initialPathMappings.length === 0
                     ? (
-                        <p className={'text-sm text-text-muted text-center py-6 bg-surface rounded-lg border border-border border-dashed'}>
+                        <p className={'text-sm text-text-muted text-center py-6 bg-background rounded-lg border border-border border-dashed'}>
                             No path mappings configured yet.
                         </p>
                     )
@@ -432,7 +446,6 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                                         isMerging={mergingId === mapping.id}
                                     />
 
-                                    {/* Merge result */}
                                     {mergeResult && mergeResult.mappingId === mapping.id && (
                                         <div className={`text-xs px-3 py-2 rounded-md ${mergeResult.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
                                             {mergeResult.message}
@@ -446,12 +459,17 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
             </div>
 
             {/* ======================== Cloudflare R2 Section ======================== */}
-            <div className={'mt-8 pt-6 border-t border-border'}>
-                <div className={'mb-4'}>
-                    <h2 className={'text-lg font-semibold text-text'}>Cloudflare R2</h2>
-                    <p className={'text-xs text-text-muted mt-0.5'}>
-                        Storage credentials for file attachments (images, PDFs, code files)
-                    </p>
+            <div className={'bg-surface border border-border rounded-xl p-5'}>
+                <div className={'flex items-center gap-3 mb-4'}>
+                    <div className={'size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0'}>
+                        <HiOutlineCloud className={'size-4 text-primary'}/>
+                    </div>
+                    <div>
+                        <h2 className={'text-sm font-semibold text-text'}>Cloudflare R2</h2>
+                        <p className={'text-xs text-text-muted mt-0.5'}>
+                            Storage credentials for file attachments (images, PDFs, code files)
+                        </p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleR2Save} className={'space-y-3'}>
@@ -465,7 +483,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                             value={r2AccessKeyId}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2AccessKeyId(e.target.value)}
                             placeholder={'CLOUDFLARE_ACCESS_KEY_ID'}
-                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-background text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isR2Saving}
                         />
                     </div>
@@ -480,7 +498,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                             value={r2SecretAccessKey}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2SecretAccessKey(e.target.value)}
                             placeholder={'CLOUDFLARE_SECRET_ACCESS_KEY'}
-                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-background text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isR2Saving}
                         />
                     </div>
@@ -495,7 +513,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                             value={r2Endpoint}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2Endpoint(e.target.value)}
                             placeholder={'https://<account-id>.r2.cloudflarestorage.com'}
-                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-background text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isR2Saving}
                         />
                     </div>
@@ -510,7 +528,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                             value={r2PublicUrl}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2PublicUrl(e.target.value)}
                             placeholder={'https://pub-xxx.r2.dev'}
-                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-background text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isR2Saving}
                         />
                     </div>
@@ -525,7 +543,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                             value={r2BucketName}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setR2BucketName(e.target.value)}
                             placeholder={'my-bucket'}
-                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-background text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isR2Saving}
                         />
                     </div>
@@ -544,12 +562,17 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
             </div>
 
             {/* ======================== Groq API Key Section ======================== */}
-            <div className={'mt-8 pt-6 border-t border-border'}>
-                <div className={'mb-4'}>
-                    <h2 className={'text-lg font-semibold text-text'}>Groq API Key</h2>
-                    <p className={'text-xs text-text-muted mt-0.5'}>
-                        API key for Speech-to-Text (Whisper) — required to enable the mic button
-                    </p>
+            <div className={'bg-surface border border-border rounded-xl p-5'}>
+                <div className={'flex items-center gap-3 mb-4'}>
+                    <div className={'size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0'}>
+                        <HiOutlineMicrophone className={'size-4 text-primary'}/>
+                    </div>
+                    <div>
+                        <h2 className={'text-sm font-semibold text-text'}>Groq API Key</h2>
+                        <p className={'text-xs text-text-muted mt-0.5'}>
+                            API key for Speech-to-Text (Whisper) — required to enable the mic button
+                        </p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleGroqSave} className={'space-y-3'}>
@@ -563,7 +586,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                             value={groqApiKey}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGroqApiKey(e.target.value)}
                             placeholder={'gsk_...'}
-                            className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            className={'w-full px-3 py-2 rounded-md border border-border bg-background text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isGroqSaving}
                         />
                     </div>
@@ -583,23 +606,28 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
 
             {/* ======================== Claude Account Section ======================== */}
             {initialAccounts.length > 0 && (
-                <div className={'mt-8 pt-6 border-t border-border'}>
-                    <div className={'mb-4'}>
-                        <h2 className={'text-lg font-semibold text-text'}>Claude Account</h2>
-                        <p className={'text-xs text-text-muted mt-0.5'}>
-                            Select which Claude config directory to use when spawning the CLI
-                        </p>
+                <div className={'bg-surface border border-border rounded-xl p-5'}>
+                    <div className={'flex items-center gap-3 mb-4'}>
+                        <div className={'size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0'}>
+                            <HiOutlineUserCircle className={'size-4 text-primary'}/>
+                        </div>
+                        <div>
+                            <h2 className={'text-sm font-semibold text-text'}>Claude Account</h2>
+                            <p className={'text-xs text-text-muted mt-0.5'}>
+                                Select which Claude config directory to use when spawning the CLI
+                            </p>
+                        </div>
                     </div>
 
                     {initialAccounts.length === 1 ? (
-                        <div className={'px-3 py-2.5 rounded-md border border-border bg-surface text-text text-sm'}>
+                        <div className={'px-3 py-2.5 rounded-md border border-border bg-background text-text text-sm'}>
                             {initialClaudeConfigDir ? initialAccounts[0].label : 'System default (no override)'}
                         </div>
                     ) : (
                         <select
                             value={accountConfigDir}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAccountConfigDir(e.target.value)}
-                            className={'w-full px-3 py-2.5 rounded-md border border-border bg-surface text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
+                            className={'w-full px-3 py-2.5 rounded-md border border-border bg-background text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isAccountSaving}
                         >
                             <option value={''}>System default (no override)</option>
@@ -625,7 +653,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
 
             {/* Home link when configured */}
             {initialActiveConfigId && (
-                <div className={'flex justify-center mt-6'}>
+                <div className={'flex justify-center pb-2'}>
                     <Button variant={'link'} size={'sm'} onClick={() => router.push(routes.homePath)}>
                         Go to Home
                     </Button>

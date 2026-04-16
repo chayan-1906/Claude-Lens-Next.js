@@ -2,15 +2,17 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {HiOutlineCog, HiOutlineMenuAlt2, HiOutlineX} from "react-icons/hi";
 import {cn} from "@/utils/cn";
+import {assets} from "@/utils/assets";
 import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
 import {SyncButton} from "@/components/SyncButton";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type {IAppLayoutProps} from "@/types/components";
 
-function AppLayout({children, sidebar, sidebarTitle = 'Projects'}: IAppLayoutProps) {
+function AppLayout({children, sidebar}: IAppLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = React.useState<boolean>(false);
     const [isMobile, setIsMobile] = React.useState<boolean>(false);
 
@@ -36,12 +38,19 @@ function AppLayout({children, sidebar, sidebarTitle = 'Projects'}: IAppLayoutPro
             )}
 
             {/* Sidebar */}
-            <aside
-                className={cn('fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col transition-transform duration-200 z-50 md:z-auto', isMobile && !sidebarOpen && '-translate-x-full')}>
-                {/* Sidebar Header */}
-                <div className={'flex items-center justify-between gap-3 px-4 py-5 border-b border-border shrink-0'}>
-                    <h2 className={'text-sm font-semibold text-secondary'}>{sidebarTitle}</h2>
-                    <Button variant={'ghost'} size={'icon'} onClick={toggleSidebar} className={'md:hidden size-8'} title={'Close sidebar'}>
+            <aside className={cn('fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col transition-transform duration-200 z-50 md:z-auto', isMobile && !sidebarOpen && '-translate-x-full')}>
+                {/* Sidebar brand header */}
+                <div className={'flex items-center justify-between px-4 py-4 border-b border-border shrink-0'}>
+                    <Link href={routes.homePath} className={'flex items-center gap-2.5 min-w-0 group'}>
+                        <div className={'relative size-8 rounded-xl overflow-hidden shrink-0 ring-1 ring-border group-hover:ring-primary/30 transition-all'}>
+                            <Image src={assets.logo} alt={'Claude Lens'} fill unoptimized className={'object-cover'}/>
+                        </div>
+                        <div className={'min-w-0'}>
+                            <p className={'text-sm font-bold text-text leading-none tracking-tight'}>Claude Lens</p>
+                            <p className={'text-[10px] text-text-muted mt-0.5 leading-none'}>Session Browser</p>
+                        </div>
+                    </Link>
+                    <Button variant={'ghost'} size={'icon'} onClick={toggleSidebar} className={'md:hidden size-8 shrink-0 text-text-muted'} title={'Close sidebar'}>
                         <HiOutlineX className={'size-4'}/>
                     </Button>
                 </div>
@@ -53,22 +62,33 @@ function AppLayout({children, sidebar, sidebarTitle = 'Projects'}: IAppLayoutPro
             </aside>
 
             {/* Main Content */}
-            <main className={'flex-1 flex flex-col overflow-hidden'}>
+            <main className={'flex-1 flex flex-col overflow-hidden min-w-0'}>
                 {/* Top Header Bar */}
-                <header className={'flex items-center justify-between gap-4 px-4 py-3 border-b border-border bg-surface shrink-0'}>
-                    {/* Hamburger — only visible on mobile */}
-                    <Button variant={'ghost'} size={'icon'} onClick={toggleSidebar} className={'md:hidden size-8'} title={'Open sidebar'}>
-                        <HiOutlineMenuAlt2 className={'size-4'}/>
-                    </Button>
+                <header className={'flex items-center gap-3 px-4 py-3 border-b border-border bg-surface shrink-0'}>
+                    {/* Mobile: hamburger + brand */}
+                    <div className={'flex items-center gap-2 md:hidden'}>
+                        <Button variant={'ghost'} size={'icon'} onClick={toggleSidebar} className={'size-8'} title={'Open sidebar'}>
+                            <HiOutlineMenuAlt2 className={'size-4'}/>
+                        </Button>
+                        <Link href={routes.homePath} className={'flex items-center gap-2'}>
+                            <div className={'relative size-6 rounded-lg overflow-hidden shrink-0'}>
+                                <Image src={assets.logo} alt={'Claude Lens'} fill unoptimized className={'object-cover'}/>
+                            </div>
+                            <span className={'text-sm font-bold text-text'}>Claude Lens</span>
+                        </Link>
+                    </div>
 
                     <div className={'flex-1'}/>
 
-                    <SyncButton/>
-                    <Link href={routes.setupPath} title={'Settings'}
-                          className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-all duration-150'}>
-                        <HiOutlineCog className={'size-4'}/>
-                    </Link>
-                    <ThemeSwitcher/>
+                    {/* Toolbar */}
+                    <div className={'flex items-center gap-1'}>
+                        <SyncButton/>
+                        <Link href={routes.setupPath} title={'Settings'}
+                              className={'inline-flex items-center justify-center size-8 rounded-md text-text-muted hover:text-text hover:bg-border active:bg-border/70 transition-all duration-150'}>
+                            <HiOutlineCog className={'size-4'}/>
+                        </Link>
+                        <ThemeSwitcher/>
+                    </div>
                 </header>
 
                 {/* Page Content */}

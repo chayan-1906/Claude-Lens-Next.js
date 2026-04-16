@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {usePathname, useRouter} from "next/navigation";
 import {HiOutlineChatAlt2, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineDocumentText, HiOutlineFolder, HiOutlinePlus, HiOutlineRefresh} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
+import {assets} from "@/utils/assets";
 import type {ITask} from "@/types/task";
 import type {IMemory} from "@/types/memory";
 import {Button} from "@/components/ui/Button";
@@ -382,9 +384,10 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
 
     if (projects.length === 0) {
         return (
-            <div className={'flex flex-col gap-2'}>
+            <div className={'flex flex-col gap-3'}>
+                {/* Toolbar */}
                 <div className={'flex justify-end gap-1'}>
-                    <Link href={routes.newSessionPath} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-colors'}
+                    <Link href={routes.newSessionPath} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-border active:bg-border transition-colors'}
                           title={'New chat'}>
                         <HiOutlinePlus className={'size-3.5'}/>
                     </Link>
@@ -393,7 +396,22 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
                         <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
                     </Button>
                 </div>
-                <p className={'text-xs text-text-muted text-center py-4'}>No projects yet</p>
+
+                {/* Empty state */}
+                <div className={'flex flex-col items-center gap-3 py-8 px-3 text-center'}>
+                    <div className={'relative size-12 rounded-2xl overflow-hidden ring-1 ring-border shadow-sm'}>
+                        <Image src={assets.logo} alt={'Claude Lens'} fill unoptimized className={'object-cover'}/>
+                    </div>
+                    <div className={'space-y-1'}>
+                        <p className={'text-xs font-semibold text-text'}>No projects yet</p>
+                        <p className={'text-[10px] text-text-muted leading-relaxed'}>Start a new chat to create your first session</p>
+                    </div>
+                    <Link href={routes.newSessionPath}
+                          className={'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-background text-[11px] font-semibold hover:bg-dark-primary active:scale-95 transition-all'}>
+                        <HiOutlinePlus className={'size-3'}/>
+                        New Chat
+                    </Link>
+                </div>
             </div>
         );
     }
