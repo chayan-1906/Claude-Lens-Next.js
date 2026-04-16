@@ -1,11 +1,14 @@
 import type {NextConfig} from "next";
 
 const nextConfig: NextConfig = {
+    serverActions: {
+        bodySizeLimit: '10mb',
+    },
     output: 'standalone',
     reactCompiler: true,
     reactStrictMode: false,
     cacheComponents: true,
-    allowedDevOrigins: ['192.168.7.5'],
+    allowedDevOrigins: ['192.168.7.7'],
     images: {
         remotePatterns: [
             {
