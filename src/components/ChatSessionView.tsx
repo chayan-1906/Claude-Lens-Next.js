@@ -131,7 +131,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     const isLive: boolean = status === EChatStatus.STREAMING || status === EChatStatus.SENDING || status === EChatStatus.TOOL_RUNNING;
     const sessionTitle: string = isNewChat ? 'New Chat' : (localSession?.title ?? 'Session');
     const documentTitle: string = isLive ? `(live) ${sessionTitle}` : sessionTitle;
-    useDocumentTitle(documentTitle);
+    useDocumentTitle(documentTitle, pendingApproval !== null);
 
     // Model/effort/thinking selection state
     const [selectedModel, setSelectedModel] = React.useState<string>('sonnet');
