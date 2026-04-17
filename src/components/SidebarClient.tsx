@@ -91,11 +91,12 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
     const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
 
     const {sortedProjects, displayNames} = React.useMemo(() => {
-        const names: Map<string, string> = computeProjectDisplayNames(projects);
-        const sorted: IProject[] = [...projects].sort((a: IProject, b: IProject) =>
-            (names.get(a.rawProjectDir) ?? '').toLowerCase().localeCompare(
-                (names.get(b.rawProjectDir) ?? '').toLowerCase(),
-            ),
+        // Filter out projects with empty rawProjectDir — backend may return these transiently
+        // before JSONL sync completes for sessions started without a project directory.
+        const validProjects: IProject[] = projects.filter((project: IProject) => project.rawProjectDir.trim() !== '');
+        const names: Map<string, string> = computeProjectDisplayNames(validProjects);
+        const sorted: IProject[] = [...validProjects].sort((a: IProject, b: IProject) =>
+            (names.get(a.rawProjectDir) ?? '').toLowerCase().localeCompare((names.get(b.rawProjectDir) ?? '').toLowerCase()),
         );
         return {sortedProjects: sorted, displayNames: names};
     }, [projects]);

@@ -84,8 +84,11 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
 
     // Refs to ensure post-first-response actions run only once
     const hasUpdatedUrlRef = React.useRef<boolean>(false);
-    const hasSyncedSidebarRef = React.useRef<boolean>(false);
+    const hasSyncedSidebarRef = React.useRef<boolean>(false);   // true once sidebar refresh is triggered
+    const sidebarFallbackScheduledRef = React.useRef<boolean>(false);  // true once the 5s fallback timeout is scheduled
     const hasPostSyncRefetchedRef = React.useRef<boolean>(false);
+    // Tracks contextInfo.sessionId without triggering re-registration of the sync-complete listener
+    const contextSessionIdForSyncRef = React.useRef<string | null>(null);
 
     // Auto-scroll refs
     const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -176,22 +179,48 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         }
     }, [isNewChat, contextInfo?.sessionId]);
 
-    // Refresh sidebar after first response completes (with delay for backend auto-sync)
+    // Keep contextInfo.sessionId in a ref so the sync-complete listener doesn't re-register on every token update
+    React.useEffect(() => {
+        contextSessionIdForSyncRef.current = contextInfo?.sessionId ?? null;
+    }, [contextInfo?.sessionId]);
+
+    // Primary: refresh sidebar when backend signals JSONL sync is done — rawProjectDir is populated by then
+    React.useEffect(() => {
+        if (!isNewChat) return;
+        const handler = async (e: Event): Promise<void> => {
+            const detail = (e as CustomEvent<{ sessionId: string | null }>).detail;
+            if (!detail.sessionId || detail.sessionId !== contextSessionIdForSyncRef.current) return;
+            if (hasSyncedSidebarRef.current) return;
+            hasSyncedSidebarRef.current = true;
+            debug('[ChatSessionView] sync-complete → refreshing sidebar for new session');
+            await refreshSidebar();
+            router.refresh();
+            window.dispatchEvent(new CustomEvent('session-created'));
+        };
+        window.addEventListener('sync-complete', handler);
+        return (): void => {
+            window.removeEventListener('sync-complete', handler);
+        };
+    }, [isNewChat, router]);
+
+    // Fallback: if sync-complete doesn't arrive, refresh sidebar 5s after the first IDLE turn
     React.useEffect(() => {
         const hasAssistantMessage: boolean = messages.some((m: IChatMessage) => m.role === EMessageRole.ASSISTANT);
-        if (isNewChat && hasAssistantMessage && status === EChatStatus.IDLE && !hasSyncedSidebarRef.current) {
+        if (!isNewChat || !hasAssistantMessage || status !== EChatStatus.IDLE || sidebarFallbackScheduledRef.current) return;
+        sidebarFallbackScheduledRef.current = true;
+        debug('[ChatSessionView] First response complete — scheduling 5s fallback sidebar refresh');
+        const timeoutId: ReturnType<typeof setTimeout> = setTimeout(async (): Promise<void> => {
+            if (hasSyncedSidebarRef.current) return;  // sync-complete already handled it
             hasSyncedSidebarRef.current = true;
-            debug('[ChatSessionView] First response complete — refreshing sidebar (2s delay for auto-sync)');
-            const timeoutId: ReturnType<typeof setTimeout> = setTimeout(async (): Promise<void> => {
-                await refreshSidebar();
-                window.dispatchEvent(new CustomEvent('session-created'));
-                debug('[ChatSessionView] Sidebar refreshed!');
-            }, 2000);
-            return (): void => {
-                clearTimeout(timeoutId);
-            };
-        }
-    }, [isNewChat, messages, status]);
+            debug('[ChatSessionView] 5s fallback — refreshing sidebar');
+            await refreshSidebar();
+            router.refresh();
+            window.dispatchEvent(new CustomEvent('session-created'));
+        }, 5000);
+        return (): void => {
+            clearTimeout(timeoutId);
+        };
+    }, [isNewChat, messages, status, router]);
 
     // Redirect to forked session after response completes and sync finishes.
     // IMPORTANT: Must NOT replaceState during streaming — SidebarClient uses usePathname(),
