@@ -767,10 +767,11 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
 
             {/* Messages area */}
             <div className={'relative flex-1 min-h-0'}>
-                <div ref={scrollContainerRef} onScroll={handleScroll} className={'h-full overflow-y-auto px-6 py-4'}>
+                <div ref={scrollContainerRef} onScroll={handleScroll} className={'h-full overflow-y-auto'}>
+                    <div className={'max-w-4xl lg:max-w-6xl mx-auto px-6 py-4 min-h-full flex flex-col'}>
                     {showEmptyState ? (
-                        <div className={'h-full flex items-center justify-center'}>
-                            <div className={'flex flex-col items-center gap-8 max-w-3xl w-full px-4'}>
+                        <div className={'flex-1 flex items-center justify-center'}>
+                            <div className={'flex flex-col items-center gap-8 max-w-4xl w-full px-4'}>
                                 {/* Decorative icon */}
                                 <div className={'size-14 rounded-2xl bg-primary/10 flex items-center justify-center'}>
                                     <HiOutlineTerminal className={'size-7 text-primary'}/>
@@ -880,7 +881,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                             </div>
                         </div>
                     ) : (
-                        <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
+                        <div className={'flex flex-col w-full gap-4'}>
                             {isLoadingOlderMessages && (
                                 <div className={'flex items-center justify-center py-1'}>
                                     <div className={'inline-flex items-center gap-2 text-xs text-text-muted'}>
@@ -1106,6 +1107,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                             )} */}
                         </div>
                     )}
+                    </div>
                 </div>
 
                 {/* Scroll to bottom button */}
@@ -1118,7 +1120,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
             </div>
 
             {/* Chat input */}
-            <div className={'max-w-3xl mx-auto w-full gap-4'}>
+            <div className={'w-full max-w-4xl lg:max-w-6xl mx-auto px-6'}>
                 {/* ContextBar — disabled until context tracking is redesigned */}
                 {/*{hasContextData && (
                     <ContextBar inputTokens={inputTokens} outputTokens={outputTokens} contextWindow={contextWindow}/>
