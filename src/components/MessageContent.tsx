@@ -9,7 +9,7 @@ import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {renderCode, renderLink, renderPre} from "@/components/CodeBlock";
-import {IMAGE_EXTENSION_REGEX, LOCAL_IMAGE_REF_REGEX} from "@/utils/constants";
+import {FILE_ATTACHED_REGEX, IMAGE_EXTENSION_REGEX, LOCAL_IMAGE_REF_REGEX} from "@/utils/constants";
 import {ContentBlock, DocumentBlock, EUserMessageType, ImageBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
 
 // Lazy load heavy sub-components via next/dynamic — only loaded when the block type is actually rendered
@@ -38,6 +38,16 @@ const ToolResultContentBlock = dynamic(
 
 const markdownComponents = {code: renderCode, pre: renderPre, a: renderLink};
 
+
+/** Renders a styled card for files uploaded to R2 (non-image, non-PDF attachments) */
+function FileAttachmentCard({fileName}: { fileName: string }): React.ReactElement {
+    return (
+        <div className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2 w-fit'}>
+            <HiOutlineDocument className={'size-4 text-text-muted shrink-0'}/>
+            <span className={'text-xs font-medium text-text'}>{fileName}</span>
+        </div>
+    );
+}
 
 /** Renders a local-file placeholder (image or document) that can't be fetched remotely */
 function LocalFilePlaceholder({filePath}: { filePath: string }): React.ReactElement {
@@ -78,6 +88,13 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                         const localRef: RegExpExecArray | null = LOCAL_IMAGE_REF_REGEX.exec(cleaned.trim());
                         if (localRef) {
                             return <LocalFilePlaceholder key={index} filePath={localRef[1]}/>;
+                        }
+
+                        // Backend-generated attachment reference for non-image, non-PDF files:
+                        // "File attached: filename — https://..." — render as a styled card
+                        const fileAttachMatch: RegExpExecArray | null = FILE_ATTACHED_REGEX.exec(cleaned.trim());
+                        if (fileAttachMatch) {
+                            return <FileAttachmentCard key={index} fileName={fileAttachMatch[1]}/>;
                         }
 
                         return (

@@ -1,15 +1,21 @@
 import React from "react";
-import {HiOutlineChevronDoubleRight} from "react-icons/hi";
+import {HiOutlineChevronDoubleRight, HiOutlineDocument} from "react-icons/hi";
 import {MessageContent} from "./MessageContent";
 import {BubbleShell} from "@/components/BubbleShell";
 import {IMessageBubbleProps} from "@/types/components";
 import {formatModelName} from "@/utils/formatModelName";
+import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import {ReadAloudButton} from "@/components/ReadAloudButton";
 import {formatRelativeDate} from "@/utils/formatRelativeDate";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
-import {ContentBlock, EMessageRole, EUserMessageType} from "@/types/message";
 import {extractMessageText, extractSpeakableText} from "@/utils/extractMessageText";
+import {ContentBlock, EMessageRole, EUserMessageType, IAttachmentMeta} from "@/types/message";
+
+// Matches the exact pattern the backend writes for non-image, non-PDF attachments:
+// "File attached: filename — https://..."
+const FILE_ATTACHED_PATTERN: RegExp = /^File attached: .+ — https?:\/\/.+$/;
+const HEIC_MIME_TYPES: Set<string> = new Set(['image/heic', 'image/heif']);
 
 const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, isSubAgentPrompt = false, onStubbed, tts}: IMessageBubbleProps) {
     const isUserMessage: boolean = message.role === EMessageRole.USER;
@@ -53,7 +59,19 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
 
     const showCopyButton: boolean = typeof message.content === 'string' || message.content.some((block: ContentBlock) => block.type === 'text');
     const speakableText: string = extractSpeakableText(message.content);
-    const hasNonTextBlock: boolean = Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text');
+
+    // Historical user messages: render attachment cards from message.attachments (IAttachmentMeta[])
+    // and filter out the redundant "File attached: name — url" text blocks from content.
+    const hasHistoricalAttachments: boolean = isUserMessage && !!(message.attachments?.length);
+
+    const displayContent: string | ContentBlock[] = (hasHistoricalAttachments && Array.isArray(message.content))
+        ? (message.content as ContentBlock[]).filter((block: ContentBlock) => {
+            if (block.type !== 'text') return true;
+            return !FILE_ATTACHED_PATTERN.test((block as { type: 'text'; text: string }).text.trim());
+        })
+        : message.content;
+
+    const hasNonTextBlock: boolean = hasHistoricalAttachments || (Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text'));
 
     return (
         <BubbleShell
@@ -95,7 +113,21 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
                     <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
                 </div>
             )}
-            <MessageContent content={message.content} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
+            {hasHistoricalAttachments && (
+                <div className={'flex flex-wrap gap-2 mb-2'}>
+                    {(message.attachments as IAttachmentMeta[]).map((attachment: IAttachmentMeta, idx: number) => (
+                        attachment.mimeType.startsWith('image/') && !HEIC_MIME_TYPES.has(attachment.mimeType) ? (
+                            <ImageThumbnail key={idx} src={attachment.r2Url} alt={attachment.name} width={200} height={200} className={'rounded-lg max-w-48 max-h-48 object-contain'}/>
+                        ) : (
+                            <div key={idx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2 w-fit'}>
+                                <HiOutlineDocument className={'size-4 text-text-muted shrink-0'}/>
+                                <span className={'text-xs font-medium text-text'}>{attachment.name}</span>
+                            </div>
+                        )
+                    ))}
+                </div>
+            )}
+            <MessageContent content={displayContent} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
         </BubbleShell>
     );
 });
