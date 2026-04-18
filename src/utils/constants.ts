@@ -7,3 +7,9 @@ export const IMAGE_EXTENSION_REGEX: RegExp = /\.(png|jpg|jpeg|gif|webp|heic|heif
 // Matches backend-generated attachment text: "File attached: filename — https://..."
 // Captures: [1] filename, [2] URL
 export const FILE_ATTACHED_REGEX: RegExp = /^File attached: (.+?) — (https?:\/\/.+)$/;
+
+/** Normalizes MCP server names by replacing colons, hyphens, and whitespace with underscores */
+export const MCP_SERVER_NAME_NORMALIZE_REGEX: RegExp = /[:\-\s]/g;
+
+/** Matches the MCP tool name prefix: "mcp__<serverKey>__" */
+export const MCP_TOOL_PREFIX = 'mcp__';

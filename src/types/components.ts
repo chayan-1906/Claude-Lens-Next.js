@@ -4,8 +4,8 @@ import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {IUseTextToSpeechReturn} from "@/types/tts";
 import type {IGetSessionPagination, ISession} from "@/types/session";
-import {IAttachment, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
+import {IAttachment, IContextInfo, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import type {IClaudeAccount, IGroqConfig, IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 
 /** ------------- Constants and Type Aliases ------------- */
@@ -226,6 +226,10 @@ export interface IChatSessionViewProps {
     r2Configured: boolean;
     groqConfigured: boolean;
     localJsonlAvailable?: boolean;
+}
+
+export interface IMcpServersPanelProps {
+    contextInfo: IContextInfo | null;
 }
 
 export interface IDiffViewProps {

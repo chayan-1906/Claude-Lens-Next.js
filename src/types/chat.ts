@@ -261,6 +261,7 @@ export interface IContextInfo {
     contextWindow: number;
     costUsd: number;
     tools: string[];
+    mcpServers: { name: string; status: string }[];
 }
 
 /** Pending tool approval displayed in ChatSessionView */

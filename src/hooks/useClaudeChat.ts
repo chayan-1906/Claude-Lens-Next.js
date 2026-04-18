@@ -188,7 +188,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     console.log(`[useClaudeChat] system → subtype: ${event.subtype} (ignored)`);
                     break;
                 }
-                console.log(`[useClaudeChat] system → session_id: ${event.session_id}, model: ${event.model}, tools: [${event.tools.join(', ')}]`);
+                console.log(`[useClaudeChat] system → session_id: ${event.session_id}, model: ${event.model}, tools: [${event.tools.join(', ')}], mcp_servers: [${event.mcp_servers?.map((s: { name: string; status: string }) => s.name).join(', ')}]`);
                 setContextInfo({
                     sessionId: event.session_id,
                     model: event.model,
@@ -197,6 +197,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     contextWindow: 0,
                     costUsd: 0,
                     tools: event.tools,
+                    mcpServers: event.mcp_servers ?? [],
                 });
                 // If this system event came from an edit_session, capture the new session ID for redirect
                 if (isEditSessionRef.current) {

@@ -39,6 +39,9 @@ const baseVoiceApiUrl: string = `${baseApiUrl}/voice`;
 /** Base URL for file-picker endpoints */
 const baseFilePickerApiUrl: string = `${baseApiUrl}/file-picker`;
 
+/** Base URL for MCP endpoints */
+const baseMcpApiUrl: string = `${baseApiUrl}/mcp`;
+
 /** Base URL for R2 endpoints */
 const baseR2ApiUrl: string = `${baseApiUrl}/r2`;
 
@@ -111,6 +114,8 @@ const apis = {
     openFolderPickerApi: `${baseFilePickerApiUrl}/folder`,
 
     reclaimR2Api: `${baseR2ApiUrl}/reclaim`,
+
+    getMcpServersApi: `${baseMcpApiUrl}/servers`,
 };
 
 export {apis};

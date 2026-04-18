@@ -34,6 +34,7 @@ import {IChatSessionViewProps} from "@/types/components";
 import {MessageBubble} from "@/components/MessageBubble";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {MessageContent} from "@/components/MessageContent";
+import {MCPServersPanel} from "@/components/MCPServersPanel";
 import {ReadAloudButton} from "@/components/ReadAloudButton";
 import {SESSION_MESSAGES_PAGE_SIZE} from "@/utils/pagination";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
@@ -711,7 +712,8 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
             {localSession && (
                 <div className={'flex items-center justify-between px-3 sm:px-6 py-3 border-b border-border bg-linear-to-r from-primary/6 to-surface shrink-0'}>
                     <div className={'flex flex-col justify-center min-w-0 gap-1'}>
-                        <h1 className={'text-sm font-semibold truncate text-text cursor-pointer hover:text-primary transition-colors leading-tight'} onClick={() => setIsRenameModalOpen(true)} title={'Click to rename session'}>
+                        <h1 className={'text-sm font-semibold truncate text-text cursor-pointer hover:text-primary transition-colors leading-tight'} onClick={() => setIsRenameModalOpen(true)}
+                            title={'Click to rename session'}>
                             {localSession.title}
                         </h1>
 
@@ -748,7 +750,8 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                             <HiOutlineRefresh className={cn('size-3.5', isRefreshingMessages && 'animate-spin')}/>
                         </Button>
                         {r2Configured && localJsonlAvailable && (
-                            <Button variant={'ghost'} size={'icon'} onClick={() => backupSession(localSession.sessionId)} className={'hidden sm:flex size-7 text-text-muted'} title={'Backup session JSONL to R2'}>
+                            <Button variant={'ghost'} size={'icon'} onClick={() => backupSession(localSession.sessionId)} className={'hidden sm:flex size-7 text-text-muted'}
+                                    title={'Backup session JSONL to R2'}>
                                 <HiOutlineShieldCheck className={'size-3.5'}/>
                             </Button>
                         )}
@@ -765,236 +768,237 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                 <RenameSessionModal isOpen={isRenameModalOpen} onOpenChange={setIsRenameModalOpen} session={localSession} onSaved={handleSessionRenamed}/>
             )}
 
-            {/* Messages area */}
-            <div className={'relative flex-1 min-h-0'}>
-                <div ref={scrollContainerRef} onScroll={handleScroll} className={'h-full overflow-y-auto'}>
-                    <div className={'max-w-4xl lg:max-w-6xl mx-auto px-6 py-4 min-h-full flex flex-col'}>
-                    {showEmptyState ? (
-                        <div className={'flex-1 flex items-center justify-center'}>
-                            <div className={'flex flex-col items-center gap-8 max-w-4xl w-full px-4'}>
-                                {/* Decorative icon */}
-                                <div className={'size-14 rounded-2xl bg-primary/10 flex items-center justify-center'}>
-                                    <HiOutlineTerminal className={'size-7 text-primary'}/>
-                                </div>
+            {/* Messages area + MCP panel */}
+            <div className={'flex flex-row flex-1 min-h-0'}>
+                <div className={'relative flex-1 min-h-0 min-w-0'}>
+                    <div ref={scrollContainerRef} onScroll={handleScroll} className={'h-full overflow-y-auto'}>
+                        <div className={'max-w-4xl lg:max-w-6xl mx-auto px-6 py-4 min-h-full flex flex-col'}>
+                            {showEmptyState ? (
+                                <div className={'flex-1 flex items-center justify-center'}>
+                                    <div className={'flex flex-col items-center gap-8 max-w-4xl w-full px-4'}>
+                                        {/* Decorative icon */}
+                                        <div className={'size-14 rounded-2xl bg-primary/10 flex items-center justify-center'}>
+                                            <HiOutlineTerminal className={'size-7 text-primary'}/>
+                                        </div>
 
-                                {/* Heading */}
-                                <div className={'text-center space-y-1.5'}>
-                                    <h2 className={'text-xl font-semibold text-text'}>What can I help you with?</h2>
-                                    <p className={'text-sm text-text-muted'}>Chat with Claude about your code</p>
-                                </div>
+                                        {/* Heading */}
+                                        <div className={'text-center space-y-1.5'}>
+                                            <h2 className={'text-xl font-semibold text-text'}>What can I help you with?</h2>
+                                            <p className={'text-sm text-text-muted'}>Chat with Claude about your code</p>
+                                        </div>
 
-                                {/* Project directory input */}
-                                <div className={'w-full'}>
-                                    <label className={'block text-xs text-text-muted mb-1.5'}>Project directory (optional)</label>
-                                    <div className={'flex items-center gap-2'}>
-                                        <input
-                                            type={'text'}
-                                            value={projectDir}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectDir(e.target.value)}
-                                            placeholder={'/Users/you/projects/my-app'}
-                                            className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
-                                        />
-                                        <Button variant={'primary'} size={'sm'} onClick={handleBrowse} isLoading={isBrowsing} disabled={isBrowsing}>
-                                            <HiOutlineFolder className={'size-4'}/>
-                                            Browse...
-                                        </Button>
-                                    </div>
-                                </div>
+                                        {/* Project directory input */}
+                                        <div className={'w-full'}>
+                                            <label className={'block text-xs text-text-muted mb-1.5'}>Project directory (optional)</label>
+                                            <div className={'flex items-center gap-2'}>
+                                                <input
+                                                    type={'text'}
+                                                    value={projectDir}
+                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectDir(e.target.value)}
+                                                    placeholder={'/Users/you/projects/my-app'}
+                                                    className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
+                                                />
+                                                <Button variant={'primary'} size={'sm'} onClick={handleBrowse} isLoading={isBrowsing} disabled={isBrowsing}>
+                                                    <HiOutlineFolder className={'size-4'}/>
+                                                    Browse...
+                                                </Button>
+                                            </div>
+                                        </div>
 
-                                {/* Allowed directories */}
-                                <div className={'w-full'}>
-                                    <label className={'block text-xs text-text-muted mb-1.5'}>Allowed directories (optional)</label>
-                                    <div className={'flex items-center gap-2'}>
-                                        <input
-                                            type={'text'}
-                                            value={allowedDirInput}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowedDirInput(e.target.value)}
-                                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                                                if (e.key === 'Enter') handleAddAllowedDir();
-                                            }}
-                                            placeholder={'/Volumes/external-drive'}
-                                            className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
-                                        />
-                                        <Button variant={'ghost'} size={'sm'} onClick={handleBrowseAllowedDir} isLoading={isBrowsingAllowedDir} disabled={isBrowsingAllowedDir}>
-                                            <HiOutlineFolder className={'size-4'}/>
-                                            Browse...
-                                        </Button>
-                                        <Button variant={'primary'} size={'sm'} onClick={handleAddAllowedDir} disabled={!allowedDirInput.trim()}>
-                                            Add
-                                        </Button>
-                                    </div>
-                                    {allowedDirs.length > 0 && (
-                                        <ul className={'mt-2 space-y-1'}>
-                                            {allowedDirs.map((allowedDir: string) => (
-                                                <li key={allowedDir} className={'flex items-center justify-between gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-md'}>
-                                                    <span className={'text-xs font-mono text-text truncate'}>{allowedDir}</span>
-                                                    <Button onClick={() => handleRemoveAllowedDir(allowedDir)} className={'text-text-muted hover:text-error shrink-0 text-xs leading-none'}
-                                                            aria-label={'Remove'}>
-                                                        ✕
-                                                    </Button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
+                                        {/* Allowed directories */}
+                                        <div className={'w-full'}>
+                                            <label className={'block text-xs text-text-muted mb-1.5'}>Allowed directories (optional)</label>
+                                            <div className={'flex items-center gap-2'}>
+                                                <input
+                                                    type={'text'}
+                                                    value={allowedDirInput}
+                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowedDirInput(e.target.value)}
+                                                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                                        if (e.key === 'Enter') handleAddAllowedDir();
+                                                    }}
+                                                    placeholder={'/Volumes/external-drive'}
+                                                    className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
+                                                />
+                                                <Button variant={'ghost'} size={'sm'} onClick={handleBrowseAllowedDir} isLoading={isBrowsingAllowedDir} disabled={isBrowsingAllowedDir}>
+                                                    <HiOutlineFolder className={'size-4'}/>
+                                                    Browse...
+                                                </Button>
+                                                <Button variant={'primary'} size={'sm'} onClick={handleAddAllowedDir} disabled={!allowedDirInput.trim()}>
+                                                    Add
+                                                </Button>
+                                            </div>
+                                            {allowedDirs.length > 0 && (
+                                                <ul className={'mt-2 space-y-1'}>
+                                                    {allowedDirs.map((allowedDir: string) => (
+                                                        <li key={allowedDir} className={'flex items-center justify-between gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-md'}>
+                                                            <span className={'text-xs font-mono text-text truncate'}>{allowedDir}</span>
+                                                            <Button onClick={() => handleRemoveAllowedDir(allowedDir)} className={'text-text-muted hover:text-error shrink-0 text-xs leading-none'}
+                                                                    aria-label={'Remove'}>
+                                                                ✕
+                                                            </Button>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
 
-                                {/* How it works */}
-                                <p className={'text-xs text-text-muted text-center leading-relaxed'}>
-                                    Set a project directory, type a message, and Claude will work directly in your codebase
-                                </p>
+                                        {/* How it works */}
+                                        <p className={'text-xs text-text-muted text-center leading-relaxed'}>
+                                            Set a project directory, type a message, and Claude will work directly in your codebase
+                                        </p>
 
-                                {/* Capability pills */}
-                                <div className={'flex flex-wrap justify-center gap-2'}>
+                                        {/* Capability pills */}
+                                        <div className={'flex flex-wrap justify-center gap-2'}>
                                 <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
                                     <HiOutlineCode className={'size-3.5 text-primary'}/>
                                     <span className={'text-xs text-text-muted'}>Read and edit files</span>
                                 </span>
-                                    <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                            <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
                                     <HiOutlineTerminal className={'size-3.5 text-primary'}/>
                                     <span className={'text-xs text-text-muted'}>Run commands</span>
                                 </span>
-                                    <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                            <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
                                     <HiOutlineSearch className={'size-3.5 text-primary'}/>
                                     <span className={'text-xs text-text-muted'}>Search codebase</span>
                                 </span>
-                                    <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                            <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
                                     <HiOutlineBeaker className={'size-3.5 text-primary'}/>
                                     <span className={'text-xs text-text-muted'}>Write tests</span>
                                 </span>
-                                </div>
+                                        </div>
 
-                                {/* Keyboard shortcut hints */}
-                                <div className={'flex flex-wrap justify-center gap-x-4 gap-y-1'}>
+                                        {/* Keyboard shortcut hints */}
+                                        <div className={'flex flex-wrap justify-center gap-x-4 gap-y-1'}>
                                 <span className={'text-[11px] text-text-muted'}>
                                     <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Enter</kbd> to send
                                 </span>
-                                    <span className={'text-[11px] text-text-muted'}>
+                                            <span className={'text-[11px] text-text-muted'}>
                                     <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Shift + Enter</kbd> for new line
                                 </span>
-                                    <span className={'text-[11px] text-text-muted'}>
+                                            <span className={'text-[11px] text-text-muted'}>
                                     Markdown supported
                                 </span>
-                                    <span className={'text-[11px] text-text-muted'}>
+                                            <span className={'text-[11px] text-text-muted'}>
                                     Voice input available
                                 </span>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className={'flex flex-col w-full gap-4'}>
-                            {isLoadingOlderMessages && (
-                                <div className={'flex items-center justify-center py-1'}>
-                                    <div className={'inline-flex items-center gap-2 text-xs text-text-muted'}>
-                                        <IoMdRefresh className={'size-4 animate-spin'}/>
-                                        <span>Loading older messages...</span>
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-
-                            {!isLoadingOlderMessages && localHistoricalMessages.length > 0 && !(messagePagination?.hasMore ?? false) && (
-                                <div className={'flex items-center justify-center py-1'}>
-                                    <span className={'text-[11px] text-text-muted/70'}>Start of conversation</span>
-                                </div>
-                            )}
-
-                            {/* Historical messages — sliced at edit cutoff when user edits from history */}
-                            {visibleHistoricalMessages.map((message: IMessage, index: number) => {
-                                const isUser: boolean = message.role === EMessageRole.USER;
-
-                                // Sub-agent prompt: a user message that follows an assistant message containing an Agent tool_use.
-                                // These are AI-generated delegation instructions, not human-typed messages.
-                                const prevMessage: IMessage | undefined = index > 0 ? visibleHistoricalMessages[index - 1] : undefined;
-                                const isSubAgentPrompt: boolean = isUser
-                                    && prevMessage?.role === EMessageRole.ASSISTANT
-                                    && Array.isArray(prevMessage.content)
-                                    && prevMessage.content.some((block: ContentBlock) => block.type === 'tool_use' && (block as ToolUseBlock).name === 'Agent');
-
-                                return (
-                                    <div key={message.uuid}>
-                                        {editingId === message.uuid ? (
-                                            <div className={'flex flex-col items-end'}>
-                                                <InlineMessageEditor
-                                                    initialText={extractMessageText(message.content)}
-                                                    disabled={isChattingDisabled}
-                                                    onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
-                                                    onCancel={handleCancelEdit}
-                                                />
+                            ) : (
+                                <div className={'flex flex-col w-full gap-4'}>
+                                    {isLoadingOlderMessages && (
+                                        <div className={'flex items-center justify-center py-1'}>
+                                            <div className={'inline-flex items-center gap-2 text-xs text-text-muted'}>
+                                                <IoMdRefresh className={'size-4 animate-spin'}/>
+                                                <span>Loading older messages...</span>
                                             </div>
-                                        ) : (
-                                            <MessageBubble
-                                                message={message}
-                                                index={index}
-                                                sessionId={session?.sessionId}
-                                                isSubAgentPrompt={isSubAgentPrompt}
-                                                canEdit={isUser && !isChattingDisabled && editingId === null}
-                                                onEdit={handleStartEdit}
-                                                onRegenerate={!isUser && canRegenerate ? handleHistoricalRegenerate : undefined}
-                                                onStubbed={handleStubbed}
-                                                tts={tts}
-                                            />
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                        </div>
+                                    )}
 
-                            {/* Live messages (user + finalized assistant) */}
-                            {messages.filter((msg: IChatMessage) => {
-                                if (msg.role !== EMessageRole.ASSISTANT) return true;
-                                const text: string = extractMessageText(msg.content).toLowerCase();
-                                return !text.includes('prompt is too long');
-                            }).map((message: IChatMessage, index: number, filteredMessages: IChatMessage[]) => {
-                                // System notifications (e.g. compact_boundary) — render as inline divider
-                                if (message.role === EMessageRole.SYSTEM) {
-                                    return (
-                                        <div key={message.id} className={'flex items-center gap-3 my-1 px-1'}>
-                                            <div className={'flex-1 h-px bg-border/40'}/>
-                                            <span className={'text-xs text-text-muted/70 italic shrink-0'}>
+                                    {!isLoadingOlderMessages && localHistoricalMessages.length > 0 && !(messagePagination?.hasMore ?? false) && (
+                                        <div className={'flex items-center justify-center py-1'}>
+                                            <span className={'text-[11px] text-text-muted/70'}>Start of conversation</span>
+                                        </div>
+                                    )}
+
+                                    {/* Historical messages — sliced at edit cutoff when user edits from history */}
+                                    {visibleHistoricalMessages.map((message: IMessage, index: number) => {
+                                        const isUser: boolean = message.role === EMessageRole.USER;
+
+                                        // Sub-agent prompt: a user message that follows an assistant message containing an Agent tool_use.
+                                        // These are AI-generated delegation instructions, not human-typed messages.
+                                        const prevMessage: IMessage | undefined = index > 0 ? visibleHistoricalMessages[index - 1] : undefined;
+                                        const isSubAgentPrompt: boolean = isUser
+                                            && prevMessage?.role === EMessageRole.ASSISTANT
+                                            && Array.isArray(prevMessage.content)
+                                            && prevMessage.content.some((block: ContentBlock) => block.type === 'tool_use' && (block as ToolUseBlock).name === 'Agent');
+
+                                        return (
+                                            <div key={message.uuid}>
+                                                {editingId === message.uuid ? (
+                                                    <div className={'flex flex-col items-end'}>
+                                                        <InlineMessageEditor
+                                                            initialText={extractMessageText(message.content)}
+                                                            disabled={isChattingDisabled}
+                                                            onSave={(newText: string) => handleHistoricalEditSave(newText, index)}
+                                                            onCancel={handleCancelEdit}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <MessageBubble
+                                                        message={message}
+                                                        index={index}
+                                                        sessionId={session?.sessionId}
+                                                        isSubAgentPrompt={isSubAgentPrompt}
+                                                        canEdit={isUser && !isChattingDisabled && editingId === null}
+                                                        onEdit={handleStartEdit}
+                                                        onRegenerate={!isUser && canRegenerate ? handleHistoricalRegenerate : undefined}
+                                                        onStubbed={handleStubbed}
+                                                        tts={tts}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Live messages (user + finalized assistant) */}
+                                    {messages.filter((msg: IChatMessage) => {
+                                        if (msg.role !== EMessageRole.ASSISTANT) return true;
+                                        const text: string = extractMessageText(msg.content).toLowerCase();
+                                        return !text.includes('prompt is too long');
+                                    }).map((message: IChatMessage, index: number, filteredMessages: IChatMessage[]) => {
+                                        // System notifications (e.g. compact_boundary) — render as inline divider
+                                        if (message.role === EMessageRole.SYSTEM) {
+                                            return (
+                                                <div key={message.id} className={'flex items-center gap-3 my-1 px-1'}>
+                                                    <div className={'flex-1 h-px bg-border/40'}/>
+                                                    <span className={'text-xs text-text-muted/70 italic shrink-0'}>
                                                 {typeof message.content === 'string' ? message.content : ''}
                                             </span>
-                                            <div className={'flex-1 h-px bg-border/40'}/>
-                                        </div>
-                                    );
-                                }
+                                                    <div className={'flex-1 h-px bg-border/40'}/>
+                                                </div>
+                                            );
+                                        }
 
-                                const isUser: boolean = message.role === EMessageRole.USER;
+                                        const isUser: boolean = message.role === EMessageRole.USER;
 
-                                if (editingId === message.id) {
-                                    return (
-                                        <div key={message.id} className={'flex flex-col items-end'}>
-                                            <InlineMessageEditor
-                                                initialText={extractMessageText(message.content)}
-                                                disabled={isChattingDisabled}
-                                                onSave={(newText: string) => handleLiveEditSave(newText, index)}
-                                                onCancel={handleCancelEdit}
-                                            />
-                                        </div>
-                                    );
-                                }
+                                        if (editingId === message.id) {
+                                            return (
+                                                <div key={message.id} className={'flex flex-col items-end'}>
+                                                    <InlineMessageEditor
+                                                        initialText={extractMessageText(message.content)}
+                                                        disabled={isChattingDisabled}
+                                                        onSave={(newText: string) => handleLiveEditSave(newText, index)}
+                                                        onCancel={handleCancelEdit}
+                                                    />
+                                                </div>
+                                            );
+                                        }
 
-                                const isCommandOutput: boolean = isUser && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
-                                const isToolResult: boolean = isUser && Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_result');
-                                // Sub-agent prompt: user message following an assistant message with Agent tool_use
-                                const prevLiveMessage: IChatMessage | undefined = index > 0 ? filteredMessages[index - 1] : undefined;
-                                const isSubAgentPrompt: boolean = isUser
-                                    && prevLiveMessage?.role === EMessageRole.ASSISTANT
-                                    && Array.isArray(prevLiveMessage.content)
-                                    && prevLiveMessage.content.some((block: ContentBlock) => block.type === 'tool_use' && (block as ToolUseBlock).name === 'Agent');
-                                const isSystemUserMessage: boolean = isCommandOutput || isToolResult;
-                                const isSyntheticMessage: boolean = !isUser && (message.model === '<synthetic>' || message.model === 'synthetic');
-                                const speakableText: string = extractSpeakableText(message.content);
-                                const hasAttachments: boolean = !!(message.attachments && message.attachments.length > 0);
-                                const hasNonTextBlock: boolean = hasAttachments || (Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text'));
-                                return (
-                                    <BubbleShell
-                                        key={message.id}
-                                        isUser={isUser}
-                                        isSystemUser={isSystemUserMessage}
-                                        isSubAgentPrompt={isSubAgentPrompt}
-                                        isSynthetic={isSyntheticMessage}
-                                        hasNonTextBlock={hasNonTextBlock}
-                                        metadata={
-                                            <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                                {/*{(isUser && !isChattingDisabled && editingId === null) && (
+                                        const isCommandOutput: boolean = isUser && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
+                                        const isToolResult: boolean = isUser && Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type === 'tool_result');
+                                        // Sub-agent prompt: user message following an assistant message with Agent tool_use
+                                        const prevLiveMessage: IChatMessage | undefined = index > 0 ? filteredMessages[index - 1] : undefined;
+                                        const isSubAgentPrompt: boolean = isUser
+                                            && prevLiveMessage?.role === EMessageRole.ASSISTANT
+                                            && Array.isArray(prevLiveMessage.content)
+                                            && prevLiveMessage.content.some((block: ContentBlock) => block.type === 'tool_use' && (block as ToolUseBlock).name === 'Agent');
+                                        const isSystemUserMessage: boolean = isCommandOutput || isToolResult;
+                                        const isSyntheticMessage: boolean = !isUser && (message.model === '<synthetic>' || message.model === 'synthetic');
+                                        const speakableText: string = extractSpeakableText(message.content);
+                                        const hasAttachments: boolean = !!(message.attachments && message.attachments.length > 0);
+                                        const hasNonTextBlock: boolean = hasAttachments || (Array.isArray(message.content) && message.content.some((block: ContentBlock) => block.type !== 'text'));
+                                        return (
+                                            <BubbleShell
+                                                key={message.id}
+                                                isUser={isUser}
+                                                isSystemUser={isSystemUserMessage}
+                                                isSubAgentPrompt={isSubAgentPrompt}
+                                                isSynthetic={isSyntheticMessage}
+                                                hasNonTextBlock={hasNonTextBlock}
+                                                metadata={
+                                                    <div className={'flex items-center gap-2 mt-1 px-1'}>
+                                                        {/*{(isUser && !isChattingDisabled && editingId === null) && (
                                                     <Button variant={'ghost'} size={'icon'} onClick={() => setEditingId(message.id)} title={'Edit message'}
                                                             className={'size-6 text-text-muted active:bg-transparent hover:bg-transparent'}>
                                                         <HiOutlinePencil className={'size-3.5'}/>
@@ -1009,88 +1013,88 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                                         </Button>
                                                     ) : null;
                                                 })()}*/}
-                                                {speakableText && (
-                                                    <CopyMessageButton text={speakableText}/>
-                                                )}
-                                                {(!isUser && !isSyntheticMessage && speakableText) && (
-                                                    <ReadAloudButton text={speakableText} messageId={message.id} tts={tts}/>
-                                                )}
-                                                {(!isUser && message.model && !isSyntheticMessage) && (
-                                                    <span className={'text-xs text-text-muted italic'}>
+                                                        {speakableText && (
+                                                            <CopyMessageButton text={speakableText}/>
+                                                        )}
+                                                        {(!isUser && !isSyntheticMessage && speakableText) && (
+                                                            <ReadAloudButton text={speakableText} messageId={message.id} tts={tts}/>
+                                                        )}
+                                                        {(!isUser && message.model && !isSyntheticMessage) && (
+                                                            <span className={'text-xs text-text-muted italic'}>
                                                         Prepared using {formatModelName(message.model)}
                                                     </span>
+                                                        )}
+                                                        {isSyntheticMessage && (
+                                                            <span className={'text-xs text-warning/70 italic'}>System notice</span>
+                                                        )}
+                                                    </div>
+                                                }
+                                            >
+                                                {isSubAgentPrompt && (
+                                                    <div className={'flex items-center gap-1.5 pb-1'}>
+                                                        <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
+                                                        <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
+                                                    </div>
                                                 )}
-                                                {isSyntheticMessage && (
-                                                    <span className={'text-xs text-warning/70 italic'}>System notice</span>
+                                                {/* Attachment thumbnails (user messages with files) */}
+                                                {(message.attachments && message.attachments.length > 0) && (
+                                                    <div className={'flex flex-wrap gap-5'}>
+                                                        {message.attachments.map((attachment: IAttachment, attachIdx: number) => (
+                                                            attachment.mimeType.startsWith('image/') && !attachment.mimeType.includes('heic') && !attachment.mimeType.includes('heif') ? (
+                                                                <ImageThumbnail
+                                                                    key={attachIdx}
+                                                                    src={`data:${attachment.mimeType};base64,${attachment.data}`}
+                                                                    alt={attachment.name}
+                                                                    width={200}
+                                                                    height={200}
+                                                                    className={'rounded-lg max-w-48 max-h-48 object-contain'}
+                                                                />
+                                                            ) : (
+                                                                <div key={attachIdx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2'}>
+                                                                    <span className={'text-xs font-medium text-text'}>{attachment.name}</span>
+                                                                </div>
+                                                            )
+                                                        ))}
+                                                    </div>
                                                 )}
+                                                <MessageContent content={message.content}/>
+                                            </BubbleShell>
+                                        );
+                                    })}
+
+                                    {/* Streaming assistant response */}
+                                    {streamingContent && (() => {
+                                        const speakableStreamText: string = extractSpeakableText(streamingContent);
+                                        return (
+                                            <BubbleShell isUser={false} hasNonTextBlock={streamingContent.some((block: ContentBlock) => block.type !== 'text')}
+                                                         metadata={speakableStreamText ? (
+                                                             <div className={'flex items-center gap-2 mt-1 px-1'}>
+                                                                 <ReadAloudButton text={''} messageId={STREAM_READ_ID} tts={tts} onSpeak={() => tts.startStreamRead(STREAM_READ_ID)}/>
+                                                             </div>
+                                                         ) : undefined}
+                                            >
+                                                <MessageContent content={streamingContent}/>
+                                            </BubbleShell>
+                                        );
+                                    })()}
+
+                                    {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
+                                    {pendingApproval && (
+                                        <ToolApprovalPrompt approval={pendingApproval} onRespond={respondToApproval}/>
+                                    )}
+
+                                    {/* Thinking dots — waiting for first token */}
+                                    {showThinking && (
+                                        <div className={'flex items-start'}>
+                                            <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
+                                                <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>
+                                                <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '120ms'}}/>
+                                                <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '240ms'}}/>
                                             </div>
-                                        }
-                                    >
-                                        {isSubAgentPrompt && (
-                                            <div className={'flex items-center gap-1.5 pb-1'}>
-                                                <HiOutlineChevronDoubleRight className={'size-3.5 text-primary/60'}/>
-                                                <span className={'text-xs font-semibold text-primary/60'}>Sub-agent</span>
-                                            </div>
-                                        )}
-                                        {/* Attachment thumbnails (user messages with files) */}
-                                        {(message.attachments && message.attachments.length > 0) && (
-                                            <div className={'flex flex-wrap gap-5'}>
-                                                {message.attachments.map((attachment: IAttachment, attachIdx: number) => (
-                                                    attachment.mimeType.startsWith('image/') && !attachment.mimeType.includes('heic') && !attachment.mimeType.includes('heif') ? (
-                                                        <ImageThumbnail
-                                                            key={attachIdx}
-                                                            src={`data:${attachment.mimeType};base64,${attachment.data}`}
-                                                            alt={attachment.name}
-                                                            width={200}
-                                                            height={200}
-                                                            className={'rounded-lg max-w-48 max-h-48 object-contain'}
-                                                        />
-                                                    ) : (
-                                                        <div key={attachIdx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2'}>
-                                                            <span className={'text-xs font-medium text-text'}>{attachment.name}</span>
-                                                        </div>
-                                                    )
-                                                ))}
-                                            </div>
-                                        )}
-                                        <MessageContent content={message.content}/>
-                                    </BubbleShell>
-                                );
-                            })}
+                                        </div>
+                                    )}
 
-                            {/* Streaming assistant response */}
-                            {streamingContent && (() => {
-                                const speakableStreamText: string = extractSpeakableText(streamingContent);
-                                return (
-                                    <BubbleShell isUser={false} hasNonTextBlock={streamingContent.some((block: ContentBlock) => block.type !== 'text')}
-                                                 metadata={speakableStreamText ? (
-                                                     <div className={'flex items-center gap-2 mt-1 px-1'}>
-                                                         <ReadAloudButton text={''} messageId={STREAM_READ_ID} tts={tts} onSpeak={() => tts.startStreamRead(STREAM_READ_ID)}/>
-                                                     </div>
-                                                 ) : undefined}
-                                    >
-                                        <MessageContent content={streamingContent}/>
-                                    </BubbleShell>
-                                );
-                            })()}
-
-                            {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
-                            {pendingApproval && (
-                                <ToolApprovalPrompt approval={pendingApproval} onRespond={respondToApproval}/>
-                            )}
-
-                            {/* Thinking dots — waiting for first token */}
-                            {showThinking && (
-                                <div className={'flex items-start'}>
-                                    <div className={'rounded-2xl px-4 py-3 bg-assistant-bubble flex items-center gap-1.5'}>
-                                        <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '0ms'}}/>
-                                        <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '120ms'}}/>
-                                        <span className={'size-1.5 rounded-full bg-primary'} style={{animation: 'claude-dot 0.8s infinite', animationDelay: '240ms'}}/>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Error state (live) — disabled until context tracking is redesigned
+                                    {/* Error state (live) — disabled until context tracking is redesigned
                             {status === EChatStatus.ERROR && error && (
                                 <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
                                     <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
@@ -1098,25 +1102,29 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                 </div>
                             )} */}
 
-                            {/* Context limit banner (historical) — disabled until context tracking is redesigned
+                                    {/* Context limit banner (historical) — disabled until context tracking is redesigned
                             {isHistoricalContextLimit && status !== EChatStatus.ERROR && (
                                 <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
                                     <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
                                     <span className={'flex-1'}>Context limit reached. Start a new session, or run /compact or /clear in the terminal to continue!</span>
                                 </div>
                             )} */}
+                                </div>
+                            )}
                         </div>
-                    )}
                     </div>
+
+                    {/* Scroll to bottom button */}
+                    {showScrollButton && (
+                        <Button variant={'ghost'} size={'icon'} onClick={handleScrollToBottomClick}
+                                className={'absolute bottom-4 right-6 size-8 rounded-full bg-surface border border-border shadow-md text-text-muted hover:text-text'} title={'Scroll to bottom'}>
+                            <FaArrowDown className={'size-4'}/>
+                        </Button>
+                    )}
                 </div>
 
-                {/* Scroll to bottom button */}
-                {showScrollButton && (
-                    <Button variant={'ghost'} size={'icon'} onClick={handleScrollToBottomClick}
-                            className={'absolute bottom-4 right-6 size-8 rounded-full bg-surface border border-border shadow-md text-text-muted hover:text-text'} title={'Scroll to bottom'}>
-                        <FaArrowDown className={'size-4'}/>
-                    </Button>
-                )}
+                {/* MCP servers side panel */}
+                <MCPServersPanel contextInfo={contextInfo}/>
             </div>
 
             {/* Chat input */}
