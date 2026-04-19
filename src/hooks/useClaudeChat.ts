@@ -2,6 +2,7 @@
 
 import React from "react";
 import {generateUUID} from "@/utils/generateUUID";
+import {NEXT_PUBLIC_BACKEND_WS_URL} from "../../config/config";
 import {ContentBlock, EMessageRole, TextBlock, ThinkingBlock, ToolUseBlock} from "@/types/message";
 import {
     BASE_RECONNECT_DELAY_MS,
@@ -187,7 +188,10 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     console.log(`[useClaudeChat] system → subtype: ${event.subtype} (ignored)`);
                     break;
                 }
-                console.log(`[useClaudeChat] system → session_id: ${event.session_id}, model: ${event.model}, tools: [${event.tools.join(', ')}], mcp_servers: [${event.mcp_servers?.map((s: { name: string; status: string }) => s.name).join(', ')}]`);
+                console.log(`[useClaudeChat] system → session_id: ${event.session_id}, model: ${event.model}, tools: [${event.tools.join(', ')}], mcp_servers: [${event.mcp_servers?.map((s: {
+                    name: string;
+                    status: string
+                }) => s.name).join(', ')}]`);
                 setContextInfo({
                     sessionId: event.session_id,
                     model: event.model,
@@ -698,7 +702,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
             return;
         }
 
-        const url: string = `ws://${window.location.hostname}:20261/ws`;
+        const url: string = process.env.NODE_ENV === 'development' ? NEXT_PUBLIC_BACKEND_WS_URL : `ws://${window.location.hostname}:20261/ws`;
+        // const url: string = NEXT_PUBLIC_BACKEND_WS_URL;
         console.log(`[useClaudeChat] Connecting to`, url);
         setStatus(EChatStatus.CONNECTING);
         intentionalCloseRef.current = false;

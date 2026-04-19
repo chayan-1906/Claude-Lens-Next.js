@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import {HiOutlineCheck, HiOutlineX, HiOutlineCheckCircle} from "react-icons/hi";
+import {HiOutlineCheck, HiOutlineX, HiOutlineCheckCircle, HiOutlineExclamation} from "react-icons/hi";
+import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
 import {DiffView} from "@/components/DiffView";
 import type {IToolApprovalPromptProps} from "@/types/components";
@@ -21,6 +22,7 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
 
     const [showDenyInput, setShowDenyInput] = React.useState<boolean>(false);
     const [customReason, setCustomReason] = React.useState<string>('');
+    const [showAllowAllAlert, setShowAllowAllAlert] = React.useState<boolean>(false);
 
     const headerLabel: string = isBash
         ? 'Run command?'
@@ -47,6 +49,19 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
     const handleAllowAll = React.useCallback((): void => {
         onRespond(requestId, 'allow', undefined, true);
     }, [requestId, onRespond]);
+
+    const handleAllowAllClick = React.useCallback((): void => {
+        setShowAllowAllAlert(true);
+    }, []);
+
+    const handleConfirmAllowAll = React.useCallback((): void => {
+        handleAllowAll();
+        setShowAllowAllAlert(false);
+    }, [handleAllowAll]);
+
+    const handleCancelAllowAll = React.useCallback((): void => {
+        setShowAllowAllAlert(false);
+    }, []);
 
     const handleDenyClick = React.useCallback((): void => {
         setShowDenyInput(true);
@@ -145,7 +160,7 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                         <HiOutlineCheck className={'size-3.5'}/>
                         Approve
                     </Button>
-                    <Button variant={'outline'} size={'sm'} onClick={handleAllowAll} className={'gap-1.5'}>
+                    <Button variant={'outline'} size={'sm'} onClick={handleAllowAllClick} className={'gap-1.5'}>
                         <HiOutlineCheckCircle className={'size-3.5'}/>
                         Allow All
                     </Button>
@@ -167,6 +182,29 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                     )}
                 </div>
             </div>
+
+            <Modal isOpen={showAllowAllAlert} onOpenChange={setShowAllowAllAlert}>
+                <div className={'p-6'}>
+                    <div className={'flex flex-col items-center text-center gap-4'}>
+                        <div className={'flex items-center justify-center size-12 rounded-full bg-warning/15'}>
+                            <HiOutlineExclamation className={'size-6 text-warning'}/>
+                        </div>
+                        <div className={'flex flex-col gap-1.5'}>
+                            <h3 className={'text-base font-semibold text-text'}>Allow all future tools?</h3>
+                            <p className={'text-sm text-text-muted'}>This will automatically approve every tool request for the rest of this session without prompting. This cannot be undone.</p>
+                        </div>
+                        <div className={'flex items-center gap-2 w-full'}>
+                            <Button variant={'ghost'} size={'sm'} onClick={handleCancelAllowAll} className={'flex-1'}>
+                                Cancel
+                            </Button>
+                            <Button variant={'danger'} size={'sm'} onClick={handleConfirmAllowAll} className={'flex-1 gap-1.5'}>
+                                <HiOutlineCheckCircle className={'size-3.5'}/>
+                                Allow All
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }
