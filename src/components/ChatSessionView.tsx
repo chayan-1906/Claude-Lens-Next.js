@@ -137,6 +137,17 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     const documentTitle: string = isLive ? `(live) ${sessionTitle}` : sessionTitle;
     useDocumentTitle(documentTitle, pendingApproval !== null);
 
+    React.useEffect(() => {
+        if (!isLive) return;
+        const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+            e.preventDefault();
+        }
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return (): void => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isLive]);
+
     // Model/effort/thinking selection state
     const [selectedModel, setSelectedModel] = React.useState<string>('sonnet');
     const [selectedEffort, setSelectedEffort] = React.useState<string>('medium');
