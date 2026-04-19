@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {HiOutlineCog, HiOutlineMenuAlt2, HiOutlineX} from "react-icons/hi";
+import {useRouter} from "next/navigation";
+import {HiOutlineCog, HiOutlineMenuAlt2, HiOutlineTemplate, HiOutlineX} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {assets} from "@/utils/assets";
 import {routes} from "@/utils/routes";
@@ -12,9 +13,23 @@ import {SyncButton} from "@/components/SyncButton";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type {IAppLayoutProps} from "@/types/components";
 
+const SIDEBAR_MIN_WIDTH: number = 180;
+const SIDEBAR_MAX_WIDTH: number = 480;
+const SIDEBAR_DEFAULT_WIDTH: number = 256;
+const SIDEBAR_STORAGE_KEY: string = 'claude-lens-sidebar-width';
+const SIDEBAR_COLLAPSED_KEY: string = 'claude-lens-sidebar-collapsed';
+
 function AppLayout({children, sidebar}: IAppLayoutProps) {
+    const router = useRouter();
     const [sidebarOpen, setSidebarOpen] = React.useState<boolean>(false);
     const [isMobile, setIsMobile] = React.useState<boolean>(false);
+    const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULT_WIDTH);
+    const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
+    const asideRef = React.useRef<HTMLElement>(null);
+    const sidebarWidthRef = React.useRef<number>(SIDEBAR_DEFAULT_WIDTH);
+    const isResizingRef = React.useRef<boolean>(false);
+    const dragStartXRef = React.useRef<number>(0);
+    const dragStartWidthRef = React.useRef<number>(SIDEBAR_DEFAULT_WIDTH);
 
     const toggleSidebar = React.useCallback(() => setSidebarOpen((prev: boolean) => !prev), []);
 
@@ -30,6 +45,85 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    /** Load persisted sidebar width + collapsed state */
+    React.useEffect(() => {
+        const savedWidth: string | null = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+        if (savedWidth) {
+            const parsed: number = parseInt(savedWidth, 10);
+            if (!isNaN(parsed)) {
+                const clamped: number = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, parsed));
+                setSidebarWidth(clamped);
+                sidebarWidthRef.current = clamped;
+            }
+        }
+        const savedCollapsed: string | null = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+        if (savedCollapsed === 'true') setIsCollapsed(true);
+    }, []);
+
+    /** option+N → new session */
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent): void => {
+            if (e.altKey && e.code === 'KeyN') {
+                e.preventDefault();
+                router.push(routes.newSessionPath);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [router]);
+
+    const handleToggleCollapse = React.useCallback((): void => {
+        setIsCollapsed((prev: boolean) => {
+            const next: boolean = !prev;
+            localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+            return next;
+        });
+    }, []);
+
+    /** Sidebar resize — write directly to DOM during drag to avoid re-render lag */
+    const handleResizeMouseDown = React.useCallback((e: React.MouseEvent): void => {
+        if (isCollapsed) return;
+        isResizingRef.current = true;
+        dragStartXRef.current = e.clientX;
+        dragStartWidthRef.current = sidebarWidthRef.current;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        // Disable CSS transition while dragging so it doesn't fight direct DOM updates
+        if (asideRef.current) asideRef.current.style.transition = 'none';
+        e.preventDefault();
+    }, [isCollapsed]);
+
+    React.useEffect(() => {
+        const handleMouseMove = (e: MouseEvent): void => {
+            if (!isResizingRef.current || !asideRef.current) return;
+            const newWidth: number = Math.min(
+                SIDEBAR_MAX_WIDTH,
+                Math.max(SIDEBAR_MIN_WIDTH, dragStartWidthRef.current + (e.clientX - dragStartXRef.current)),
+            );
+            sidebarWidthRef.current = newWidth;
+            asideRef.current.style.width = `${newWidth}px`;
+        };
+        const handleMouseUp = (): void => {
+            if (!isResizingRef.current) return;
+            isResizingRef.current = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            if (asideRef.current) asideRef.current.style.transition = '';
+            setSidebarWidth(sidebarWidthRef.current);
+            localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarWidthRef.current));
+        };
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, []);
+
+    const desktopSidebarStyle: React.CSSProperties = !isMobile
+        ? {width: isCollapsed ? 0 : sidebarWidth, overflow: 'hidden', minWidth: 0}
+        : {};
+
     return (
         <div className={'flex h-dvh bg-background text-text'}>
             {/* Mobile overlay */}
@@ -38,7 +132,16 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
             )}
 
             {/* Sidebar */}
-            <aside className={cn('fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col transition-transform duration-200 z-50 md:z-auto', isMobile && !sidebarOpen && '-translate-x-full')}>
+            <aside
+                ref={asideRef as React.RefObject<HTMLElement>}
+                className={cn(
+                    'fixed md:static inset-y-0 left-0 bg-surface border-r border-border flex flex-col z-50 md:z-auto',
+                    'md:transition-[width] md:duration-200',
+                    isMobile ? 'w-64 transition-transform duration-200' : '',
+                    isMobile && !sidebarOpen && '-translate-x-full',
+                )}
+                style={desktopSidebarStyle}
+            >
                 {/* Sidebar brand header */}
                 <div className={'flex items-center justify-between px-4 py-4 border-b border-border shrink-0'}>
                     <Link href={routes.homePath} className={'flex items-center gap-2.5 min-w-0 group'}>
@@ -50,6 +153,7 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
                             <p className={'text-[10px] text-text-muted mt-0.5 leading-none'}>Session Browser</p>
                         </div>
                     </Link>
+
                     <Button variant={'ghost'} size={'icon'} onClick={toggleSidebar} className={'md:hidden size-8 shrink-0 text-text-muted'} title={'Close sidebar'}>
                         <HiOutlineX className={'size-4'}/>
                     </Button>
@@ -60,6 +164,14 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
                     {sidebar}
                 </div>
             </aside>
+
+            {/* Resize handle — desktop only, hidden when collapsed */}
+            {(!isMobile && !isCollapsed) && (
+                <div
+                    className={'hidden md:block w-1 shrink-0 cursor-col-resize bg-border hover:bg-primary/50 transition-colors'}
+                    onMouseDown={handleResizeMouseDown}
+                />
+            )}
 
             {/* Main Content */}
             <main className={'flex-1 flex flex-col overflow-hidden min-w-0'}>
@@ -77,6 +189,12 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
                             <span className={'text-sm font-bold text-text'}>Claude Lens</span>
                         </Link>
                     </div>
+
+                    {/* Desktop: sidebar collapse toggle — always in a fixed position */}
+                    <Button variant={'ghost'} size={'icon'} onClick={handleToggleCollapse}
+                            className={'hidden md:flex size-8 text-text-muted'} title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+                        <HiOutlineTemplate className={'size-4'}/>
+                    </Button>
 
                     <div className={'flex-1'}/>
 

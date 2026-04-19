@@ -451,7 +451,7 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
                                     className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text hover:bg-border transition-colors active:scale-100'}>
                                 <HiOutlineChevronRight className={cn('size-3 shrink-0 transition-transform', isExpanded && 'rotate-90')}/>
                                 <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
-                                <span className={'truncate font-medium'} title={projectDir}>{projectName}</span>
+                                <span className={'truncate font-medium'} title={rawProjectDir}>{projectName}</span>
                             </Button>
                             <div className={'shrink-0 flex items-center pr-1'}>
                                 <ExportProjectButton projectDir={projectDir}/>

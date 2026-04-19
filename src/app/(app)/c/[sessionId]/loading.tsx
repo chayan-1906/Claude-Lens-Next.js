@@ -16,7 +16,7 @@ function SessionLoading() {
 
             {/* Messages skeleton */}
             <div className={'flex-1 overflow-y-auto px-6 py-4'}>
-                <div className={'max-w-3xl mx-auto flex flex-col gap-4'}>
+                <div className={'max-w-4xl mx-auto flex flex-col gap-4'}>
                     {/* User bubble (right) */}
                     <div className={'flex flex-col items-end'}>
                         <div className={'max-w-[85%] w-64 h-10 bg-border/50 animate-pulse rounded-2xl'}/>
