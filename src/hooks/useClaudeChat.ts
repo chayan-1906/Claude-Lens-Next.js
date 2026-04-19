@@ -2,7 +2,6 @@
 
 import React from "react";
 import {generateUUID} from "@/utils/generateUUID";
-import {NEXT_PUBLIC_BACKEND_WS_URL} from "../../config/config";
 import {ContentBlock, EMessageRole, TextBlock, ThinkingBlock, ToolUseBlock} from "@/types/message";
 import {
     BASE_RECONNECT_DELAY_MS,
@@ -699,15 +698,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
             return;
         }
 
-        const wsUrl: string = NEXT_PUBLIC_BACKEND_WS_URL;
-        if (!wsUrl) {
-            console.error('[useClaudeChat] NEXT_PUBLIC_BACKEND_WS_URL is empty!');
-            setError('WebSocket URL not configured (NEXT_PUBLIC_BACKEND_WS_URL)!');
-            setStatus(EChatStatus.ERROR);
-            return;
-        }
-
-        const url: string = wsUrl.endsWith('/ws') ? wsUrl : `${wsUrl}/ws`;
+        const url: string = `ws://${window.location.hostname}:20261/ws`;
         console.log(`[useClaudeChat] Connecting to`, url);
         setStatus(EChatStatus.CONNECTING);
         intentionalCloseRef.current = false;
