@@ -5,6 +5,18 @@ import {IApiResponse} from "@/types/session";
 export interface IProject {
     rawProjectDir: string;
     projectDir: string;
+    customName?: string;
+    description?: string;
+}
+
+export interface IRenameProjectParams {
+    projectDir: string;
+    customName: string;
+    description?: string;
+}
+
+export interface IRenameProjectResponse extends IApiResponse {
+    project?: IProject;
 }
 
 

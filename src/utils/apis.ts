@@ -77,6 +77,7 @@ const apis = {
     syncApi: baseSyncApiUrl,
 
     getAllProjectsApi: baseProjectApiUrl,
+    renameProjectApi: (projectDir: string) => `${baseProjectApiUrl}/${encodeURIComponent(projectDir)}`,
     deleteProjectApi: (projectDir: string) => `${baseProjectApiUrl}/${encodeURIComponent(projectDir)}`,
 
     getAllSessionsApi: baseSessionApiUrl,

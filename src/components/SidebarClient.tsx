@@ -4,21 +4,35 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {usePathname, useRouter} from "next/navigation";
-import {HiOutlineChatAlt2, HiOutlineChevronRight, HiOutlineClipboardList, HiOutlineDocumentText, HiOutlineFolder, HiOutlinePlus, HiOutlineRefresh} from "react-icons/hi";
+import {
+    HiDotsVertical,
+    HiOutlineChatAlt2,
+    HiOutlineChevronRight,
+    HiOutlineClipboardList,
+    HiOutlineDocumentText,
+    HiOutlineDownload,
+    HiOutlineFolder,
+    HiOutlinePencil,
+    HiOutlinePlus,
+    HiOutlineRefresh,
+    HiOutlineTrash
+} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import {assets} from "@/utils/assets";
 import type {ITask} from "@/types/task";
 import type {IMemory} from "@/types/memory";
+import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
 import type {IProject} from "@/types/project";
 import type {ISession} from "@/types/session";
 import {getAllTasks} from "@/actions/task.actions";
+import {getExportUrl} from "@/actions/export.actions";
+import {deleteProject} from "@/actions/project.actions";
 import {getAllMemories} from "@/actions/memory.actions";
 import type {ISidebarClientProps} from "@/types/components";
 import {ImportZipButton} from "@/components/ImportZipButton";
-import {DeleteProjectButton} from "@/components/DeleteProjectButton";
-import {ExportProjectButton} from "@/components/ExportProjectButton";
+import {RenameProjectModal} from "@/components/RenameProjectModal";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {ExportSessionButton} from "@/components/ExportSessionButton";
 import {getAllSessions, refreshSidebar} from "@/actions/session.actions";
@@ -28,11 +42,11 @@ import {getAllSessions, refreshSidebar} from "@/actions/session.actions";
  * trailing path segments needed to disambiguate — same algorithm VS Code uses
  * for editor tabs. e.g. two projects both named "claude-lens" become
  * "all-next-js-projects/claude-lens" and "NodeJs/claude-lens".
+ * Projects with a customName bypass disambiguation entirely.
  */
 function computeProjectDisplayNames(projects: IProject[]): Map<string, string> {
-    const depths: Map<string, number> = new Map(
-        projects.map((p: IProject) => [p.rawProjectDir, 1]),
-    );
+    const projectsToDisambiguate: IProject[] = projects.filter((p: IProject) => !p.customName);
+    const depths: Map<string, number> = new Map(projectsToDisambiguate.map((project: IProject) => [project.rawProjectDir, 1]),)
 
     let hasConflicts: boolean = true;
     while (hasConflicts) {
@@ -66,6 +80,9 @@ function computeProjectDisplayNames(projects: IProject[]): Map<string, string> {
         const parts: string[] = rawDir.split('/').filter(Boolean);
         result.set(rawDir, parts.slice(Math.max(0, parts.length - depth)).join('/') || rawDir);
     }
+    for (const project of projects) {
+        if (project.customName) result.set(project.rawProjectDir, project.customName);
+    }
     return result;
 }
 
@@ -89,6 +106,14 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
     const [loadingProject, setLoadingProject] = React.useState<string | null>(null);
     const [loadingTasks, setLoadingTasks] = React.useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
+    const [openProjectMenu, setOpenProjectMenu] = React.useState<string | null>(null);
+    const [exportingProject, setExportingProject] = React.useState<string | null>(null);
+    const [deleteModalProject, setDeleteModalProject] = React.useState<IProject | null>(null);
+    const [isDeletingProject, setIsDeletingProject] = React.useState<boolean>(false);
+    const [deleteProjectReclaimR2, setDeleteProjectReclaimR2] = React.useState<boolean>(false);
+    const [deleteProjectError, setDeleteProjectError] = React.useState<string | null>(null);
+    const [isRenameProjectModalOpen, setIsRenameProjectModalOpen] = React.useState<boolean>(false);
+    const [selectedProjectForRename, setSelectedProjectForRename] = React.useState<IProject | null>(null);
 
     const {sortedProjects, displayNames} = React.useMemo(() => {
         // Filter out projects with empty rawProjectDir — backend may return these transiently
@@ -219,7 +244,52 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
         setIsRefreshing(false);
     }, [expandedProjects, expandedSessionTasks, router]);
 
-    /** Clear all caches for a project when it is deleted via DeleteProjectButton */
+    const handleExportProject = React.useCallback(async (projectDir: string): Promise<void> => {
+        setExportingProject(projectDir);
+        setOpenProjectMenu(null);
+        try {
+            const {success, url, error} = await getExportUrl({projectDir});
+            if (!success || !url) {
+                console.error('Export URL error:', error);
+                return;
+            }
+            const a: HTMLAnchorElement = document.createElement('a');
+            a.href = url;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } catch (error: unknown) {
+            console.error('Export error:', error);
+        } finally {
+            setExportingProject(null);
+        }
+    }, []);
+
+    const handleDeleteProject = React.useCallback(async (): Promise<void> => {
+        if (!deleteModalProject) return;
+        setIsDeletingProject(true);
+        setDeleteProjectError(null);
+        const {success, error} = await deleteProject({projectDir: deleteModalProject.projectDir, reclaimR2: deleteProjectReclaimR2});
+        if (!success) {
+            setDeleteProjectError(error || 'Failed to delete project!');
+            setIsDeletingProject(false);
+            return;
+        }
+        console.log('[SidebarClient] dispatching project-deleted event:', {projectDir: deleteModalProject.projectDir});
+        window.dispatchEvent(new CustomEvent('project-deleted', {detail: {projectDir: deleteModalProject.projectDir}}));
+        setDeleteModalProject(null);
+        setIsDeletingProject(false);
+        router.push(routes.homePath);
+    }, [deleteModalProject, deleteProjectReclaimR2, router]);
+
+    const handleProjectRenamed = React.useCallback((_updatedProject: IProject): void => {
+        setIsRenameProjectModalOpen(false);
+        setSelectedProjectForRename(null);
+        router.refresh();
+    }, [router]);
+
+    /** Clear all caches for a project when it is deleted */
     React.useEffect(() => {
         const handler = (e: Event): void => {
             const {projectDir} = (e as CustomEvent<{ projectDir: string }>).detail;
@@ -383,6 +453,14 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
         return () => window.removeEventListener('session-created', handler);
     }, [expandedProjects]);
 
+    /** Close open project context menu when clicking anywhere on the document */
+    React.useEffect(() => {
+        if (!openProjectMenu) return;
+        const handler = (): void => setOpenProjectMenu(null);
+        document.addEventListener('click', handler);
+        return () => document.removeEventListener('click', handler);
+    }, [openProjectMenu]);
+
     if (projects.length === 0) {
         return (
             <div className={'flex flex-col gap-3'}>
@@ -418,165 +496,247 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
     }
 
     return (
-        <nav className={'flex flex-col gap-0.5'}>
-            <div className={'flex justify-end gap-1 mb-1'}>
-                <Link href={routes.newSessionPath} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-colors'}
-                      title={'New chat'}>
-                    <HiOutlinePlus className={'size-3.5'}/>
-                </Link>
-                <ImportZipButton onImported={handleRefresh}/>
-                <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
-                    <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
-                </Button>
-            </div>
-            {sortedProjects.map(({rawProjectDir, projectDir}) => {
-                const projectName: string = displayNames.get(rawProjectDir) || projectDir;
-                const isExpanded: boolean = expandedProjects.has(projectDir);
-                const allSessions: ISession[] = sessionsMap[projectDir] ?? [];
-                // Hide parent sessions — show only leaf sessions (those not superseded by a fork)
-                const parentSessionIds: Set<string> = new Set(
-                    allSessions.filter((session: ISession) => session.parentSessionId).map((session: ISession) => session.parentSessionId!),
-                );
-                const sessions: ISession[] = allSessions
-                    .filter((s: ISession) => !parentSessionIds.has(s.sessionId))
-                    .sort((a: ISession, b: ISession) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
-                const memories: IMemory[] = memoriesMap[projectDir] ?? [];
-                const isLoading: boolean = loadingProject === projectDir;
+        <>
+            <nav className={'flex flex-col gap-0.5'}>
+                <div className={'flex justify-end gap-1 mb-1'}>
+                    <Link href={routes.newSessionPath} className={'inline-flex items-center justify-center size-8 rounded-md text-text hover:bg-surface active:bg-border transition-colors'}
+                          title={'New chat'}>
+                        <HiOutlinePlus className={'size-3.5'}/>
+                    </Link>
+                    <ImportZipButton onImported={handleRefresh}/>
+                    <Button variant={'ghost'} size={'sm'} onClick={handleRefresh} disabled={isRefreshing} className={'p-1.5'} title={'Refresh sidebar'}>
+                        <HiOutlineRefresh className={cn('size-3.5', isRefreshing && 'animate-spin')}/>
+                    </Button>
+                </div>
+                {sortedProjects.map((project: IProject) => {
+                    const {rawProjectDir, projectDir} = project;
+                    const projectName: string = displayNames.get(rawProjectDir) || projectDir;
+                    const isExpanded: boolean = expandedProjects.has(projectDir);
+                    const allSessions: ISession[] = sessionsMap[projectDir] ?? [];
+                    // Hide parent sessions — show only leaf sessions (those not superseded by a fork)
+                    const parentSessionIds: Set<string> = new Set(
+                        allSessions.filter((session: ISession) => session.parentSessionId).map((session: ISession) => session.parentSessionId!),
+                    );
+                    const sessions: ISession[] = allSessions
+                        .filter((s: ISession) => !parentSessionIds.has(s.sessionId))
+                        .sort((a: ISession, b: ISession) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+                    const memories: IMemory[] = memoriesMap[projectDir] ?? [];
+                    const isLoading: boolean = loadingProject === projectDir;
 
-                return (
-                    <div key={projectDir}>
-                        {/* Project header */}
-                        <div className={'flex items-center'}>
-                            <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleProject(projectDir)}
-                                    className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text hover:bg-border transition-colors active:scale-100'}>
-                                <HiOutlineChevronRight className={cn('size-3 shrink-0 transition-transform', isExpanded && 'rotate-90')}/>
-                                <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
-                                <span className={'truncate font-medium'} title={rawProjectDir}>{projectName}</span>
-                            </Button>
-                            <div className={'shrink-0 flex items-center pr-1'}>
-                                <ExportProjectButton projectDir={projectDir}/>
-                                <DeleteProjectButton projectDir={projectDir} projectName={projectName} r2Configured={r2Configured}/>
-                            </div>
-                        </div>
-
-                        {/* Project contents */}
-                        {isExpanded && (
-                            <div className={'ml-5 flex flex-col gap-0.5 mt-0.5'}>
-                                {isLoading && (
-                                    <p className={'text-xs text-text-muted px-3 py-1.5'}>{'Loading...'}</p>
-                                )}
-                                {(!isLoading && sessions.length === 0 && memories.length === 0) && (
-                                    <p className={'text-xs text-text-muted px-3 py-1.5'}>{'No sessions & memories'}</p>
-                                )}
-
-                                {/** Sessions */}
-                                {sessions.map((session: ISession) => {
-                                    const isSessionExpanded: boolean = expandedSessions.has(session.sessionId);
-                                    const chatHref: string = routes.sessionPath(session.sessionId);
-                                    const isChatActive: boolean = pathname === chatHref;
-                                    const tasks: ITask[] = tasksMap[session.sessionId] ?? [];
-                                    const isTasksExpanded: boolean = expandedSessionTasks.has(session.sessionId);
-                                    const isTasksLoading: boolean = loadingTasks === session.sessionId;
-
-                                    return (
-                                        <div key={session.sessionId}>
-                                            {/* Session header */}
-                                            <div className={'flex items-center'}>
-                                                <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSession(session.sessionId)} title={session.title}
-                                                        className={cn(
-                                                            'flex items-center justify-start gap-1.5 flex-1 min-w-0 px-3 py-1.5 rounded-md text-xs transition-colors hover:bg-border truncate active:scale-100',
-                                                            isChatActive
-                                                                ? 'bg-border text-primary font-medium'
-                                                                : 'text-text-muted hover:text-text',
-                                                        )}
-                                                >
-                                                    <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform', isSessionExpanded && 'rotate-90')}/>
-                                                    <span className={'truncate'}>{session.title}</span>
-                                                </Button>
-                                                <div className={'shrink-0 flex items-center'}>
-                                                    <ExportSessionButton projectDir={projectDir} sessionId={session.sessionId}/>
-                                                    <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title} r2Configured={r2Configured}/>
-                                                </div>
-                                            </div>
-
-                                            {/* Session sub-items */}
-                                            {isSessionExpanded && (
-                                                <div className={'ml-4 flex flex-col gap-0.5 mt-0.5'}>
-                                                    {/* Chat link */}
-                                                    <Button variant={'ghost'} size={'sm'} className={cn(
-                                                        'justify-start w-full gap-1.5 text-xs transition-colors hover:bg-border active:scale-100',
-                                                        isChatActive ? 'bg-border text-primary font-medium' : 'text-text-muted hover:text-text',
-                                                    )}>
-                                                        <Link href={chatHref} title={'Chat'} className={'flex items-center gap-1.5 w-full'}>
-                                                            <HiOutlineChatAlt2 className={'size-3.5 shrink-0'}/>
-                                                            <span>Chat</span>
-                                                        </Link>
-                                                    </Button>
-
-                                                    {/* Tasks toggle */}
-                                                    <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSessionTasks(session.sessionId)}
-                                                            className={'flex items-center justify-start gap-1.5 w-full px-3 py-1 rounded-md text-xs text-text-muted hover:bg-border hover:text-text transition-colors active:scale-100'}>
-                                                        <HiOutlineClipboardList className={'size-3.5 shrink-0'}/>
-                                                        <span>Tasks</span>
-                                                        <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform ml-auto', isTasksExpanded && 'rotate-90')}/>
-                                                    </Button>
-
-                                                    {/* Tasks list */}
-                                                    {isTasksExpanded && (
-                                                        <div className={'ml-4 flex flex-col gap-0.5'}>
-                                                            {isTasksLoading && (
-                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>Loading tasks...</p>
-                                                            )}
-                                                            {(!isTasksLoading && tasks.length === 0) && (
-                                                                <p className={'text-[10px] text-text-muted px-3 py-1'}>No tasks</p>
-                                                            )}
-                                                            {tasks.map((task: ITask) => {
-                                                                const statusInfo = TASK_STATUS_ICON[task.status] ?? TASK_STATUS_ICON.pending;
-                                                                const taskHref: string = routes.taskPath(task.sessionId, task.taskId);
-                                                                const isTaskActive: boolean = pathname === taskHref;
-
-                                                                return (
-                                                                    <Link key={task.taskId} href={taskHref} title={task.description}
-                                                                          className={cn(
-                                                                              'flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] transition-colors truncate active:scale-100',
-                                                                              isTaskActive
-                                                                                  ? 'bg-border text-primary font-medium'
-                                                                                  : 'text-text-muted hover:bg-border hover:text-text',
-                                                                          )}
-                                                                    >
-                                                                        <span className={cn('shrink-0 text-xs', isTaskActive ? '' : statusInfo.className)}>{statusInfo.label}</span>
-                                                                        <span className={'truncate'}>{task.subject}</span>
-                                                                    </Link>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                    return (
+                        <div key={projectDir}>
+                            {/* Project header */}
+                            <div className={'flex items-center'}>
+                                <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleProject(projectDir)}
+                                        title={rawProjectDir}
+                                        className={'flex items-center justify-start gap-2 flex-1 min-w-0 px-3 py-2 text-sm text-text hover:bg-border transition-colors active:scale-100'}>
+                                    <HiOutlineChevronRight className={cn('size-3 shrink-0 transition-transform', isExpanded && 'rotate-90')}/>
+                                    <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
+                                    <span className={'truncate font-medium'}>{projectName}</span>
+                                </Button>
+                                <div className={'relative shrink-0 pr-1'}>
+                                    <Button variant={'ghost'} size={'sm'}
+                                            onClick={(e: React.MouseEvent) => {
+                                                e.stopPropagation();
+                                                setOpenProjectMenu(openProjectMenu === projectDir ? null : projectDir);
+                                            }}
+                                            className={'p-1.5 rounded-md text-text-muted hover:text-text'} title={'Project options'}>
+                                        <HiDotsVertical className={'size-3.5'}/>
+                                    </Button>
+                                    {openProjectMenu === projectDir && (
+                                        <div className={'absolute right-0 top-full mt-1 w-40 bg-surface border border-border rounded-md shadow-md z-50 py-1'}>
+                                            <Button type={'button'} variant={'ghost'} size={'sm'}
+                                                    onClick={(e: React.MouseEvent) => {
+                                                        e.stopPropagation();
+                                                        handleExportProject(projectDir);
+                                                    }}
+                                                    disabled={exportingProject === projectDir}
+                                                    className={'flex items-center justify-start gap-2 w-full px-3 py-1.5 text-xs text-text hover:bg-border transition-colors rounded-none'}>
+                                                <HiOutlineDownload className={'size-3.5 shrink-0'}/>
+                                                {exportingProject === projectDir ? 'Exporting...' : 'Export'}
+                                            </Button>
+                                            <Button type={'button'} variant={'ghost'} size={'sm'}
+                                                    onClick={(e: React.MouseEvent) => {
+                                                        e.stopPropagation();
+                                                        setSelectedProjectForRename(project);
+                                                        setIsRenameProjectModalOpen(true);
+                                                        setOpenProjectMenu(null);
+                                                    }}
+                                                    className={'flex items-center justify-start gap-2 w-full px-3 py-1.5 text-xs text-text hover:bg-border transition-colors rounded-none'}>
+                                                <HiOutlinePencil className={'size-3.5 shrink-0'}/>
+                                                Rename
+                                            </Button>
+                                            <Button type={'button'} variant={'ghost'} size={'sm'}
+                                                    onClick={(e: React.MouseEvent) => {
+                                                        e.stopPropagation();
+                                                        setDeleteModalProject(project);
+                                                        setDeleteProjectReclaimR2(false);
+                                                        setDeleteProjectError(null);
+                                                        setOpenProjectMenu(null);
+                                                    }}
+                                                    className={'flex items-center justify-start gap-2 w-full px-3 py-1.5 text-xs text-error hover:bg-error/10 transition-colors rounded-none'}>
+                                                <HiOutlineTrash className={'size-3.5 shrink-0'}/>
+                                                Delete
+                                            </Button>
                                         </div>
-                                    );
-                                })}
-
-                                {/** Memories */}
-                                {memories.length > 0 && (
-                                    <Link href={routes.memoryPath(memories[0].projectDir)}
-                                          className={cn(
-                                              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors truncate active:scale-100',
-                                              pathname === routes.memoryPath(memories[0].projectDir)
-                                                  ? 'bg-border text-primary font-medium'
-                                                  : 'text-text-muted hover:bg-border hover:text-text',
-                                          )}
-                                    >
-                                        <HiOutlineDocumentText className={'size-3.5 shrink-0'}/>
-                                        <span className={'truncate'}>Memories</span>
-                                    </Link>
-                                )}
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Project contents */}
+                            {isExpanded && (
+                                <div className={'ml-5 flex flex-col gap-0.5 mt-0.5'}>
+                                    {isLoading && (
+                                        <p className={'text-xs text-text-muted px-3 py-1.5'}>{'Loading...'}</p>
+                                    )}
+                                    {(!isLoading && sessions.length === 0 && memories.length === 0) && (
+                                        <p className={'text-xs text-text-muted px-3 py-1.5'}>{'No sessions & memories'}</p>
+                                    )}
+
+                                    {/** Sessions */}
+                                    {sessions.map((session: ISession) => {
+                                        const isSessionExpanded: boolean = expandedSessions.has(session.sessionId);
+                                        const chatHref: string = routes.sessionPath(session.sessionId);
+                                        const isChatActive: boolean = pathname === chatHref;
+                                        const tasks: ITask[] = tasksMap[session.sessionId] ?? [];
+                                        const isTasksExpanded: boolean = expandedSessionTasks.has(session.sessionId);
+                                        const isTasksLoading: boolean = loadingTasks === session.sessionId;
+
+                                        return (
+                                            <div key={session.sessionId}>
+                                                {/* Session header */}
+                                                <div className={'flex items-center'}>
+                                                    <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSession(session.sessionId)} title={session.title}
+                                                            className={cn(
+                                                                'flex items-center justify-start gap-1.5 flex-1 min-w-0 px-3 py-1.5 rounded-md text-xs transition-colors hover:bg-border truncate active:scale-100',
+                                                                isChatActive
+                                                                    ? 'bg-border text-primary font-medium'
+                                                                    : 'text-text-muted hover:text-text',
+                                                            )}
+                                                    >
+                                                        <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform', isSessionExpanded && 'rotate-90')}/>
+                                                        <span className={'truncate'}>{session.title}</span>
+                                                    </Button>
+                                                    <div className={'shrink-0 flex items-center'}>
+                                                        <ExportSessionButton projectDir={projectDir} sessionId={session.sessionId}/>
+                                                        <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title} r2Configured={r2Configured}/>
+                                                    </div>
+                                                </div>
+
+                                                {/* Session sub-items */}
+                                                {isSessionExpanded && (
+                                                    <div className={'ml-4 flex flex-col gap-0.5 mt-0.5'}>
+                                                        {/* Chat link */}
+                                                        <Button variant={'ghost'} size={'sm'} className={cn(
+                                                            'justify-start w-full gap-1.5 text-xs transition-colors hover:bg-border active:scale-100',
+                                                            isChatActive ? 'bg-border text-primary font-medium' : 'text-text-muted hover:text-text',
+                                                        )}>
+                                                            <Link href={chatHref} title={'Chat'} className={'flex items-center gap-1.5 w-full'}>
+                                                                <HiOutlineChatAlt2 className={'size-3.5 shrink-0'}/>
+                                                                <span>Chat</span>
+                                                            </Link>
+                                                        </Button>
+
+                                                        {/* Tasks toggle */}
+                                                        <Button variant={'ghost'} size={'sm'} onClick={() => handleToggleSessionTasks(session.sessionId)}
+                                                                className={'flex items-center justify-start gap-1.5 w-full px-3 py-1 rounded-md text-xs text-text-muted hover:bg-border hover:text-text transition-colors active:scale-100'}>
+                                                            <HiOutlineClipboardList className={'size-3.5 shrink-0'}/>
+                                                            <span>Tasks</span>
+                                                            <HiOutlineChevronRight className={cn('size-2.5 shrink-0 transition-transform ml-auto', isTasksExpanded && 'rotate-90')}/>
+                                                        </Button>
+
+                                                        {/* Tasks list */}
+                                                        {isTasksExpanded && (
+                                                            <div className={'ml-4 flex flex-col gap-0.5'}>
+                                                                {isTasksLoading && (
+                                                                    <p className={'text-[10px] text-text-muted px-3 py-1'}>Loading tasks...</p>
+                                                                )}
+                                                                {(!isTasksLoading && tasks.length === 0) && (
+                                                                    <p className={'text-[10px] text-text-muted px-3 py-1'}>No tasks</p>
+                                                                )}
+                                                                {tasks.map((task: ITask) => {
+                                                                    const statusInfo = TASK_STATUS_ICON[task.status] ?? TASK_STATUS_ICON.pending;
+                                                                    const taskHref: string = routes.taskPath(task.sessionId, task.taskId);
+                                                                    const isTaskActive: boolean = pathname === taskHref;
+
+                                                                    return (
+                                                                        <Link key={task.taskId} href={taskHref} title={task.description}
+                                                                              className={cn(
+                                                                                  'flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] transition-colors truncate active:scale-100',
+                                                                                  isTaskActive
+                                                                                      ? 'bg-border text-primary font-medium'
+                                                                                      : 'text-text-muted hover:bg-border hover:text-text',
+                                                                              )}
+                                                                        >
+                                                                            <span className={cn('shrink-0 text-xs', isTaskActive ? '' : statusInfo.className)}>{statusInfo.label}</span>
+                                                                            <span className={'truncate'}>{task.subject}</span>
+                                                                        </Link>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/** Memories */}
+                                    {memories.length > 0 && (
+                                        <Link href={routes.memoryPath(memories[0].projectDir)}
+                                              className={cn(
+                                                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors truncate active:scale-100',
+                                                  pathname === routes.memoryPath(memories[0].projectDir)
+                                                      ? 'bg-border text-primary font-medium'
+                                                      : 'text-text-muted hover:bg-border hover:text-text',
+                                              )}
+                                        >
+                                            <HiOutlineDocumentText className={'size-3.5 shrink-0'}/>
+                                            <span className={'truncate'}>Memories</span>
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </nav>
+
+            {/* Delete project confirmation modal */}
+            {deleteModalProject && (
+                <Modal isOpen={!!deleteModalProject} onOpenChange={(open: boolean) => {
+                    if (!open) setDeleteModalProject(null);
+                }}>
+                    <div className={'p-6'}>
+                        <h2 className={'text-base font-semibold text-text'}>Delete Project</h2>
+                        <p className={'text-sm text-text-muted mt-2'}>
+                            Are you sure you want to delete{' '}
+                            <span className={'font-medium text-text'}>{displayNames.get(deleteModalProject.rawProjectDir) ?? deleteModalProject.projectDir}</span>
+                            ? This will permanently remove all sessions, messages, tasks, and memories for this project.
+                        </p>
+                        {r2Configured && (
+                            <label className={'flex items-center gap-2 mt-4 cursor-pointer select-none'}>
+                                <input type={'checkbox'} checked={deleteProjectReclaimR2} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeleteProjectReclaimR2(e.target.checked)}
+                                       className={'size-4 accent-warning cursor-pointer'}/>
+                                <span className={'text-sm text-text-muted'}>Also reclaim R2 storage for this project</span>
+                            </label>
                         )}
+                        {deleteProjectError && (
+                            <p className={'text-sm text-error mt-3 bg-error/10 px-3 py-2 rounded-md'}>{deleteProjectError}</p>
+                        )}
+                        <div className={'flex items-center justify-end gap-2 mt-5'}>
+                            <Button variant={'ghost'} size={'sm'} onClick={() => setDeleteModalProject(null)} disabled={isDeletingProject}>Cancel</Button>
+                            <Button variant={'danger'} size={'sm'} onClick={handleDeleteProject} isLoading={isDeletingProject}>Delete</Button>
+                        </div>
                     </div>
-                );
-            })}
-        </nav>
+                </Modal>
+            )}
+
+            {/* Rename project modal */}
+            {selectedProjectForRename && (
+                <RenameProjectModal isOpen={isRenameProjectModalOpen} onOpenChange={setIsRenameProjectModalOpen} project={selectedProjectForRename} onSaved={handleProjectRenamed}/>
+            )}
+        </>
     );
 }
 

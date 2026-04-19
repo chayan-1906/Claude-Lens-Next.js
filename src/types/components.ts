@@ -303,6 +303,13 @@ export interface IRenameSessionModalProps {
     onSaved: (updatedSession: ISession) => void;
 }
 
+export interface IRenameProjectModalProps {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    project: IProject;
+    onSaved: (updatedProject: IProject) => void;
+}
+
 export interface IModelConfig {
     value: string;
     label: string;
