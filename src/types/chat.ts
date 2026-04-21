@@ -178,6 +178,7 @@ export interface IToolApprovalRequestMessage {
     toolName: string;
     toolInput: Record<string, unknown>;
     toolUseId: string;
+    projectActive: boolean;
 }
 
 /** Backend message: confirms the Claude process was killed after stop_execution */
@@ -270,6 +271,7 @@ export interface IPendingToolApproval {
     toolName: string;
     toolInput: Record<string, unknown>;
     toolUseId: string;
+    projectActive: boolean;
 }
 
 /** Live IDE (IntelliJ) connection state */
@@ -350,6 +352,10 @@ export interface IToolApprovalResponseMessage {
     requestId: string;
     decision: 'allow' | 'deny';
     reason?: string;
+    /** When true and decision === 'allow', backend persists the tool name into the
+     *  active project's .claude/settings.local.json and caches it in-session so
+     *  further invocations of this tool auto-approve without prompting */
+    allowAll?: boolean;
 }
 
 /** Client → Server: switch model mid-conversation (kill + re-spawn with --resume --model) */

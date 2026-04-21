@@ -49,9 +49,6 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const pendingApproval: IPendingToolApproval | null = approvalQueue[0] ?? null;
     const [ideStatus, setIdeStatus] = React.useState<IIdeStatus | null>(null);
 
-    // --- Refs: tool approval ---
-    const allowAllRef = React.useRef<boolean>(false);
-
     // --- Refs: WebSocket and timers ---
     const wsRef = React.useRef<WebSocket | null>(null);
     const heartbeatIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
@@ -548,20 +545,6 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 const event: IToolApprovalRequestMessage = data as IToolApprovalRequestMessage;
                 console.log(`[useClaudeChat] tool_approval_request → requestId: ${event.requestId}, tool: ${event.toolName}, file: ${(event.toolInput as Record<string, unknown>).file_path}`);
 
-                // If "Allow All" was previously clicked, auto-approve without showing the prompt
-                if (allowAllRef.current) {
-                    console.log('[useClaudeChat] Allow All active — auto-approving');
-                    const ws: WebSocket | null = wsRef.current;
-                    if (ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({
-                            type: 'tool_approval_response',
-                            requestId: event.requestId,
-                            decision: 'allow',
-                        }));
-                    }
-                    break;
-                }
-
                 setApprovalQueue((prev: IPendingToolApproval[]) => [
                     ...prev,
                     {
@@ -569,6 +552,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
                         toolName: event.toolName,
                         toolInput: event.toolInput,
                         toolUseId: event.toolUseId,
+                        projectActive: event.projectActive,
                     },
                 ]);
                 break;
@@ -906,12 +890,10 @@ function useClaudeChat(): IUseClaudeChatReturn {
             requestId,
             decision,
             ...(reason ? {reason} : {}),
+            ...(allowAll ? {allowAll: true} : {}),
         }));
         // Remove only the head — the next queued approval (if any) becomes visible
         setApprovalQueue((prev: IPendingToolApproval[]) => prev.slice(1));
-        if (allowAll) {
-            allowAllRef.current = true;
-        }
     }, []);
 
     const stopExecution = React.useCallback((): void => {

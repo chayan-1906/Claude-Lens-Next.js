@@ -7,8 +7,9 @@ import {Button} from "@/components/ui/Button";
 import {DiffView} from "@/components/DiffView";
 import type {IToolApprovalPromptProps} from "@/types/components";
 
-function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
+function ToolApprovalPrompt({approval, projectDir, onRespond}: IToolApprovalPromptProps) {
     const {requestId, toolName, toolInput} = approval;
+    const projectName: string = (projectDir?.split('/').filter(Boolean).pop()) || '';
     const isRead: boolean = toolName === 'Read';
     const isBash: boolean = toolName === 'Bash';
     const isMcp: boolean = toolName.startsWith('mcp__');
@@ -190,8 +191,18 @@ function ToolApprovalPrompt({approval, onRespond}: IToolApprovalPromptProps) {
                             <HiOutlineExclamation className={'size-6 text-warning'}/>
                         </div>
                         <div className={'flex flex-col gap-1.5'}>
-                            <h3 className={'text-base font-semibold text-text'}>Allow all future tools?</h3>
-                            <p className={'text-sm text-text-muted'}>This will automatically approve every tool request for the rest of this session without prompting. This cannot be undone.</p>
+                            <h3 className={'text-base font-semibold text-text'}>
+                                Always allow <code className={'px-1.5 py-0.5 rounded bg-surface text-primary font-mono text-sm'}>{isMcp ? mcpToolName : toolName}</code>
+                                {projectName ? <> in <code className={'px-1.5 py-0.5 rounded bg-surface text-primary font-mono text-sm'}>{projectName}</code>?</> : '?'}
+                            </h3>
+                            <p className={'text-sm text-text-muted'}>
+                                {approval.projectActive
+                                    ? <>Future Claude sessions in this project will run <span className={'font-mono text-text'}>{isMcp ? mcpToolName : toolName}</span> without prompting!</>
+                                    : <>This session will run <span className={'font-mono text-text'}>{isMcp ? mcpToolName : toolName}</span> without prompting. No project is active, so it will not persist across sessions!</>}
+                            </p>
+                            {approval.projectActive && (
+                                <p className={'text-xs text-text-muted'}>Revoke anytime by editing <span className={'font-mono'}>.claude/settings.local.json</span> in the project!</p>
+                            )}
                         </div>
                         <div className={'flex items-center gap-2 w-full'}>
                             <Button variant={'ghost'} size={'sm'} onClick={handleCancelAllowAll} className={'flex-1'}>

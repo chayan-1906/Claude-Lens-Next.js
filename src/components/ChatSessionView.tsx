@@ -1091,7 +1091,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
 
                                     {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
                                     {pendingApproval && (
-                                        <ToolApprovalPrompt approval={pendingApproval} onRespond={respondToApproval}/>
+                                        <ToolApprovalPrompt approval={pendingApproval} projectDir={projectDir} onRespond={respondToApproval}/>
                                     )}
 
                                     {/* Thinking dots — waiting for first token */}

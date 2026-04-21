@@ -251,6 +251,7 @@ export interface IDiffLine {
 
 export interface IToolApprovalPromptProps {
     approval: IPendingToolApproval;
+    projectDir: string;
     onRespond: (requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean) => void;
 }
 
