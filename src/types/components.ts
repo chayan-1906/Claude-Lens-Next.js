@@ -340,6 +340,12 @@ export interface IResultGroupProps<T extends TSearchItem> {
     label: string;
     items: T[];
     onSelect: (item: T) => void;
+    onHover?: (item: TSearchItem) => void;
+    activeItem?: TSearchItem | null;
     renderMeta?: (item: T) => React.ReactNode;
     renderSub?: (item: T) => string;
+}
+
+export interface IResultPreviewProps {
+    item: TSearchItem | null;
 }
