@@ -15,6 +15,7 @@ import {
     HiOutlinePencil,
     HiOutlinePlus,
     HiOutlineRefresh,
+    HiOutlineSearch,
     HiOutlineTrash
 } from "react-icons/hi";
 import {cn} from "@/utils/cn";
@@ -27,6 +28,7 @@ import {Button} from "@/components/ui/Button";
 import type {IProject} from "@/types/project";
 import type {ISession} from "@/types/session";
 import {getAllTasks} from "@/actions/task.actions";
+import {SearchModal} from "@/components/SearchModal";
 import {getExportUrl} from "@/actions/export.actions";
 import {deleteProject} from "@/actions/project.actions";
 import {getAllMemories} from "@/actions/memory.actions";
@@ -114,6 +116,7 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
     const [deleteProjectError, setDeleteProjectError] = React.useState<string | null>(null);
     const [isRenameProjectModalOpen, setIsRenameProjectModalOpen] = React.useState<boolean>(false);
     const [selectedProjectForRename, setSelectedProjectForRename] = React.useState<IProject | null>(null);
+    const [searchProject, setSearchProject] = React.useState<IProject | null>(null);
 
     const {sortedProjects, displayNames} = React.useMemo(() => {
         // Filter out projects with empty rawProjectDir — backend may return these transiently
@@ -534,7 +537,13 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
                                     <HiOutlineFolder className={'size-4 shrink-0 text-text-muted'}/>
                                     <span className={'truncate font-medium'}>{projectName}</span>
                                 </Button>
-                                <div className={'relative shrink-0 pr-1'}>
+                                <div className={'relative shrink-0 pr-1 flex items-center'}>
+                                    <Button variant={'ghost'} size={'sm'} onClick={(e: React.MouseEvent) => {
+                                        e.stopPropagation();
+                                        setSearchProject(project);
+                                    }} className={'p-1.5 rounded-md text-text-muted hover:text-text'} title={'Search in project'}>
+                                        <HiOutlineSearch className={'size-3.5'}/>
+                                    </Button>
                                     <Button variant={'ghost'} size={'sm'}
                                             onClick={(e: React.MouseEvent) => {
                                                 e.stopPropagation();
@@ -736,6 +745,9 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
             {selectedProjectForRename && (
                 <RenameProjectModal isOpen={isRenameProjectModalOpen} onOpenChange={setIsRenameProjectModalOpen} project={selectedProjectForRename} onSaved={handleProjectRenamed}/>
             )}
+
+            {/* Project search modal */}
+            <SearchModal isOpen={!!searchProject} onClose={() => setSearchProject(null)} defaultScope={'project'} projectDir={searchProject?.projectDir}/>
         </>
     );
 }

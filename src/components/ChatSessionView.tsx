@@ -25,6 +25,7 @@ import {ChatInput} from "@/components/ChatInput";
 import {IUseTextToSpeechReturn} from "@/types/tts";
 import {useClaudeChat} from "@/hooks/useClaudeChat";
 import {BubbleShell} from "@/components/BubbleShell";
+import {SearchModal} from "@/components/SearchModal";
 import {IOpenFolderPickerResponse} from "@/types/file";
 import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
@@ -126,27 +127,13 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     // Local session state — enables optimistic title/description updates after rename
     const [localSession, setLocalSession] = React.useState<ISession | undefined>(session);
     const [isRenameModalOpen, setIsRenameModalOpen] = React.useState<boolean>(false);
-
-    React.useEffect(() => {
-        setLocalSession(session);
-    }, [session]);
+    const [isSearchOpen, setIsSearchOpen] = React.useState<boolean>(false);
 
     // Dynamic browser tab title
     const isLive: boolean = status === EChatStatus.STREAMING || status === EChatStatus.SENDING || status === EChatStatus.TOOL_RUNNING;
     const sessionTitle: string = isNewChat ? 'New Chat' : (localSession?.title ?? 'Session');
     const documentTitle: string = isLive ? `(live) ${sessionTitle}` : sessionTitle;
     useDocumentTitle(documentTitle, pendingApproval !== null);
-
-    React.useEffect(() => {
-        if (!isLive) return;
-        const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
-            e.preventDefault();
-        }
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return (): void => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, [isLive]);
 
     // Model/effort/thinking selection state
     const [selectedModel, setSelectedModel] = React.useState<string>('sonnet');
@@ -157,7 +144,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     React.useEffect(() => {
         if (!historicalMessages || historicalMessages.length === 0) return;
         const lastAssistant: IMessage | undefined = [...historicalMessages].reverse().find(
-            (m: IMessage) => m.role === EMessageRole.ASSISTANT && m.aiModel,
+            (message: IMessage) => message.role === EMessageRole.ASSISTANT && message.aiModel,
         );
         if (!lastAssistant?.aiModel) return;
         const modelId: string = lastAssistant.aiModel.toLowerCase();
@@ -191,6 +178,21 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         }
     }, [isNewChat, contextInfo?.sessionId]);
 
+    React.useEffect(() => {
+        setLocalSession(session);
+    }, [session]);
+
+    React.useEffect(() => {
+        if (!isLive) return;
+        const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+            e.preventDefault();
+        }
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return (): void => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isLive]);
+
     // Keep contextInfo.sessionId in a ref so the sync-complete listener doesn't re-register on every token update
     React.useEffect(() => {
         contextSessionIdForSyncRef.current = contextInfo?.sessionId ?? null;
@@ -208,7 +210,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
             await refreshSidebar();
             router.refresh();
             window.dispatchEvent(new CustomEvent('session-created'));
-        };
+        }
         window.addEventListener('sync-complete', handler);
         return (): void => {
             window.removeEventListener('sync-complete', handler);
@@ -766,6 +768,9 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                 <HiOutlineShieldCheck className={'size-3.5'}/>
                             </Button>
                         )}
+                        <Button variant={'ghost'} size={'icon'} onClick={() => setIsSearchOpen(true)} className={'size-7 text-text-muted'} title={'Search in session'}>
+                            <HiOutlineSearch className={'size-3.5'}/>
+                        </Button>
                         <DeleteSessionButton sessionId={localSession.sessionId} sessionTitle={localSession.title} r2Configured={r2Configured}/>
                         <span
                             className={cn('size-2.5 rounded-full animate-pulse', status === EChatStatus.CONNECTING ? 'bg-warning' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success')}
@@ -777,6 +782,11 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
             {/* Rename Session Modal */}
             {localSession && (
                 <RenameSessionModal isOpen={isRenameModalOpen} onOpenChange={setIsRenameModalOpen} session={localSession} onSaved={handleSessionRenamed}/>
+            )}
+
+            {/* Session search modal */}
+            {localSession && (
+                <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} defaultScope={'session'} sessionId={localSession.sessionId} projectDir={localSession.projectDir}/>
             )}
 
             {/* Messages area + MCP panel */}

@@ -4,12 +4,13 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
-import {HiOutlineCog, HiOutlineMenuAlt2, HiOutlineTemplate, HiOutlineX} from "react-icons/hi";
+import {HiOutlineCog, HiOutlineMenuAlt2, HiOutlineSearch, HiOutlineTemplate, HiOutlineX} from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {assets} from "@/utils/assets";
 import {routes} from "@/utils/routes";
 import {Button} from "@/components/ui/Button";
 import {SyncButton} from "@/components/SyncButton";
+import {SearchModal} from "@/components/SearchModal";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type {IAppLayoutProps} from "@/types/components";
 
@@ -25,6 +26,7 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
     const [isMobile, setIsMobile] = React.useState<boolean>(false);
     const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_DEFAULT_WIDTH);
     const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
+    const [isSearchOpen, setIsSearchOpen] = React.useState<boolean>(false);
     const asideRef = React.useRef<HTMLElement>(null);
     const sidebarWidthRef = React.useRef<number>(SIDEBAR_DEFAULT_WIDTH);
     const isResizingRef = React.useRef<boolean>(false);
@@ -200,6 +202,9 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
 
                     {/* Toolbar */}
                     <div className={'flex items-center gap-1'}>
+                        <Button variant={'ghost'} size={'icon'} onClick={() => setIsSearchOpen(true)} className={'size-8 text-text-muted'} title={'Search (Global)'}>
+                            <HiOutlineSearch className={'size-4'}/>
+                        </Button>
                         <SyncButton/>
                         <Link href={routes.setupPath} title={'Settings'}
                               className={'inline-flex items-center justify-center size-8 rounded-md text-text-muted hover:text-text hover:bg-border active:bg-border/70 transition-all duration-150'}>
@@ -214,6 +219,8 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
                     {children}
                 </div>
             </main>
+
+            <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} defaultScope={'global'}/>
         </div>
     );
 }

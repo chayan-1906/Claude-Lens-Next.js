@@ -2,7 +2,7 @@
 
 import React from "react";
 import {generateUUID} from "@/utils/generateUUID";
-import {NEXT_PUBLIC_BACKEND_WS_URL} from "../../config/config";
+import {NEXT_PUBLIC_BACKEND_WS_URL} from "@/config/config";
 import {ContentBlock, EMessageRole, TextBlock, ThinkingBlock, ToolUseBlock} from "@/types/message";
 import {
     BASE_RECONNECT_DELAY_MS,

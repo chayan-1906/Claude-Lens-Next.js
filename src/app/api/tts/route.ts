@@ -1,5 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
-import {BACKEND_URL} from "../../../../config/config";
+import {BACKEND_URL} from "@/config/config";
 
 export async function POST(req: NextRequest): Promise<Response> {
     try {

@@ -4,6 +4,7 @@ import {IProject} from "@/types/project";
 import type {IMemory} from "@/types/memory";
 import type {IUseTextToSpeechReturn} from "@/types/tts";
 import type {IGetSessionPagination, ISession} from "@/types/session";
+import {ISearchResponse, TSearchItem, TSearchScope} from "@/types/search";
 import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 import {IAttachment, IContextInfo, IIdeStatus, IPendingToolApproval} from "@/types/chat";
 import type {IClaudeAccount, IGroqConfig, IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
@@ -324,4 +325,21 @@ export interface IModelSelectorProps {
     onEffortChange: (effort: string) => void;
     onThinkingChange: (thinking: boolean) => void;
     disabled?: boolean;
+}
+
+export interface ISearchModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    defaultScope: TSearchScope;
+    sessionId?: string;
+    projectDir?: string;
+}
+
+export interface IResultGroupProps<T extends TSearchItem> {
+    icon: React.ReactNode;
+    label: string;
+    items: T[];
+    onSelect: (item: T) => void;
+    renderMeta?: (item: T) => React.ReactNode;
+    renderSub?: (item: T) => string;
 }

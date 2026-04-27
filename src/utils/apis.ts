@@ -1,4 +1,5 @@
-import {BACKEND_URL} from "../../config/config";
+import {BACKEND_URL} from "@/config/config";
+import {TSearchScope} from "@/types/search";
 
 /** Base URL for all API endpoints */
 const baseApiUrl: string = `${BACKEND_URL}/api/v1`;
@@ -44,6 +45,9 @@ const baseMcpApiUrl: string = `${baseApiUrl}/mcp`;
 
 /** Base URL for R2 endpoints */
 const baseR2ApiUrl: string = `${baseApiUrl}/r2`;
+
+/** Base URL for search endpoints */
+const baseSearchApiUrl: string = `${baseApiUrl}/search`;
 
 /** Backend API endpoint URLs */
 const apis = {
@@ -117,6 +121,17 @@ const apis = {
     reclaimR2Api: `${baseR2ApiUrl}/reclaim`,
 
     getMcpServersApi: `${baseMcpApiUrl}/servers`,
+
+    searchApi: (params: { q: string; scope: TSearchScope; sessionId?: string; projectDir?: string; limit?: number; skip?: number; }): string => {
+        const searchParams: URLSearchParams = new URLSearchParams();
+        searchParams.set('q', params.q);
+        searchParams.set('scope', params.scope);
+        if (params.sessionId) searchParams.set('sessionId', params.sessionId);
+        if (params.projectDir) searchParams.set('projectDir', params.projectDir);
+        if (params.limit) searchParams.set('limit', String(params.limit));
+        if (params.skip) searchParams.set('skip', String(params.skip));
+        return `${baseSearchApiUrl}?${searchParams.toString()}`;
+    },
 };
 
 export {apis};
