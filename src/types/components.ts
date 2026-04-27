@@ -348,4 +348,5 @@ export interface IResultGroupProps<T extends TSearchItem> {
 
 export interface IResultPreviewProps {
     item: TSearchItem | null;
+    query: string;
 }

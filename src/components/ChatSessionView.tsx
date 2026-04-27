@@ -15,7 +15,7 @@ import {
     HiOutlineSearch,
     HiOutlineShieldCheck,
     HiOutlineTerminal,
-    HiOutlineWifi
+    HiOutlineWifi,
 } from "react-icons/hi";
 import {cn} from "@/utils/cn";
 import {debug} from "@/utils/debug";

@@ -219,7 +219,7 @@ function SearchModal({isOpen, onClose, defaultScope, sessionId, projectDir}: ISe
                     {/* Right panel — preview */}
                     {hasResults && (
                         <div className={'flex-1 overflow-y-auto'}>
-                            <ResultPreview item={hoveredItem}/>
+                            <ResultPreview item={hoveredItem} query={query}/>
                         </div>
                     )}
                 </div>
@@ -283,7 +283,23 @@ const TYPE_ICON: Record<TSearchItem['_type'], React.ReactNode> = {
     memory: <HiOutlineDocumentText className={'size-3.5'}/>,
 };
 
-function ResultPreview({item}: IResultPreviewProps) {
+function highlightText(text: string, query: string): React.ReactNode {
+    if (!query.trim()) return text;
+    const terms: string[] = query.trim().split(/\s+/).filter(Boolean);
+    const escaped: string = terms.map((t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    const parts: string[] = text.split(new RegExp(`(${escaped})`, 'gi'));
+    return (
+        <>
+            {parts.map((part: string, i: number) =>
+                i % 2 === 1
+                    ? <mark key={i} className={'bg-primary/20 text-primary rounded-sm px-0.5 not-italic'}>{part}</mark>
+                    : part
+            )}
+        </>
+    );
+}
+
+function ResultPreview({item, query}: IResultPreviewProps) {
     if (!item) {
         return (
             <div className={'flex flex-col items-center justify-center min-h-50 h-full gap-2'}>
@@ -341,7 +357,7 @@ function ResultPreview({item}: IResultPreviewProps) {
             <div className={'border-t border-border/50'}/>
 
             {/* Snippet */}
-            <p className={'text-xs text-text/80 leading-relaxed'}>{item.snippet}</p>
+            <p className={'text-xs text-text/80 leading-relaxed'}>{highlightText(item.snippet, query)}</p>
         </div>
     );
 }
