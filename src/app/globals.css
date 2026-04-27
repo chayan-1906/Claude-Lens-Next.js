@@ -1094,20 +1094,6 @@ body {
 	}
 }
 
-@keyframes search-highlight {
-	0%, 25% {
-		box-shadow: 0 0 0 2px var(--color-primary);
-	}
-	100% {
-		box-shadow: 0 0 0 2px transparent;
-	}
-}
-
-.message-search-highlight {
-	animation: search-highlight 2.5s ease-out forwards;
-	border-radius: 1rem;
-}
-
 /* ========================================
    Markdown content typography
    ======================================== */
