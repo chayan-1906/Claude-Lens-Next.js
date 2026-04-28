@@ -14,6 +14,21 @@ import type {IClaudeAccount, IGroqConfig, IMongoConfig, IPathMapping, IR2Config}
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger' | 'link';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
+export interface IProjectChipColor {
+    base: string;
+    hover: string;
+    active: string;
+    dot: string;
+}
+
+export interface ICapabilityRow {
+    icon: React.ReactElement;
+    color: string;
+    bg: string;
+    label: string;
+    desc: string;
+}
+
 
 /** ------------- API response types ------------- */
 
@@ -227,6 +242,7 @@ export interface IChatSessionViewProps {
     r2Configured: boolean;
     groqConfigured: boolean;
     localJsonlAvailable?: boolean;
+    projects?: IProject[];
 }
 
 export interface IMcpServersPanelProps {

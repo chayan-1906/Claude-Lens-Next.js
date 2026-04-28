@@ -20,6 +20,7 @@ import {
 import {cn} from "@/utils/cn";
 import {debug} from "@/utils/debug";
 import {routes} from "@/utils/routes";
+import {IProject} from "@/types/project";
 import {Button} from "@/components/ui/Button";
 import {ChatInput} from "@/components/ChatInput";
 import {IUseTextToSpeechReturn} from "@/types/tts";
@@ -31,7 +32,6 @@ import {formatModelName} from "@/utils/formatModelName";
 import {openFolderPicker} from "@/actions/file.actions";
 import {useTextToSpeech} from "@/hooks/useTextToSpeech";
 import useDocumentTitle from "@/hooks/useDocumentTitle";
-import {IChatSessionViewProps} from "@/types/components";
 import {MessageBubble} from "@/components/MessageBubble";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {MessageContent} from "@/components/MessageContent";
@@ -46,14 +46,51 @@ import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {VoiceSettingsPopover} from "@/components/VoiceSettingsPopover";
+import {computeProjectDisplayNames} from "@/utils/projectDisplayName";
 import {IGetSessionPagination, IGetSessionResponse, ISession} from "@/types/session";
+import {ICapabilityRow, IChatSessionViewProps, IProjectChipColor} from "@/types/components";
 import {extractMessageText, extractSpeakableText, normalizeToolResultContent} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
 
 const SCROLL_THRESHOLD: number = 50;
 const LOAD_MORE_THRESHOLD: number = 120;
 
-function ChatSessionView({isNewChat, session, historicalMessages, initialPagination, r2Configured, groqConfigured, localJsonlAvailable}: IChatSessionViewProps) {
+const PROJECT_CHIP_COLORS: IProjectChipColor[] = [
+    {
+        base: 'bg-primary/10 border-primary/25 text-primary/80',
+        hover: 'hover:bg-primary/15 hover:border-primary/40',
+        active: 'bg-primary/20 border-primary/60 text-primary ring-2 ring-primary/20',
+        dot: 'bg-primary',
+    },
+    {
+        base: 'bg-success/10 border-success/25 text-success/80',
+        hover: 'hover:bg-success/15 hover:border-success/40',
+        active: 'bg-success/20 border-success/60 text-success ring-2 ring-success/20',
+        dot: 'bg-success',
+    },
+    {
+        base: 'bg-warning/10 border-warning/25 text-warning/80',
+        hover: 'hover:bg-warning/15 hover:border-warning/40',
+        active: 'bg-warning/20 border-warning/60 text-warning ring-2 ring-warning/20',
+        dot: 'bg-warning',
+    },
+    {base: 'bg-error/10 border-error/25 text-error/80', hover: 'hover:bg-error/15 hover:border-error/40', active: 'bg-error/20 border-error/60 text-error ring-2 ring-error/20', dot: 'bg-error'},
+    {
+        base: 'bg-accent/10 border-accent/25 text-accent/80',
+        hover: 'hover:bg-accent/15 hover:border-accent/40',
+        active: 'bg-accent/20 border-accent/60 text-accent ring-2 ring-accent/20',
+        dot: 'bg-accent',
+    },
+];
+
+const CAPABILITY_ROWS: ICapabilityRow[] = [
+    {icon: <HiOutlineCode className={'size-3.5'}/>, color: 'text-primary', bg: 'bg-primary/8', label: 'Read and edit files', desc: 'Browse, create, modify source files in your project'},
+    {icon: <HiOutlineTerminal className={'size-3.5'}/>, color: 'text-success', bg: 'bg-success/8', label: 'Run commands', desc: 'Execute shell commands, npm scripts, builds'},
+    {icon: <HiOutlineSearch className={'size-3.5'}/>, color: 'text-warning', bg: 'bg-warning/8', label: 'Search codebase', desc: 'Grep, find, and analyse across your entire repo'},
+    {icon: <HiOutlineBeaker className={'size-3.5'}/>, color: 'text-accent', bg: 'bg-accent/8', label: 'Write tests', desc: 'Generate unit, integration, and e2e test suites'},
+];
+
+function ChatSessionView({isNewChat, session, historicalMessages, initialPagination, r2Configured, groqConfigured, localJsonlAvailable, projects}: IChatSessionViewProps) {
     const router = useRouter();
     const {
         status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval,
@@ -158,6 +195,16 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     // Project directory state for new chats
     const [projectDir, setProjectDir] = React.useState<string>('');
     const [isBrowsing, setIsBrowsing] = React.useState<boolean>(false);
+
+    // Sorted projects + display names for the new-chat project chips
+    const {sortedProjects, projectDisplayNames} = React.useMemo(() => {
+        const valid: IProject[] = (projects ?? []).filter((p: IProject) => p.rawProjectDir.trim() !== '');
+        const names: Map<string, string> = computeProjectDisplayNames(valid);
+        const sorted: IProject[] = [...valid].sort((projectA: IProject, projectB: IProject) =>
+            (names.get(projectA.rawProjectDir) ?? '').toLowerCase().localeCompare((names.get(projectB.rawProjectDir) ?? '').toLowerCase()),
+        );
+        return {sortedProjects: sorted, projectDisplayNames: names};
+    }, [projects]);
 
     // Allowed directories state for new chats
     const [allowedDirs, setAllowedDirs] = React.useState<string[]>([]);
@@ -796,21 +843,75 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                         <div className={'max-w-4xl lg:max-w-6xl mx-auto px-6 py-4 min-h-full flex flex-col'}>
                             {showEmptyState ? (
                                 <div className={'flex-1 flex items-center justify-center'}>
-                                    <div className={'flex flex-col items-center gap-8 max-w-4xl w-full px-4'}>
+                                    <div className={'flex flex-col items-center gap-6 max-w-4xl w-full px-4'}>
+
                                         {/* Decorative icon */}
-                                        <div className={'size-14 rounded-2xl bg-primary/10 flex items-center justify-center'}>
+                                        <div className={'size-14 rounded-2xl bg-primary/10 flex items-center justify-center shadow-sm'}>
                                             <HiOutlineTerminal className={'size-7 text-primary'}/>
                                         </div>
 
-                                        {/* Heading */}
+                                        {/* H1 — page heading */}
                                         <div className={'text-center space-y-1.5'}>
                                             <h2 className={'text-xl font-semibold text-text'}>What can I help you with?</h2>
                                             <p className={'text-sm text-text-muted'}>Chat with Claude about your code</p>
                                         </div>
 
-                                        {/* Project directory input */}
+                                        {/* Notion callout block */}
+                                        <div className={'w-full flex items-start gap-2.5 px-4 py-3 rounded-xl bg-primary/5 border border-primary/15'}>
+                                            <span className={'text-base select-none mt-px'}>💡</span>
+                                            <p className={'text-xs text-text-muted leading-relaxed'}>
+                                                Select a project chip below to set the working directory, or type a custom path and click <strong
+                                                className={'font-semibold text-text'}>Browse...</strong>
+                                            </p>
+                                        </div>
+
+                                        {/* Notion divider + H3: Recent Projects */}
+                                        {sortedProjects.length > 0 && (
+                                            <div className={'w-full'}>
+                                                <div className={'flex items-center gap-3 mb-4'}>
+                                                    <div className={'flex-1 h-px bg-border'}/>
+                                                    <span className={'text-[11px] font-semibold text-text-muted uppercase tracking-widest flex items-center gap-1.5 shrink-0'}>
+                                                        <HiOutlineFolder className={'size-3.5'}/>
+                                                        Recent Projects
+                                                    </span>
+                                                    <div className={'flex-1 h-px bg-border'}/>
+                                                </div>
+
+                                                {/* Project chips — single-select */}
+                                                <div className={'flex flex-wrap gap-2 justify-center'}>
+                                                    {sortedProjects.map((project: IProject, index: number) => {
+                                                        const colorSet: IProjectChipColor = PROJECT_CHIP_COLORS[index % PROJECT_CHIP_COLORS.length];
+                                                        const isSelected: boolean = projectDir === project.rawProjectDir;
+                                                        const displayName: string = projectDisplayNames.get(project.rawProjectDir) ?? project.rawProjectDir;
+                                                        return (
+                                                            <Button key={project.rawProjectDir} variant={'ghost'} type={'button'} onClick={() => setProjectDir(isSelected ? '' : project.rawProjectDir)}
+                                                                    className={cn(
+                                                                        'h-auto rounded-full border px-3.5 py-1.5 text-xs font-medium',
+                                                                        isSelected ? colorSet.active : cn(colorSet.base, colorSet.hover),
+                                                                    )}
+                                                            >
+                                                                <span className={cn('size-1.5 rounded-full shrink-0', colorSet.dot)}/>
+                                                                <span className={'max-w-[220px] truncate'}>{displayName}</span>
+                                                                {isSelected && (
+                                                                    <HiOutlineChevronDoubleRight className={'size-3 shrink-0'}/>
+                                                                )}
+                                                            </Button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Notion divider */}
+                                        <div className={'w-full h-px bg-border'}/>
+
+                                        {/* Project directory — H3 + code-block-style input */}
                                         <div className={'w-full'}>
-                                            <label className={'block text-xs text-text-muted mb-1.5'}>Project directory (optional)</label>
+                                            <p className={'text-[11px] font-semibold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-1.5'}>
+                                                <HiOutlineFolder className={'size-3.5'}/>
+                                                Project directory
+                                                <span className={'normal-case font-normal tracking-normal text-text-muted/60 ml-1'}>— optional</span>
+                                            </p>
                                             <div className={'flex items-center gap-2'}>
                                                 <input
                                                     type={'text'}
@@ -826,83 +927,110 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                             </div>
                                         </div>
 
-                                        {/* Allowed directories */}
-                                        <div className={'w-full'}>
-                                            <label className={'block text-xs text-text-muted mb-1.5'}>Allowed directories (optional)</label>
-                                            <div className={'flex items-center gap-2'}>
-                                                <input
-                                                    type={'text'}
-                                                    value={allowedDirInput}
-                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowedDirInput(e.target.value)}
-                                                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                                                        if (e.key === 'Enter') handleAddAllowedDir();
-                                                    }}
-                                                    placeholder={'/Volumes/external-drive'}
-                                                    className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
-                                                />
-                                                <Button variant={'ghost'} size={'sm'} onClick={handleBrowseAllowedDir} isLoading={isBrowsingAllowedDir} disabled={isBrowsingAllowedDir}>
-                                                    <HiOutlineFolder className={'size-4'}/>
-                                                    Browse...
-                                                </Button>
-                                                <Button variant={'primary'} size={'sm'} onClick={handleAddAllowedDir} disabled={!allowedDirInput.trim()}>
-                                                    Add
-                                                </Button>
+                                        {/* Notion toggle — Allowed directories */}
+                                        <details className={'w-full group'}>
+                                            <summary className={'flex items-center gap-1.5 cursor-pointer select-none list-none text-xs text-text-muted hover:text-text transition-colors'}>
+                                                <HiOutlineChevronDoubleRight className={'size-3 shrink-0 transition-transform group-open:rotate-90'}/>
+                                                <span className={'font-medium'}>Allowed directories</span>
+                                                <span className={'text-text-muted/60 ml-1'}>— advanced</span>
+                                            </summary>
+                                            <div className={'mt-3 pl-4 border-l-2 border-border'}>
+                                                <div className={'flex items-center gap-2'}>
+                                                    <input
+                                                        type={'text'}
+                                                        value={allowedDirInput}
+                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowedDirInput(e.target.value)}
+                                                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                                            if (e.key === 'Enter') handleAddAllowedDir();
+                                                        }}
+                                                        placeholder={'/Volumes/external-drive'}
+                                                        className={'flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg text-text placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary'}
+                                                    />
+                                                    <Button variant={'ghost'} size={'sm'} onClick={handleBrowseAllowedDir} isLoading={isBrowsingAllowedDir} disabled={isBrowsingAllowedDir}>
+                                                        <HiOutlineFolder className={'size-4'}/>
+                                                        Browse...
+                                                    </Button>
+                                                    <Button variant={'primary'} size={'sm'} onClick={handleAddAllowedDir} disabled={!allowedDirInput.trim()}>
+                                                        Add
+                                                    </Button>
+                                                </div>
+                                                {allowedDirs.length > 0 && (
+                                                    <ul className={'mt-2 space-y-1'}>
+                                                        {allowedDirs.map((allowedDir: string) => (
+                                                            <li key={allowedDir} className={'flex items-center justify-between gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-md'}>
+                                                                <span className={'text-xs font-mono text-text truncate'}>{allowedDir}</span>
+                                                                <Button onClick={() => handleRemoveAllowedDir(allowedDir)} className={'text-text-muted hover:text-error shrink-0 text-xs leading-none'}
+                                                                        aria-label={'Remove'}>
+                                                                    ✕
+                                                                </Button>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
                                             </div>
-                                            {allowedDirs.length > 0 && (
-                                                <ul className={'mt-2 space-y-1'}>
-                                                    {allowedDirs.map((allowedDir: string) => (
-                                                        <li key={allowedDir} className={'flex items-center justify-between gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-md'}>
-                                                            <span className={'text-xs font-mono text-text truncate'}>{allowedDir}</span>
-                                                            <Button onClick={() => handleRemoveAllowedDir(allowedDir)} className={'text-text-muted hover:text-error shrink-0 text-xs leading-none'}
-                                                                    aria-label={'Remove'}>
-                                                                ✕
-                                                            </Button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
+                                        </details>
+
+                                        {/* Notion quote block — how it works */}
+                                        <div className={'w-full pl-3.5 border-l-[3px] border-primary/30'}>
+                                            <p className={'text-xs text-text-muted leading-relaxed italic'}>
+                                                Set a project directory, type a message, and Claude will work directly in your codebase.
+                                            </p>
                                         </div>
 
-                                        {/* How it works */}
-                                        <p className={'text-xs text-text-muted text-center leading-relaxed'}>
-                                            Set a project directory, type a message, and Claude will work directly in your codebase
-                                        </p>
+                                        {/* Notion H3 — capability section */}
+                                        <div className={'w-full'}>
+                                            <p className={'text-[11px] font-semibold text-text-muted uppercase tracking-widest mb-3'}>What Claude can do</p>
 
-                                        {/* Capability pills */}
-                                        <div className={'flex flex-wrap justify-center gap-2'}>
-                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
-                                    <HiOutlineCode className={'size-3.5 text-primary'}/>
-                                    <span className={'text-xs text-text-muted'}>Read and edit files</span>
-                                </span>
-                                            <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
-                                    <HiOutlineTerminal className={'size-3.5 text-primary'}/>
-                                    <span className={'text-xs text-text-muted'}>Run commands</span>
-                                </span>
-                                            <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
-                                    <HiOutlineSearch className={'size-3.5 text-primary'}/>
-                                    <span className={'text-xs text-text-muted'}>Search codebase</span>
-                                </span>
-                                            <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
-                                    <HiOutlineBeaker className={'size-3.5 text-primary'}/>
-                                    <span className={'text-xs text-text-muted'}>Write tests</span>
-                                </span>
+                                            {/* Numbered-list style capability rows */}
+                                            <div className={'flex flex-col gap-2 mb-4'}>
+                                                {CAPABILITY_ROWS.map(({icon, color, bg, label, desc}: ICapabilityRow, i: number) => (
+                                                    <div key={label} className={'flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border'}>
+                                                        <span className={'text-[10px] font-mono text-text-muted/50 shrink-0 w-3'}>{i + 1}.</span>
+                                                        <span className={cn('inline-flex items-center justify-center size-6 rounded-md shrink-0', bg)}>
+                                                            <span className={color}>{icon}</span>
+                                                        </span>
+                                                        <span className={'text-xs font-medium text-text'}>{label}</span>
+                                                        <span className={'text-xs text-text-muted ml-auto hidden sm:block truncate max-w-[200px]'}>{desc}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Bulleted capability pills */}
+                                            <div className={'flex flex-wrap justify-center gap-2'}>
+                                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1'}>
+                                                    <HiOutlineCode className={'size-3.5 text-primary'}/>
+                                                    <span className={'text-xs text-text-muted'}>Read and edit files</span>
+                                                </span>
+                                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-success/8 px-3 py-1'}>
+                                                    <HiOutlineTerminal className={'size-3.5 text-success'}/>
+                                                    <span className={'text-xs text-text-muted'}>Run commands</span>
+                                                </span>
+                                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-warning/8 px-3 py-1'}>
+                                                    <HiOutlineSearch className={'size-3.5 text-warning'}/>
+                                                    <span className={'text-xs text-text-muted'}>Search codebase</span>
+                                                </span>
+                                                <span className={'inline-flex items-center gap-1.5 rounded-full bg-accent/8 px-3 py-1'}>
+                                                    <HiOutlineBeaker className={'size-3.5 text-accent'}/>
+                                                    <span className={'text-xs text-text-muted'}>Write tests</span>
+                                                </span>
+                                            </div>
                                         </div>
+
+                                        {/* Notion divider */}
+                                        <div className={'w-full h-px bg-border'}/>
 
                                         {/* Keyboard shortcut hints */}
                                         <div className={'flex flex-wrap justify-center gap-x-4 gap-y-1'}>
-                                <span className={'text-[11px] text-text-muted'}>
-                                    <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Enter</kbd> to send
-                                </span>
                                             <span className={'text-[11px] text-text-muted'}>
-                                    <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Shift + Enter</kbd> for new line
-                                </span>
+                                                <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Enter</kbd> to send
+                                            </span>
                                             <span className={'text-[11px] text-text-muted'}>
-                                    Markdown supported
-                                </span>
-                                            <span className={'text-[11px] text-text-muted'}>
-                                    Voice input available
-                                </span>
+                                                <kbd className={'px-2 py-1 rounded bg-primary/1 border border-primary/30 text-[10px] font-mono'}>Shift + Enter</kbd> for new line
+                                            </span>
+                                            <span className={'text-[11px] text-text-muted'}>Markdown supported</span>
+                                            <span className={'text-[11px] text-text-muted'}>Voice input available</span>
                                         </div>
+
                                     </div>
                                 </div>
                             ) : (

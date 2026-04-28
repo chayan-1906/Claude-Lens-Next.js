@@ -1,10 +1,13 @@
 import type {Metadata} from "next";
 import {notFound} from "next/navigation";
+import type {IProject} from "@/types/project";
 import {getSession} from "@/actions/session.actions";
 import {getSetupStatus} from "@/actions/setup.actions";
+import {getAllProjects} from "@/actions/project.actions";
 import type {IGetSessionResponse} from "@/types/session";
 import type {ISessionPageProps} from "@/types/components";
 import type {IGetSetupStatusResponse} from "@/types/setup";
+import type {IGetAllProjectsResponse} from "@/types/project";
 import {ChatSessionView} from "@/components/ChatSessionView";
 import {SESSION_MESSAGES_PAGE_SIZE} from "@/utils/pagination";
 
@@ -25,8 +28,10 @@ async function SessionPage({params}: ISessionPageProps) {
 
     if (isNewChat) {
         const instanceKey: string = crypto.randomUUID();
+        const {projects}: IGetAllProjectsResponse = await getAllProjects();
+        const validProjects: IProject[] = (projects ?? []).filter((project: IProject) => project.rawProjectDir.trim() !== '');
         return (
-            <ChatSessionView key={instanceKey} isNewChat={true} r2Configured={r2Configured ?? false} groqConfigured={groqConfigured ?? false}/>
+            <ChatSessionView key={instanceKey} isNewChat={true} r2Configured={r2Configured ?? false} groqConfigured={groqConfigured ?? false} projects={validProjects}/>
         );
     }
 
