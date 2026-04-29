@@ -545,16 +545,24 @@ function useClaudeChat(): IUseClaudeChatReturn {
                 const event: IToolApprovalRequestMessage = data as IToolApprovalRequestMessage;
                 console.log(`[useClaudeChat] tool_approval_request → requestId: ${event.requestId}, tool: ${event.toolName}, file: ${(event.toolInput as Record<string, unknown>).file_path}`);
 
-                setApprovalQueue((prev: IPendingToolApproval[]) => [
-                    ...prev,
-                    {
-                        requestId: event.requestId,
-                        toolName: event.toolName,
-                        toolInput: event.toolInput,
-                        toolUseId: event.toolUseId,
-                        projectActive: event.projectActive,
-                    },
-                ]);
+                setApprovalQueue((prev: IPendingToolApproval[]) => {
+                    // Dedupe — backend may re-send the same request on WS reconnect.
+                    // Adding duplicates would make the modal stick around for N clicks.
+                    if (prev.some((a: IPendingToolApproval) => a.requestId === event.requestId)) {
+                        console.log(`[useClaudeChat] tool_approval_request → already in queue, skipping (requestId: ${event.requestId})`);
+                        return prev;
+                    }
+                    return [
+                        ...prev,
+                        {
+                            requestId: event.requestId,
+                            toolName: event.toolName,
+                            toolInput: event.toolInput,
+                            toolUseId: event.toolUseId,
+                            projectActive: event.projectActive,
+                        },
+                    ];
+                });
                 break;
             }
 
