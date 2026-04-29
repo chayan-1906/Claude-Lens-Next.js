@@ -50,7 +50,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
     const [ideStatus, setIdeStatus] = React.useState<IIdeStatus | null>(null);
 
     // --- Refs: WebSocket and timers ---
-    const wsRef = React.useRef<WebSocket | null>(null);
+    const webSocketRef = React.useRef<WebSocket | null>(null);
     const heartbeatIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
     const reconnectAttemptsRef = React.useRef<number>(0);
     const reconnectTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,9 +104,9 @@ function useClaudeChat(): IUseClaudeChatReturn {
         stopHeartbeat();
         console.log(`[useClaudeChat] Heartbeat started (interval: ${HEARTBEAT_INTERVAL_MS}ms)`);
         heartbeatIntervalRef.current = setInterval(() => {
-            const ws: WebSocket | null = wsRef.current;
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({type: 'ping'}));
+            const webSocket: WebSocket | null = webSocketRef.current;
+            if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                webSocket.send(JSON.stringify({type: 'ping'}));
             }
         }, HEARTBEAT_INTERVAL_MS);
     }, [stopHeartbeat]);
@@ -440,9 +440,9 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
             case 'error': {
                 regenerateRetryRef.current = null;
-                const wsError: IWsErrorMessage = data as IWsErrorMessage;
-                console.error(`[useClaudeChat] Server error: ${wsError.message}`);
-                setError(wsError.message);
+                const webSocketError: IWsErrorMessage = data as IWsErrorMessage;
+                console.error(`[useClaudeChat] Server error: ${webSocketError.message}`);
+                setError(webSocketError.message);
                 setRetryable(true);
                 setStatus(EChatStatus.ERROR);
                 break;
@@ -619,8 +619,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
     // --- Send message over WebSocket ---
 
     const doSend = React.useCallback((text: string, options?: ISendMessageOptions): void => {
-        const ws: WebSocket | null = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
+        const webSocket: WebSocket | null = webSocketRef.current;
+        if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
             console.warn('[useClaudeChat] doSend called but WS not open');
             return;
         }
@@ -669,7 +669,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
             console.log(`[useClaudeChat] Sending send_message (attachments: ${options?.attachments?.length ?? 0}, text: "${text.slice(0, 50)}...")`);
         }
 
-        ws.send(JSON.stringify(clientMessage));
+        webSocket.send(JSON.stringify(clientMessage));
         console.log('[useClaudeChat] Status → SENDING');
         setStatus(EChatStatus.SENDING);
     }, []);
@@ -681,7 +681,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
     // --- Connect WebSocket ---
 
     const connect = React.useCallback((): void => {
-        if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+        if (webSocketRef.current && (webSocketRef.current.readyState === WebSocket.OPEN || webSocketRef.current.readyState === WebSocket.CONNECTING)) {
             console.log('[useClaudeChat] connect() skipped — already open or connecting!');
             return;
         }
@@ -692,16 +692,16 @@ function useClaudeChat(): IUseClaudeChatReturn {
         setStatus(EChatStatus.CONNECTING);
         intentionalCloseRef.current = false;
 
-        const ws: WebSocket = new WebSocket(url);
-        wsRef.current = ws;
+        const webSocket: WebSocket = new WebSocket(url);
+        webSocketRef.current = webSocket;
 
-        ws.onopen = (): void => {
+        webSocket.onopen = (): void => {
             console.log(`[useClaudeChat] Connected to`, url);
             reconnectAttemptsRef.current = 0;
             startHeartbeat();
 
             // Request current IDE status immediately on connect
-            ws.send(JSON.stringify({type: 'request_ide_status'}));
+            webSocket.send(JSON.stringify({type: 'request_ide_status'}));
 
             const pending = pendingMessageRef.current;
             if (pending) {
@@ -714,7 +714,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
             }
         };
 
-        ws.onmessage = (event: MessageEvent): void => {
+        webSocket.onmessage = (event: MessageEvent): void => {
             try {
                 const data: ServerMessage = JSON.parse(event.data as string);
                 handleServerMessageRef.current(data);
@@ -723,10 +723,10 @@ function useClaudeChat(): IUseClaudeChatReturn {
             }
         };
 
-        ws.onclose = (event: CloseEvent): void => {
+        webSocket.onclose = (event: CloseEvent): void => {
             console.log(`[useClaudeChat] Disconnected (code: ${event.code}, reason: "${event.reason}", intentional: ${intentionalCloseRef.current})`);
             stopHeartbeat();
-            wsRef.current = null;
+            webSocketRef.current = null;
             isSessionActiveRef.current = false;
 
             if (!intentionalCloseRef.current) {
@@ -746,7 +746,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
             }
         };
 
-        ws.onerror = (event: Event): void => {
+        webSocket.onerror = (event: Event): void => {
             console.error('[useClaudeChat] WebSocket error:', event);
         };
     }, [startHeartbeat, stopHeartbeat]);
@@ -780,8 +780,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
         };
         setMessages((prev: IChatMessage[]) => [...prev, userMessage]);
 
-        const ws: WebSocket | null = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
+        const webSocket: WebSocket | null = webSocketRef.current;
+        if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
             console.log('[useClaudeChat] WS not open — queueing as pending message and connecting!');
             pendingMessageRef.current = {text, options};
             connectRef.current();
@@ -843,7 +843,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         regenerateRetryRef.current = {text: resendText, options: {...options, isEditSession: true}};
 
         // Send edit_session via WS without adding a user message to the list
-        const webSocket: WebSocket | null = wsRef.current;
+        const webSocket: WebSocket | null = webSocketRef.current;
         if (webSocket && webSocket.readyState === WebSocket.OPEN) {
             doSendRef.current(resendText, {...options, isEditSession: true});
         } else {
@@ -868,9 +868,9 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
         stopHeartbeat();
 
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
+        if (webSocketRef.current) {
+            webSocketRef.current.close();
+            webSocketRef.current = null;
         }
 
         isSessionActiveRef.current = false;
@@ -879,13 +879,14 @@ function useClaudeChat(): IUseClaudeChatReturn {
     }, [stopHeartbeat]);
 
     const respondToApproval = React.useCallback((requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean): void => {
-        const ws: WebSocket | null = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-            console.warn('[useClaudeChat] respondToApproval called but WS not open');
+        const webSocket: WebSocket | null = webSocketRef.current;
+        if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
+            console.warn('[useClaudeChat] respondToApproval called but WS not open — draining stale approval from queue');
+            setApprovalQueue((prev: IPendingToolApproval[]) => prev.slice(1));
             return;
         }
         console.log(`[useClaudeChat] Sending tool_approval_response (requestId: ${requestId}, decision: ${decision}, allowAll: ${allowAll ?? false})`);
-        ws.send(JSON.stringify({
+        webSocket.send(JSON.stringify({
             type: 'tool_approval_response',
             requestId,
             decision,
@@ -897,8 +898,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
     }, []);
 
     const stopExecution = React.useCallback((): void => {
-        const ws: WebSocket | null = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
+        const webSocket: WebSocket | null = webSocketRef.current;
+        if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
             console.warn('[useClaudeChat] stopExecution called but WS not open');
             return;
         }
@@ -913,12 +914,12 @@ function useClaudeChat(): IUseClaudeChatReturn {
         // Drain any queued approvals — the process is being killed, they are stale
         setApprovalQueue([]);
 
-        ws.send(JSON.stringify({type: 'stop_execution'}));
+        webSocket.send(JSON.stringify({type: 'stop_execution'}));
     }, [finalizeStreamingMessage]);
 
     const switchModel = React.useCallback((model: string, effort?: string, thinking?: boolean): void => {
-        const ws: WebSocket | null = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
+        const webSocket: WebSocket | null = webSocketRef.current;
+        if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
             console.warn('[useClaudeChat] switchModel called but WS not open');
             return;
         }
@@ -932,17 +933,17 @@ function useClaudeChat(): IUseClaudeChatReturn {
         finalizeStreamingMessage();
         setStatus(EChatStatus.SENDING);
 
-        ws.send(JSON.stringify({type: 'switch_model', model, effort, thinking}));
+        webSocket.send(JSON.stringify({type: 'switch_model', model, effort, thinking}));
     }, [finalizeStreamingMessage]);
 
     const backupSession = React.useCallback((sessionId?: string): void => {
-        const ws: WebSocket | null = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
+        const webSocket: WebSocket | null = webSocketRef.current;
+        if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
             console.warn('[useClaudeChat] backupSession called but WS not open');
             return;
         }
         console.log(`[useClaudeChat] Sending backup_session${sessionId ? ` — sessionId: ${sessionId}` : ''}`);
-        ws.send(JSON.stringify({type: 'backup_session', ...(sessionId && {sessionId})}));
+        webSocket.send(JSON.stringify({type: 'backup_session', ...(sessionId && {sessionId})}));
     }, []);
 
     const retry = React.useCallback((): void => {
@@ -978,8 +979,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
 
             stopHeartbeat();
 
-            if (wsRef.current) {
-                wsRef.current.close();
+            if (webSocketRef.current) {
+                webSocketRef.current.close();
             }
         };
     }, [stopHeartbeat]);
