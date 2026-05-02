@@ -5,7 +5,17 @@ import {cn} from "@/utils/cn";
 import {Button} from "@/components/ui/Button";
 import type {IConfigCardProps} from "@/types/components";
 
-/** Format lastConnectedAt for display */
+const MONGO_URI_REGEX: RegExp = /^(mongodb(?:\+srv)?):\/\/[^@]+@([^/?]+)\/([^?]*)/;
+
+function parseMongoUri(uri: string): string {
+    const match: RegExpMatchArray | null = uri.match(MONGO_URI_REGEX);
+    if (match) {
+        const [, scheme, host, db] = match;
+        return db ? `${scheme} • ${host} / ${db}` : `${scheme} • ${host}`;
+    }
+    return uri.length > 60 ? uri.slice(0, 57) + '...' : uri;
+}
+
 function formatLastConnected(isoDate?: string): string {
     if (!isoDate) {
         return 'Never';
@@ -16,6 +26,17 @@ function formatLastConnected(isoDate?: string): string {
 
 function ConfigCard({config, isActive, onEdit, onDelete, onActivate, onTest, isActivating}: IConfigCardProps) {
     const {name, description, uri, color, lastConnectedAt} = config;
+    const [copied, setCopied] = React.useState<boolean>(false);
+
+    function handleCopy(): void {
+        navigator.clipboard.writeText(uri).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        });
+    }
+
+    const parsedUri: string = parseMongoUri(uri);
+    const isDescriptionUrl: boolean = typeof description === 'string' && description.startsWith('http');
 
     return (
         <div
@@ -34,12 +55,40 @@ function ConfigCard({config, isActive, onEdit, onDelete, onActivate, onTest, isA
                 <h3 className={'text-sm font-semibold text-text truncate'}>{name}</h3>
             </div>
 
-            {/* URI preview */}
-            <p className={'text-xs text-text-muted font-mono font-semibold mb-1'}>{uri}</p>
+            {/* URI row: parsed summary + copy button */}
+            <div className={'flex items-center gap-1.5 mb-1'}>
+                <p className={'text-xs text-text-muted font-mono truncate flex-1'}>{parsedUri}</p>
+                <button
+                    onClick={handleCopy}
+                    title={'Copy URI'}
+                    className={'shrink-0 rounded p-0.5 text-text-muted transition-colors hover:text-text'}>
+                    {copied
+                        ? (
+                            <svg xmlns={'http://www.w3.org/2000/svg'} width={'12'} height={'12'} viewBox={'0 0 24 24'} fill={'none'} stroke={'currentColor'} strokeWidth={'2.5'} strokeLinecap={'round'} strokeLinejoin={'round'}>
+                                <polyline points={'20 6 9 17 4 12'}/>
+                            </svg>
+                        )
+                        : (
+                            <svg xmlns={'http://www.w3.org/2000/svg'} width={'12'} height={'12'} viewBox={'0 0 24 24'} fill={'none'} stroke={'currentColor'} strokeWidth={'2'} strokeLinecap={'round'} strokeLinejoin={'round'}>
+                                <rect x={'9'} y={'9'} width={'13'} height={'13'} rx={'2'} ry={'2'}/>
+                                <path d={'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'}/>
+                            </svg>
+                        )
+                    }
+                </button>
+            </div>
 
-            {/* Description */}
+            {/* Description: Atlas link if URL, otherwise truncated text */}
             {description && (
-                <p className={'text-xs text-text-muted mb-1 break-all'}>{description}</p>
+                isDescriptionUrl
+                    ? (
+                        <a href={description} target={'_blank'} rel={'noreferrer'} className={'block text-xs text-primary hover:underline mb-1'}>
+                            View in Atlas →
+                        </a>
+                    )
+                    : (
+                        <p className={'text-xs text-text-muted truncate mb-1'}>{description}</p>
+                    )
             )}
 
             {/* Last connected */}
