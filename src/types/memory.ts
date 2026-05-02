@@ -28,6 +28,21 @@ export interface IDeleteMemoryResponse extends IApiResponse {
 }
 
 
+/** ------------- Memory file parsing ------------- */
+
+export interface IFrontmatter {
+    name?: string;
+    description?: string;
+    type?: string;
+    originSessionId?: string;
+}
+
+export interface IParsedMemory {
+    frontmatter: IFrontmatter;
+    body: string;
+}
+
+
 /** ------------- function params ------------- */
 
 export interface IGetAllMemoriesParams {

@@ -59,7 +59,7 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
     const [editingConfig, setEditingConfig] = React.useState<IMongoConfig | null>(null);
     const [activatingId, setActivatingId] = React.useState<string | null>(null);
     const [testResult, setTestResult] = React.useState<{ configId: string; success: boolean; message: string } | null>(null);
-    const [projectsPreview, setProjectsPreview] = React.useState<{ configId: string; projects: { rawProjectDir: string; projectDir: string }[] } | null>(null);
+    const [projectsPreview, setProjectsPreview] = React.useState<{ configId: string; projects: { rawProjectDir: string; projectDir: string; }[]; } | null>(null);
 
     // Path mapping state
     const [isMappingModalOpen, setIsMappingModalOpen] = React.useState<boolean>(false);
@@ -371,40 +371,44 @@ function SetupForm({initialConfigurations, initialActiveConfigId, initialPathMap
                 </div>
 
                 <div className={'grid gap-3'}>
-                    {initialConfigurations.map((config: IMongoConfig) => (
-                        <React.Fragment key={config.id}>
-                            <ConfigCard
-                                config={config}
-                                isActive={config.id === initialActiveConfigId}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
-                                onActivate={handleActivate}
-                                onTest={handleTest}
-                                isActivating={activatingId === config.id}
-                            />
+                    {initialConfigurations.map((config: IMongoConfig) => {
+                        const {id, name, description, color, lastConnectedAt, uri} = config;
 
-                            {testResult && testResult.configId === config.id && (
-                                <div className={`text-xs px-3 py-2 rounded-md ${testResult.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
-                                    {testResult.message}
-                                </div>
-                            )}
+                        return (
+                            <React.Fragment key={id}>
+                                <ConfigCard
+                                    config={config}
+                                    isActive={id === initialActiveConfigId}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                    onActivate={handleActivate}
+                                    onTest={handleTest}
+                                    isActivating={activatingId === id}
+                                />
 
-                            {projectsPreview && projectsPreview.configId === config.id && projectsPreview.projects.length > 0 && (
-                                <div className={'text-xs bg-background border border-border rounded-md px-3 py-2'}>
-                                    <p className={'font-medium text-text mb-1'}>
-                                        Projects ({projectsPreview.projects.length}):
-                                    </p>
-                                    <ul className={'space-y-0.5'}>
-                                        {projectsPreview.projects.map((project) => (
-                                            <li key={project.projectDir} className={'text-text-muted truncate'}>
-                                                {project.rawProjectDir}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </React.Fragment>
-                    ))}
+                                {(testResult && testResult.configId === id) && (
+                                    <div className={`text-xs px-3 py-2 rounded-md ${testResult.success ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
+                                        {testResult.message}
+                                    </div>
+                                )}
+
+                                {(projectsPreview && projectsPreview.configId === id && projectsPreview.projects.length > 0) && (
+                                    <div className={'text-xs bg-background border border-border rounded-md px-3 py-2'}>
+                                        <p className={'font-medium text-text mb-1'}>
+                                            Projects ({projectsPreview.projects.length}):
+                                        </p>
+                                        <ul className={'space-y-0.5'}>
+                                            {projectsPreview.projects.map(({projectDir, rawProjectDir}) => (
+                                                <li key={projectDir} className={'text-text-muted truncate'}>
+                                                    {rawProjectDir}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
             </div>
 
