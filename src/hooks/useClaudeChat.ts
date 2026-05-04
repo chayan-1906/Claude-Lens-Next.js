@@ -966,6 +966,15 @@ function useClaudeChat(): IUseClaudeChatReturn {
         setMessages([]);
     }, []);
 
+    const pruneSyncedMessages = React.useCallback((persistedUuids: Set<string>, watermarkMs: number): void => {
+        setMessages((previousMessage: IChatMessage[]) => previousMessage.filter(({uuid, timestamp}: IChatMessage): boolean => {
+            if (uuid && persistedUuids.has(uuid)) {
+                return false;
+            }
+            return !(!uuid && timestamp.getTime() <= watermarkMs);
+        }));
+    }, []);
+
     const clearError = React.useCallback((): void => {
         setError(null);
         setStatus((prev: EChatStatus) => prev === EChatStatus.ERROR ? EChatStatus.IDLE : prev);
@@ -1013,6 +1022,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
         disconnect,
         retry,
         clearMessages,
+        pruneSyncedMessages,
         clearError,
     };
 }

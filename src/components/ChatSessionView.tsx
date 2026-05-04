@@ -42,13 +42,13 @@ import {SESSION_MESSAGES_PAGE_SIZE} from "@/utils/pagination";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ToolApprovalPrompt} from "@/components/ToolApprovalPrompt";
 import {RenameSessionModal} from "@/components/RenameSessionModal";
-import {EChatStatus, IAttachment, IChatMessage} from "@/types/chat";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {computeProjectDisplayNames} from "@/utils/projectDisplayName";
 import {VoiceSettingsPopover} from "@/components/VoiceSettingsPopover";
 import {IGetSessionPagination, IGetSessionResponse, ISession} from "@/types/session";
+import {EChatStatus, IAttachment, IChatMessage, IPendingToolApproval} from "@/types/chat";
 import {ICapabilityRow, IChatSessionViewProps, IProjectChipColor} from "@/types/components";
 import {extractMessageText, extractSpeakableText, normalizeToolResultContent} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, EUserMessageType, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
@@ -95,7 +95,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     const router = useRouter();
     const {
         status, messages, streamingContent, contextInfo, ideStatus, error, retryable, forkedSessionId, pendingApproval,
-        sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, backupSession, stopExecution, retry, clearMessages, clearError,
+        sendMessage, editMessage, regenerateMessage, respondToApproval, switchModel, backupSession, stopExecution, retry, clearMessages, pruneSyncedMessages, clearError,
     } = useClaudeChat();
     const tts: IUseTextToSpeechReturn = useTextToSpeech();
 
@@ -129,6 +129,13 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     const hasPostSyncRefetchedRef = React.useRef<boolean>(false);
     // Tracks contextInfo.sessionId without triggering re-registration of the sync-complete listener
     const contextSessionIdForSyncRef = React.useRef<string | null>(null);
+
+    // Live mirrors of status / pendingApproval — used inside async refresh logic so the
+    // re-check after `await getSession()` reads the CURRENT value, not the captured one.
+    const statusRef = React.useRef<EChatStatus>(status);
+    const pendingApprovalRef = React.useRef<IPendingToolApproval | null>(pendingApproval);
+    // Marks that a sync_complete arrived during a busy state. The drain effect below picks it up.
+    const pendingRefetchRef = React.useRef<boolean>(false);
 
     // Auto-scroll refs
     const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -564,26 +571,83 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         setAllowedDirs((prev: string[]) => prev.filter((dir: string) => dir !== directory));
     }, []);
 
+    // Keep refs in sync so async paths inside handleRefreshMessages see CURRENT values
+    // after their `await`, not stale closure-captured ones.
+    React.useEffect(() => {
+        statusRef.current = status;
+    }, [status]);
+
+    React.useEffect(() => {
+        pendingApprovalRef.current = pendingApproval;
+    }, [pendingApproval]);
+
+    /** True iff a chat turn is actively in flight — refreshing now would race unsynced live state. */
+    const isConversationActive = React.useCallback((): boolean => {
+        const s: EChatStatus = statusRef.current;
+        return s === EChatStatus.SENDING
+            || s === EChatStatus.STREAMING
+            || s === EChatStatus.TOOL_RUNNING
+            || pendingApprovalRef.current !== null;
+    }, []);
+
     const handleRefreshMessages = React.useCallback(async (): Promise<void> => {
         const sessionId: string | undefined = session?.sessionId;
         if (!sessionId) {
             return;
         }
+        // Defer if a turn is in flight — the MongoDB read won't yet reflect the live messages,
+        // and replacing local state with the stale read would make them disappear from the UI.
+        if (isConversationActive()) {
+            pendingRefetchRef.current = true;
+            debug(`[ChatSessionView] Refresh deferred — conversation active (status: ${statusRef.current})`);
+            return;
+        }
+        pendingRefetchRef.current = false;
+
         setIsRefreshingMessages(true);
         const result: IGetSessionResponse = await getSession({
             sessionId,
             limit: Math.max(localHistoricalMessages.length, SESSION_MESSAGES_PAGE_SIZE),
         });
+        // Re-check after the network round-trip: if a new turn started while we were waiting,
+        // the result is now stale. Re-defer; the drain effect will pick it up.
+        if (isConversationActive()) {
+            pendingRefetchRef.current = true;
+            setIsRefreshingMessages(false);
+            debug('[ChatSessionView] Refresh aborted post-fetch — conversation became active during await');
+            return;
+        }
         if (result.success && result.messages && result.pagination) {
-            clearMessages();
+            const persisted: IMessage[] = result.messages;
+            // Watermark = newest persisted timestamp. Live messages without a uuid (typically
+            // user prompts and tool_results) are dropped iff their timestamp <= watermark.
+            // Live messages with a uuid (assistant messages after stream completes) are dropped
+            // iff their uuid is in the persisted set. Anything else stays in live (in flight).
+            const persistedUuids: Set<string> = new Set<string>(persisted.map(({uuid}: IMessage) => uuid).filter((uuid: string | undefined): uuid is string => Boolean(uuid)));
+            const lastPersisted: IMessage | undefined = persisted[persisted.length - 1];
+            const watermarkMs: number = lastPersisted ? new Date(lastPersisted.timestamp).getTime() : 0;
+
+            pruneSyncedMessages(persistedUuids, watermarkMs);
             clearError();
-            setLocalHistoricalMessages(result.messages);
+            setLocalHistoricalMessages(persisted);
             setMessagePagination(result.pagination);
             setHistoricalCutoffIndex(null);
-            debug(`[ChatSessionView] Messages refreshed — ${result.messages.length} messages loaded`);
+            debug(`[ChatSessionView] Messages refreshed — ${persisted.length} historical, watermark: ${watermarkMs ? new Date(watermarkMs).toISOString() : 'none'}`);
         }
         setIsRefreshingMessages(false);
-    }, [session?.sessionId, localHistoricalMessages.length, clearMessages, clearError]);
+    }, [session?.sessionId, localHistoricalMessages.length, pruneSyncedMessages, clearError, isConversationActive]);
+
+    // Drain: when the conversation becomes idle and a deferred refresh is pending, run it.
+    React.useEffect(() => {
+        if (!pendingRefetchRef.current) {
+            return;
+        }
+        if (status !== EChatStatus.IDLE || pendingApproval !== null) {
+            return;
+        }
+        debug('[ChatSessionView] Conversation idle — running deferred refresh');
+        handleRefreshMessages();
+    }, [status, pendingApproval, handleRefreshMessages]);
 
     // Refetch messages from MongoDB when backend sends sync_complete.
     // This ensures the human-typed user message (only in JSONL, not in stream output)
@@ -1320,22 +1384,6 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                             </div>
                                         </div>
                                     )}
-
-                                    {/* Error state (live) — disabled until context tracking is redesigned
-                            {status === EChatStatus.ERROR && error && (
-                                <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
-                                    <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
-                                    <span className={'flex-1'}>{error}</span>
-                                </div>
-                            )} */}
-
-                                    {/* Context limit banner (historical) — disabled until context tracking is redesigned
-                            {isHistoricalContextLimit && status !== EChatStatus.ERROR && (
-                                <div className={'flex items-start gap-2 rounded-2xl px-4 py-3 bg-error/10 border border-error/20 text-error text-sm'}>
-                                    <HiOutlineExclamationCircle className={'size-4 shrink-0 mt-0.5'}/>
-                                    <span className={'flex-1'}>Context limit reached. Start a new session, or run /compact or /clear in the terminal to continue!</span>
-                                </div>
-                            )} */}
                                 </div>
                             )}
                         </div>

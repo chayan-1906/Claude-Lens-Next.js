@@ -304,6 +304,7 @@ export interface IUseClaudeChatReturn {
     disconnect: () => void;
     retry: () => void;
     clearMessages: () => void;
+    pruneSyncedMessages: (persistedUuids: Set<string>, watermarkMs: number) => void;
     clearError: () => void;
 }
 
