@@ -44,7 +44,7 @@ function formatFileSize(bytes: number): string {
 }
 
 /** Resize image to ≤2000px and re-encode as JPEG — mirrors Claude CLI's own image preprocessing */
-async function resizeAndCompressImage(base64: string, mimeType: string): Promise<{base64: string; mimeType: string; size: number}> {
+async function resizeAndCompressImage(base64: string, mimeType: string): Promise<{ base64: string; mimeType: string; size: number }> {
     return new Promise((resolve): void => {
         const img = new window.Image();
         img.onload = (): void => {
@@ -81,7 +81,22 @@ async function resizeAndCompressImage(base64: string, mimeType: string): Promise
 // Module-level draft — survives component remount (e.g. /c/new → /c/[sessionId] server re-render)
 let draftText: string = '';
 
-function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, ideStatus, r2Configured, groqConfigured}: IChatInputProps) {
+function ChatInput({
+                       onSend,
+                       onStop,
+                       disabled,
+                       isLoading,
+                       selectedModel,
+                       selectedEffort,
+                       thinking,
+                       onModelChange,
+                       onEffortChange,
+                       onThinkingChange,
+                       ideStatus,
+                       r2Configured,
+                       groqConfigured,
+                       userMessageHistory
+                   }: IChatInputProps) {
     const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);
     const [attachments, setAttachments] = React.useState<IAttachment[]>([]);
@@ -90,6 +105,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
     const dragCounterRef = React.useRef<number>(0);
+    const historyIndexRef = React.useRef<number>(-1);
+    const savedDraftRef = React.useRef<string>('');
 
     const {state: voiceState, isSpeaking, liveTranscript, transcript, rephrased, errorMessage, startRecording, stopRecording, reset: resetVoice} = useVoiceInput();
 
@@ -107,6 +124,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         const value: string = e.target.value;
         setText(value);
         draftText = value;
+        historyIndexRef.current = -1;
         adjustHeight();
     }, [adjustHeight]);
 
@@ -161,7 +179,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         }
 
         if (newAttachments.length > 0) {
-            setAttachments((prev: IAttachment[]) => [...prev, ...newAttachments]);
+            setAttachments((prevAttachments: IAttachment[]) => [...prevAttachments, ...newAttachments]);
         }
     }, [attachments.length]);
 
@@ -241,6 +259,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         onSend(trimmed, hasAttachments ? attachments : undefined);
         setText('');
         draftText = '';
+        historyIndexRef.current = -1;
+        savedDraftRef.current = '';
         setAttachments([]);
         setAttachmentError(null);
         resetVoice();
@@ -256,6 +276,63 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         if (handleMarkdownKeyDown(e)) {
             requestAnimationFrame(adjustHeight);
             return;
+        }
+        if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && userMessageHistory && userMessageHistory.length > 0 && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const textarea: HTMLTextAreaElement = e.currentTarget;
+            const cursorPos: number = textarea.selectionStart;
+            const isOnFirstLine: boolean = !text.slice(0, cursorPos).includes('\n');
+            const isOnLastLine: boolean = !text.slice(cursorPos).includes('\n');
+
+            if (e.key === 'ArrowUp' && isOnFirstLine) {
+                e.preventDefault();
+                if (historyIndexRef.current === -1) {
+                    savedDraftRef.current = text;
+                }
+                const newIndex: number = historyIndexRef.current === -1 ? userMessageHistory.length - 1 : Math.max(0, historyIndexRef.current - 1);
+                historyIndexRef.current = newIndex;
+                const newText: string = userMessageHistory[newIndex];
+                setText(newText);
+                draftText = newText;
+                requestAnimationFrame((): void => {
+                    adjustHeight();
+                    if (textareaRef.current) {
+                        textareaRef.current.selectionStart = 0;
+                        textareaRef.current.selectionEnd = 0;
+                    }
+                });
+                return;
+            }
+
+            if (e.key === 'ArrowDown' && historyIndexRef.current !== -1 && isOnLastLine) {
+                e.preventDefault();
+                const newIndex: number = historyIndexRef.current + 1;
+                if (newIndex >= userMessageHistory.length) {
+                    historyIndexRef.current = -1;
+                    const restored: string = savedDraftRef.current;
+                    setText(restored);
+                    draftText = restored;
+                    requestAnimationFrame((): void => {
+                        adjustHeight();
+                        if (textareaRef.current) {
+                            textareaRef.current.selectionStart = restored.length;
+                            textareaRef.current.selectionEnd = restored.length;
+                        }
+                    });
+                } else {
+                    historyIndexRef.current = newIndex;
+                    const newText: string = userMessageHistory[newIndex];
+                    setText(newText);
+                    draftText = newText;
+                    requestAnimationFrame((): void => {
+                        adjustHeight();
+                        if (textareaRef.current) {
+                            textareaRef.current.selectionStart = newText.length;
+                            textareaRef.current.selectionEnd = newText.length;
+                        }
+                    });
+                }
+                return;
+            }
         }
         if (e.key === 'Enter') {
             if (e.shiftKey) {
@@ -283,7 +360,7 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
             console.log('[ChatInput] Enter pressed (sending)!');
             handleSend();
         }
-    }, [handleMarkdownKeyDown, adjustHeight, handleSend, text]);
+    }, [handleMarkdownKeyDown, adjustHeight, handleSend, text, userMessageHistory]);
 
     // Capture keystrokes anywhere on the page and redirect to textarea
     React.useEffect(() => {
@@ -386,7 +463,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
         }
 
         return (
-            <Button variant={'ghost'} size={'icon'} onClick={handleMicClick} disabled={effectiveDisabled || micDisabled} title={micTooltip ?? r2Tooltip} aria-label={'Start recording'} className={'shrink-0 size-8 rounded-lg'}>
+            <Button variant={'ghost'} size={'icon'} onClick={handleMicClick} disabled={effectiveDisabled || micDisabled} title={micTooltip ?? r2Tooltip} aria-label={'Start recording'}
+                    className={'shrink-0 size-8 rounded-lg'}>
                 <FaMicrophone className={'size-3.5'}/>
             </Button>
         );
@@ -534,7 +612,8 @@ function ChatInput({onSend, onStop, disabled, isLoading, selectedModel, selected
             <div className={'flex items-center justify-between px-3 py-2'}>
                 {/* Left: attach file button + IDE status */}
                 <div className={'flex items-center gap-1.5'}>
-                    <Button variant={'ghost'} size={'icon'} onClick={handleAttachClick} disabled={effectiveDisabled || attachments.length >= MAX_ATTACHMENTS} title={r2Tooltip} className={'size-7 rounded-lg'}
+                    <Button variant={'ghost'} size={'icon'} onClick={handleAttachClick} disabled={effectiveDisabled || attachments.length >= MAX_ATTACHMENTS} title={r2Tooltip}
+                            className={'size-7 rounded-lg'}
                             aria-label={'Add attachment'}>
                         <HiOutlinePlus className={'size-4'}/>
                     </Button>

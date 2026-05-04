@@ -234,6 +234,7 @@ export interface IChatInputProps {
     ideStatus?: IIdeStatus | null;
     r2Configured: boolean;
     groqConfigured: boolean;
+    userMessageHistory?: string[];
 }
 
 export interface IScrollToBottomProps {

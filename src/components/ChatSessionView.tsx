@@ -33,6 +33,7 @@ import {openFolderPicker} from "@/actions/file.actions";
 import {useTextToSpeech} from "@/hooks/useTextToSpeech";
 import useDocumentTitle from "@/hooks/useDocumentTitle";
 import {MessageBubble} from "@/components/MessageBubble";
+import {parseUserMessage} from "@/utils/parseUserMessage";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {MessageContent} from "@/components/MessageContent";
 import {MCPServersPanel} from "@/components/MCPServersPanel";
@@ -42,15 +43,15 @@ import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {ToolApprovalPrompt} from "@/components/ToolApprovalPrompt";
 import {RenameSessionModal} from "@/components/RenameSessionModal";
 import {EChatStatus, IAttachment, IChatMessage} from "@/types/chat";
-import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {DeleteSessionButton} from "@/components/DeleteSessionButton";
 import {getSession, refreshSidebar} from "@/actions/session.actions";
-import {VoiceSettingsPopover} from "@/components/VoiceSettingsPopover";
+import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {computeProjectDisplayNames} from "@/utils/projectDisplayName";
+import {VoiceSettingsPopover} from "@/components/VoiceSettingsPopover";
 import {IGetSessionPagination, IGetSessionResponse, ISession} from "@/types/session";
 import {ICapabilityRow, IChatSessionViewProps, IProjectChipColor} from "@/types/components";
 import {extractMessageText, extractSpeakableText, normalizeToolResultContent} from "@/utils/extractMessageText";
-import {ContentBlock, EMessageRole, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
+import {ContentBlock, EMessageRole, EUserMessageType, IMessage, TextBlock, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
 
 const SCROLL_THRESHOLD: number = 50;
 const LOAD_MORE_THRESHOLD: number = 120;
@@ -706,6 +707,26 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         return map;
     }, [localHistoricalMessages, messages]);
 
+    const userMessageHistory: string[] = React.useMemo((): string[] => {
+        // Exclude tool_result messages (tool approval responses sent under the user role)
+        const isTypedByUser = (content: string | ContentBlock[]): boolean => {
+            if (typeof content === 'string') {
+                const {type} = parseUserMessage(content);
+                return type === EUserMessageType.PLAIN || type === EUserMessageType.SLASH_COMMAND;
+            }
+            return !content.some(({type}: ContentBlock) => type === 'tool_result');
+        };
+        const historicalUserTexts: string[] = localHistoricalMessages
+            .filter(({role, content}: IMessage) => role === EMessageRole.USER && isTypedByUser(content))
+            .map(({content}: IMessage) => extractMessageText(content))
+            .filter(Boolean);
+        const liveUserTexts: string[] = messages
+            .filter(({role, content}: IChatMessage) => role === EMessageRole.USER && isTypedByUser(content))
+            .map(({content}: IChatMessage) => extractMessageText(content))
+            .filter(Boolean);
+        return [...historicalUserTexts, ...liveUserTexts];
+    }, [localHistoricalMessages, messages]);
+
     // True when context limit is hit — combines live (is_error result) and historical ("Prompt is too long") signals
     const isContextLimitReached: boolean = isHistoricalContextLimit || (status === EChatStatus.ERROR && !!error && error.includes('Context limit'));
 
@@ -1329,6 +1350,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                     ideStatus={ideStatus}
                     r2Configured={r2Configured}
                     groqConfigured={groqConfigured}
+                    userMessageHistory={userMessageHistory}
                 />
             </div>
         </div>
