@@ -1,5 +1,6 @@
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
+import {TOOL_USE_ERROR_TAG_REGEX} from "@/utils/constants";
 import {ContentBlock, EUserMessageType, ToolResultContentItem} from "@/types/message";
 
 /**
@@ -8,12 +9,16 @@ import {ContentBlock, EUserMessageType, ToolResultContentItem} from "@/types/mes
  * content items ({type: "text", text: "..."} | {type: "tool_reference", tool_name: "..."}).
  */
 function normalizeToolResultContent(content: string | ToolResultContentItem[]): string {
-    if (typeof content === 'string') return content;
-    return content.map((item: ToolResultContentItem): string => {
-        if (item.type === 'text' && item.text) return item.text;
-        if (item.type === 'tool_reference' && item.tool_name) return `[tool: ${item.tool_name}]`;
+    const raw: string = typeof content === 'string' ? content : content.map((item: ToolResultContentItem): string => {
+        if (item.type === 'text' && item.text) {
+            return item.text;
+        }
+        if (item.type === 'tool_reference' && item.tool_name) {
+            return `[tool: ${item.tool_name}]`;
+        }
         return JSON.stringify(item);
     }).join('\n');
+    return raw.replace(TOOL_USE_ERROR_TAG_REGEX, '$1');
 }
 
 /**
@@ -69,7 +74,7 @@ function extractSpeakableText(content: string | ContentBlock[]): string {
 
     const parts: string[] = content
         .filter((block: ContentBlock): boolean => block.type === 'text')
-        .map((block: ContentBlock): string => stripSystemTags((block as Extract<ContentBlock, {type: 'text'}>).text))
+        .map((block: ContentBlock): string => stripSystemTags((block as Extract<ContentBlock, { type: 'text' }>).text))
         .filter(Boolean);
 
     return parts.join('\n\n');

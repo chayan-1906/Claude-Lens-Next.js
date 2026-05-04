@@ -64,7 +64,7 @@ function LocalFilePlaceholder({filePath}: { filePath: string }): React.ReactElem
     );
 }
 
-const MessageContent = React.memo(function MessageContent({content, sessionId, messageId, onStubbed}: IMessageContentProps) {
+const MessageContent = React.memo(function MessageContent({content, sessionId, messageId, onStubbed, toolUseMap}: IMessageContentProps) {
     if (typeof content === 'string') {
         return (
             renderStringContent(content)
@@ -111,10 +111,13 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                             <ToolCallBlock key={index} name={block.name} input={block.input}/>
                         );
 
-                    case 'tool_result':
+                    case 'tool_result': {
+                        const toolResultBlock = block as ToolResultBlock;
+                        const toolUse = toolUseMap?.get(toolResultBlock.tool_use_id);
                         return (
-                            <ToolResultContentBlock key={index} block={block as ToolResultBlock} sessionId={sessionId} messageId={messageId} onStubbed={onStubbed}/>
+                            <ToolResultContentBlock key={index} block={toolResultBlock} toolUse={toolUse} sessionId={sessionId} messageId={messageId} onStubbed={onStubbed}/>
                         );
+                    }
 
                     case 'image': {
                         const imageUrl: string | undefined = (block as ImageBlock).source?.url;

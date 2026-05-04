@@ -683,6 +683,29 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         return !(used !== undefined && window !== undefined && window > 0 && used / window < 0.95);
     }, [localHistoricalMessages, session?.contextTokensUsed, session?.contextWindowSize]);
 
+    const toolUseMap = React.useMemo((): Map<string, ToolUseBlock> => {
+        const map = new Map<string, ToolUseBlock>();
+        for (const msg of localHistoricalMessages) {
+            if (!Array.isArray(msg.content)) continue;
+            for (const block of msg.content) {
+                if (block.type === 'tool_use') {
+                    map.set((block as ToolUseBlock).id, block as ToolUseBlock);
+                }
+            }
+        }
+        for (const msg of messages) {
+            if (!Array.isArray(msg.content)) {
+                continue;
+            }
+            for (const block of msg.content) {
+                if (block.type === 'tool_use') {
+                    map.set((block as ToolUseBlock).id, block as ToolUseBlock);
+                }
+            }
+        }
+        return map;
+    }, [localHistoricalMessages, messages]);
+
     // True when context limit is hit — combines live (is_error result) and historical ("Prompt is too long") signals
     const isContextLimitReached: boolean = isHistoricalContextLimit || (status === EChatStatus.ERROR && !!error && error.includes('Context limit'));
 
@@ -1084,6 +1107,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                                         onRegenerate={!isUser && canRegenerate ? handleHistoricalRegenerate : undefined}
                                                         onStubbed={handleStubbed}
                                                         tts={tts}
+                                                        toolUseMap={toolUseMap}
                                                     />
                                                 )}
                                             </div>
@@ -1206,7 +1230,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                                         ))}
                                                     </div>
                                                 )}
-                                                <MessageContent content={message.content}/>
+                                                <MessageContent content={message.content} toolUseMap={toolUseMap}/>
                                             </BubbleShell>
                                         );
                                     })}

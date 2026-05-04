@@ -5,8 +5,8 @@ import type {IMemory} from "@/types/memory";
 import type {IUseTextToSpeechReturn} from "@/types/tts";
 import type {IGetSessionPagination, ISession} from "@/types/session";
 import {ISearchResponse, TSearchItem, TSearchScope} from "@/types/search";
-import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock} from "@/types/message";
 import {IAttachment, IContextInfo, IIdeStatus, IPendingToolApproval} from "@/types/chat";
+import {ContentBlock, IMessage, ThinkingBlock, ToolResultBlock, ToolUseBlock} from "@/types/message";
 import type {IClaudeAccount, IGroqConfig, IMongoConfig, IPathMapping, IR2Config} from "@/types/setup";
 
 /** ------------- Constants and Type Aliases ------------- */
@@ -77,6 +77,7 @@ export interface IMessageBubbleProps {
     onRegenerate?: (clickedIndex: number) => void;
     onStubbed?: (messageId: string) => void;
     tts?: IUseTextToSpeechReturn;
+    toolUseMap?: Map<string, ToolUseBlock>;
 }
 
 export interface IInlineMessageEditorProps {
@@ -91,6 +92,7 @@ export interface IMessageContentProps {
     sessionId?: string;
     messageId?: string;
     onStubbed?: (messageId: string) => void;
+    toolUseMap?: Map<string, ToolUseBlock>;
 }
 
 export interface IThinkingBlockProps {
@@ -102,9 +104,19 @@ export interface IThinkingBlockProps {
 
 export interface IToolResultContentBlockProps {
     block: ToolResultBlock;
+    toolUse?: ToolUseBlock;
     sessionId?: string;
     messageId?: string;
     onStubbed?: (messageId: string) => void;
+}
+
+export interface IStubModalProps {
+    isOpen: boolean;
+    onOpenChange: (v: boolean) => void;
+    estimatedTokens: number;
+    error: string | null;
+    isStubbing: boolean;
+    onStub: () => void;
 }
 
 export interface IToolCallBlockProps {

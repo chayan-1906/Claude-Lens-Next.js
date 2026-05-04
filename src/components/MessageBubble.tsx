@@ -4,8 +4,8 @@ import {MessageContent} from "./MessageContent";
 import {BubbleShell} from "@/components/BubbleShell";
 import {IMessageBubbleProps} from "@/types/components";
 import {formatModelName} from "@/utils/formatModelName";
-import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {parseUserMessage} from "@/utils/parseUserMessage";
+import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {ReadAloudButton} from "@/components/ReadAloudButton";
 import {formatRelativeDate} from "@/utils/formatRelativeDate";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
@@ -17,7 +17,7 @@ import {ContentBlock, EMessageRole, EUserMessageType, IAttachmentMeta} from "@/t
 const FILE_ATTACHED_PATTERN: RegExp = /^File attached: .+ — https?:\/\/.+$/;
 const HEIC_MIME_TYPES: Set<string> = new Set(['image/heic', 'image/heif']);
 
-const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, isSubAgentPrompt = false, onStubbed, tts}: IMessageBubbleProps) {
+const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, isSubAgentPrompt = false, onStubbed, tts, toolUseMap}: IMessageBubbleProps) {
     const isUserMessage: boolean = message.role === EMessageRole.USER;
 
     const isCommandOutput: boolean = isUserMessage && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
@@ -127,7 +127,7 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
                     ))}
                 </div>
             )}
-            <MessageContent content={displayContent} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed}/>
+            <MessageContent content={displayContent} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed} toolUseMap={toolUseMap}/>
         </BubbleShell>
     );
 });
