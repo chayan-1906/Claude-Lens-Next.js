@@ -64,7 +64,7 @@ function LocalFilePlaceholder({filePath}: { filePath: string }): React.ReactElem
     );
 }
 
-const MessageContent = React.memo(function MessageContent({content, sessionId, messageId, onStubbed, toolUseMap}: IMessageContentProps) {
+const MessageContent = React.memo(function MessageContent({content, sessionId, messageId, onStubbed, toolUseMap, toolResultMap, pendingApprovalToolUseId}: IMessageContentProps) {
     if (typeof content === 'string') {
         return (
             renderStringContent(content)
@@ -106,10 +106,14 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                         );
                     }
 
-                    case 'tool_use':
+                    case 'tool_use': {
+                        if (pendingApprovalToolUseId && block.id === pendingApprovalToolUseId) {
+                            return null;
+                        }
                         return (
-                            <ToolCallBlock key={index} name={block.name} input={block.input}/>
+                            <ToolCallBlock key={index} name={block.name} input={block.input} toolResult={toolResultMap?.get(block.id)}/>
                         );
+                    }
 
                     case 'tool_result': {
                         const toolResultBlock = block as ToolResultBlock;

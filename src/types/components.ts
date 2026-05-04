@@ -78,6 +78,8 @@ export interface IMessageBubbleProps {
     onStubbed?: (messageId: string) => void;
     tts?: IUseTextToSpeechReturn;
     toolUseMap?: Map<string, ToolUseBlock>;
+    toolResultMap?: Map<string, ToolResultBlock>;
+    pendingApprovalToolUseId?: string;
 }
 
 export interface IInlineMessageEditorProps {
@@ -93,6 +95,8 @@ export interface IMessageContentProps {
     messageId?: string;
     onStubbed?: (messageId: string) => void;
     toolUseMap?: Map<string, ToolUseBlock>;
+    toolResultMap?: Map<string, ToolResultBlock>;
+    pendingApprovalToolUseId?: string;
 }
 
 export interface IThinkingBlockProps {
@@ -122,6 +126,7 @@ export interface IStubModalProps {
 export interface IToolCallBlockProps {
     name: string;
     input: Record<string, unknown>;
+    toolResult?: ToolResultBlock;
 }
 
 export interface IBubbleShellProps {

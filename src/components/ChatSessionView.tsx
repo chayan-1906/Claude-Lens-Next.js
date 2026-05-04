@@ -400,6 +400,12 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         scrollToBottom('smooth');
     }, [scrollToBottom]);
 
+    const handleApprovalResponse = React.useCallback((requestId: string, decision: 'allow' | 'deny', reason?: string, allowAll?: boolean): void => {
+        isAtBottomRef.current = true;
+        setShowScrollButton(false);
+        respondToApproval(requestId, decision, reason, allowAll);
+    }, [respondToApproval]);
+
     // Scroll to bottom on mount when historical messages are present (e.g. page refresh).
     // Double rAF: first frame lets the DOM paint, second frame lets
     // ResizeObserver measure actual heights — so scrollHeight is fully settled.
@@ -706,6 +712,31 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         }
         return map;
     }, [localHistoricalMessages, messages]);
+
+    const toolResultMap = React.useMemo((): Map<string, ToolResultBlock> => {
+        const map = new Map<string, ToolResultBlock>();
+        for (const msg of localHistoricalMessages) {
+            if (!Array.isArray(msg.content)) continue;
+            for (const block of msg.content) {
+                if (block.type === 'tool_result') {
+                    map.set((block as ToolResultBlock).tool_use_id, block as ToolResultBlock);
+                }
+            }
+        }
+        for (const msg of messages) {
+            if (!Array.isArray(msg.content)) {
+                continue;
+            }
+            for (const block of msg.content) {
+                if (block.type === 'tool_result') {
+                    map.set((block as ToolResultBlock).tool_use_id, block as ToolResultBlock);
+                }
+            }
+        }
+        return map;
+    }, [localHistoricalMessages, messages]);
+
+    const pendingApprovalToolUseId: string | undefined = pendingApproval?.toolUseId;
 
     const userMessageHistory: string[] = React.useMemo((): string[] => {
         // Exclude tool_result messages (tool approval responses sent under the user role)
@@ -1129,6 +1160,8 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                                         onStubbed={handleStubbed}
                                                         tts={tts}
                                                         toolUseMap={toolUseMap}
+                                                        toolResultMap={toolResultMap}
+                                                        pendingApprovalToolUseId={pendingApprovalToolUseId}
                                                     />
                                                 )}
                                             </div>
@@ -1251,7 +1284,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                                         ))}
                                                     </div>
                                                 )}
-                                                <MessageContent content={message.content} toolUseMap={toolUseMap}/>
+                                                <MessageContent content={message.content} toolUseMap={toolUseMap} toolResultMap={toolResultMap} pendingApprovalToolUseId={pendingApprovalToolUseId}/>
                                             </BubbleShell>
                                         );
                                     })}
@@ -1267,14 +1300,14 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                                              </div>
                                                          ) : undefined}
                                             >
-                                                <MessageContent content={streamingContent}/>
+                                                <MessageContent content={streamingContent} toolUseMap={toolUseMap} toolResultMap={toolResultMap} pendingApprovalToolUseId={pendingApprovalToolUseId}/>
                                             </BubbleShell>
                                         );
                                     })()}
 
                                     {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
                                     {pendingApproval && (
-                                        <ToolApprovalPrompt approval={pendingApproval} projectDir={projectDir} onRespond={respondToApproval}/>
+                                        <ToolApprovalPrompt approval={pendingApproval} projectDir={projectDir} onRespond={handleApprovalResponse}/>
                                     )}
 
                                     {/* Thinking dots — waiting for first token */}

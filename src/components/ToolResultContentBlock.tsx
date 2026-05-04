@@ -45,6 +45,24 @@ const ToolResultContentBlock = React.memo(function ToolResultContentBlock({block
         : Math.round(contentText.length / 4);
     const canStub: boolean = !block._stubbed && !!sessionId && !!messageId && !!onStubbed;
 
+    const displayText: string = React.useMemo((): string => {
+        const trimmed: string = contentText.trim();
+        if (!trimmed) return contentText;
+        const first: string = trimmed[0];
+        const last: string = trimmed[trimmed.length - 1];
+        if ((first === '{' && last === '}') || (first === '[' && last === ']')) {
+            try {
+                const parsed: unknown = JSON.parse(trimmed);
+                if (parsed !== null && typeof parsed === 'object') {
+                    return JSON.stringify(parsed, null, 2);
+                }
+            } catch {
+                // not JSON — fall through to raw text
+            }
+        }
+        return contentText;
+    }, [contentText]);
+
     const handleStub = React.useCallback(async (): Promise<void> => {
         if (!sessionId || !messageId || !onStubbed) {
             return;
@@ -142,7 +160,7 @@ const ToolResultContentBlock = React.memo(function ToolResultContentBlock({block
 
             {isOpen && (
                 <div className={'px-3 py-3 text-xs text-text-muted font-mono whitespace-pre-wrap leading-relaxed bg-code-bg max-h-64 overflow-y-auto'}>
-                    {contentText}
+                    {displayText}
                 </div>
             )}
             <StubModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} estimatedTokens={estimatedTokens} error={error} isStubbing={isStubbing} onStub={handleStub}/>

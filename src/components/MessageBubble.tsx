@@ -17,7 +17,10 @@ import {ContentBlock, EMessageRole, EUserMessageType, IAttachmentMeta} from "@/t
 const FILE_ATTACHED_PATTERN: RegExp = /^File attached: .+ — https?:\/\/.+$/;
 const HEIC_MIME_TYPES: Set<string> = new Set(['image/heic', 'image/heif']);
 
-const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdit, index, onRegenerate, sessionId, isSubAgentPrompt = false, onStubbed, tts, toolUseMap}: IMessageBubbleProps) {
+const MessageBubble = React.memo(function MessageBubble({
+                                                            message, canEdit, onEdit, index, onRegenerate, sessionId, isSubAgentPrompt = false, onStubbed, tts, toolUseMap, toolResultMap,
+                                                            pendingApprovalToolUseId,
+                                                        }: IMessageBubbleProps) {
     const isUserMessage: boolean = message.role === EMessageRole.USER;
 
     const isCommandOutput: boolean = isUserMessage && typeof message.content === 'string' && message.content.includes('<local-command-stdout>');
@@ -127,7 +130,15 @@ const MessageBubble = React.memo(function MessageBubble({message, canEdit, onEdi
                     ))}
                 </div>
             )}
-            <MessageContent content={displayContent} sessionId={sessionId} messageId={message.messageId} onStubbed={onStubbed} toolUseMap={toolUseMap}/>
+            <MessageContent
+                content={displayContent}
+                sessionId={sessionId}
+                messageId={message.messageId}
+                onStubbed={onStubbed}
+                toolUseMap={toolUseMap}
+                toolResultMap={toolResultMap}
+                pendingApprovalToolUseId={pendingApprovalToolUseId}
+            />
         </BubbleShell>
     );
 });
