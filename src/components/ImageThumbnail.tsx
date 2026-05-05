@@ -6,7 +6,7 @@ import {cn} from "@/utils/cn";
 import {ImageModal} from "@/components/ui/ImageModal";
 import type {IImageThumbnailProps} from "@/types/components";
 
-function ImageThumbnail({src, alt, width, height, className, unoptimized}: IImageThumbnailProps) {
+function ImageThumbnail({src, alt, width, height, className, unoptimized, loading = 'lazy'}: IImageThumbnailProps) {
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
 
     return (
@@ -20,7 +20,7 @@ function ImageThumbnail({src, alt, width, height, className, unoptimized}: IImag
                 className={cn(className, 'cursor-pointer hover:scale-105 transition-transform')}
                 onClick={() => setIsOpen(true)}
                 unoptimized={unoptimized}
-                loading={'lazy'}
+                loading={loading}
             />
             {isOpen && (
                 <ImageModal src={src} alt={alt} onClose={() => setIsOpen(false)}/>

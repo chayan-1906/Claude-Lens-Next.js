@@ -152,6 +152,7 @@ export interface IImageThumbnailProps {
     height: number;
     className?: string;
     unoptimized?: boolean;
+    loading?: 'lazy' | 'eager';
 }
 
 export interface ICodeBlockProps {

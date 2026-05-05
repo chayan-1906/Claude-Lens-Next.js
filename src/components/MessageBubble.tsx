@@ -69,7 +69,16 @@ const MessageBubble = React.memo(function MessageBubble({
 
     const displayContent: string | ContentBlock[] = (hasHistoricalAttachments && Array.isArray(message.content))
         ? (message.content as ContentBlock[]).filter((block: ContentBlock) => {
-            if (block.type !== 'text') return true;
+            // Drop blocks that the attachment chip/thumbnail at the top of the
+            // bubble already covers — otherwise PDFs render a "PDF Document"
+            // card and images render a base64 LocalFilePlaceholder beneath
+            // their thumbnail, double-displaying the same attachment.
+            if (block.type === 'image' || block.type === 'document') {
+                return false;
+            }
+            if (block.type !== 'text') {
+                return true;
+            }
             return !FILE_ATTACHED_PATTERN.test((block as { type: 'text'; text: string }).text.trim());
         })
         : message.content;
@@ -120,7 +129,8 @@ const MessageBubble = React.memo(function MessageBubble({
                 <div className={'flex flex-wrap gap-2 mb-2'}>
                     {(message.attachments as IAttachmentMeta[]).map((attachment: IAttachmentMeta, idx: number) => (
                         attachment.mimeType.startsWith('image/') && !HEIC_MIME_TYPES.has(attachment.mimeType) ? (
-                            <ImageThumbnail key={idx} src={attachment.r2Url} alt={attachment.name} width={200} height={200} className={'rounded-lg max-w-48 max-h-48 object-contain'}/>
+                            <ImageThumbnail key={idx} src={attachment.r2Url} alt={attachment.name} width={200} height={200} className={'rounded-lg max-w-48 max-h-48 object-contain'}
+                                            loading={index === 0 && idx === 0 ? 'eager' : 'lazy'}/>
                         ) : (
                             <div key={idx} className={'flex items-center gap-2 rounded-lg bg-background/50 border border-border/50 px-3 py-2 w-fit'}>
                                 <HiOutlineDocument className={'size-4 text-text-muted shrink-0'}/>
