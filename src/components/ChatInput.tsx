@@ -107,6 +107,9 @@ function ChatInput({
     const dragCounterRef = React.useRef<number>(0);
     const historyIndexRef = React.useRef<number>(-1);
     const savedDraftRef = React.useRef<string>('');
+    // Per-entry modifications keyed by history index. Persists across navigation
+    // for the lifetime of the component; cleared on send and on page refresh.
+    const historyOverridesRef = React.useRef<Map<number, string>>(new Map());
 
     const {state: voiceState, isSpeaking, liveTranscript, transcript, rephrased, errorMessage, startRecording, stopRecording, reset: resetVoice} = useVoiceInput();
 
@@ -124,7 +127,11 @@ function ChatInput({
         const value: string = e.target.value;
         setText(value);
         draftText = value;
-        historyIndexRef.current = -1;
+        // While navigating history, record the user's edits per-entry so they
+        // survive going away and coming back. Cleared on send.
+        if (historyIndexRef.current !== -1) {
+            historyOverridesRef.current.set(historyIndexRef.current, value);
+        }
         adjustHeight();
     }, [adjustHeight]);
 
@@ -261,6 +268,7 @@ function ChatInput({
         draftText = '';
         historyIndexRef.current = -1;
         savedDraftRef.current = '';
+        historyOverridesRef.current.clear();
         setAttachments([]);
         setAttachmentError(null);
         resetVoice();
@@ -279,18 +287,15 @@ function ChatInput({
         }
         if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && userMessageHistory && userMessageHistory.length > 0 && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
             const textarea: HTMLTextAreaElement = e.currentTarget;
-            const cursorPos: number = textarea.selectionStart;
-            const isOnFirstLine: boolean = !text.slice(0, cursorPos).includes('\n');
-            const isOnLastLine: boolean = !text.slice(cursorPos).includes('\n');
 
-            if (e.key === 'ArrowUp' && isOnFirstLine) {
+            if (e.key === 'ArrowUp' && textarea.selectionStart === 0 && textarea.selectionEnd === 0) {
                 e.preventDefault();
                 if (historyIndexRef.current === -1) {
                     savedDraftRef.current = text;
                 }
                 const newIndex: number = historyIndexRef.current === -1 ? userMessageHistory.length - 1 : Math.max(0, historyIndexRef.current - 1);
                 historyIndexRef.current = newIndex;
-                const newText: string = userMessageHistory[newIndex];
+                const newText: string = historyOverridesRef.current.get(newIndex) ?? userMessageHistory[newIndex];
                 setText(newText);
                 draftText = newText;
                 requestAnimationFrame((): void => {
@@ -303,7 +308,7 @@ function ChatInput({
                 return;
             }
 
-            if (e.key === 'ArrowDown' && historyIndexRef.current !== -1 && isOnLastLine) {
+            if (e.key === 'ArrowDown' && historyIndexRef.current !== -1 && textarea.selectionStart === textarea.value.length && textarea.selectionEnd === textarea.value.length) {
                 e.preventDefault();
                 const newIndex: number = historyIndexRef.current + 1;
                 if (newIndex >= userMessageHistory.length) {
@@ -320,7 +325,7 @@ function ChatInput({
                     });
                 } else {
                     historyIndexRef.current = newIndex;
-                    const newText: string = userMessageHistory[newIndex];
+                    const newText: string = historyOverridesRef.current.get(newIndex) ?? userMessageHistory[newIndex];
                     setText(newText);
                     draftText = newText;
                     requestAnimationFrame((): void => {
