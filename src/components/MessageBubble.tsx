@@ -48,6 +48,12 @@ const MessageBubble = React.memo(function MessageBubble({
     // Compute once — used for interrupt/synthetic detection and copy button
     const contentText: string = extractMessageText(message.content);
 
+    // Hide messages whose string content resolves to nothing after stripping system tags
+    // (e.g. <system-reminder>-only meta messages injected by the CLI after /rename).
+    if (!contentText && typeof message.content === 'string') {
+        return null;
+    }
+
     // System-generated messages — render as non-interactive, centered, muted text
     const isInterruptMessage: boolean = isUserMessage && contentText === '[Request interrupted by user]';
     const isSyntheticMessage: boolean = !isUserMessage && message.aiModel === '<synthetic>';

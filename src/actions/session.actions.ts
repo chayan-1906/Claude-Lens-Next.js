@@ -123,6 +123,8 @@ async function updateSession({sessionId, title, description}: IUpdateSessionPara
                 errorMessage = 'Description must be at most 500 characters!';
             } else if (errorCode === 'SESSION_NOT_FOUND') {
                 errorMessage = `No session found with sessionId: ${sessionId}!`;
+            } else if (errorCode === 'JSONL_WRITE_FAILED') {
+                errorMessage = 'Couldn\'t sync rename to the session file. Please try again!';
             }
 
             return {
