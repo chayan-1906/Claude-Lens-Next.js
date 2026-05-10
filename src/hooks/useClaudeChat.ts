@@ -124,12 +124,19 @@ function useClaudeChat(): IUseClaudeChatReturn {
         const messageUuid: string | null = currentUuidRef.current;
 
         if (content && messageId) {
-            console.log(`[useClaudeChat] Finalizing assistant message (id: ${messageId}, blocks: ${content.length})`);
+            // Compact sparse holes — content_block_start writes via array indexing, so
+            // non-sequential indices (observed after Claude CLI 2.1.131+) leave undefined
+            // slots that crash the renderer with "Cannot read properties of undefined (reading 'type')".
+            const denseContent: ContentBlock[] = content.filter((block: ContentBlock | undefined): block is ContentBlock => block != null);
+            if (denseContent.length !== content.length) {
+                console.warn(`[useClaudeChat] Dropped ${content.length - denseContent.length} sparse block hole(s) at finalize — likely a Claude CLI stream-event ordering change`);
+            }
+            console.log(`[useClaudeChat] Finalizing assistant message (id: ${messageId}, blocks: ${denseContent.length}/${content.length})`);
             const completedMessage: IChatMessage = {
                 id: generateUUID(),
                 msgId: messageId,
                 role: EMessageRole.ASSISTANT,
-                content,
+                content: denseContent,
                 timestamp: new Date(),
                 model: currentModelRef.current ?? undefined,
                 uuid: messageUuid ?? undefined,
@@ -510,7 +517,8 @@ function useClaudeChat(): IUseClaudeChatReturn {
                     if (shouldScheduleRaf && rafIdRef.current === null) {
                         rafIdRef.current = requestAnimationFrame((): void => {
                             if (streamBufferRef.current) {
-                                setStreamingContent(streamBufferRef.current.slice());
+                                // Compact sparse holes from non-sequential content_block_start indices
+                                setStreamingContent(streamBufferRef.current.filter((block: ContentBlock | undefined): block is ContentBlock => block != null));
                             }
                             rafIdRef.current = null;
                         });
