@@ -21,10 +21,7 @@ export type ToolUseBlock = {
 
 export type ImageBlock = {
     type: 'image';
-    source: {
-        type: 'url';
-        url: string;
-    };
+    source: | { type: 'url'; url: string; } | { type: 'base64'; media_type: string; data: string; };
 }
 
 export type DocumentBlock = {

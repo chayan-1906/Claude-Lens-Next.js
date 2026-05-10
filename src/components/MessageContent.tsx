@@ -10,8 +10,8 @@ import {parseUserMessage} from "@/utils/parseUserMessage";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {preserveSingleNewlines} from "@/utils/preserveSingleNewlines";
 import {renderCode, renderLink, renderPre} from "@/components/CodeBlock";
-import {FILE_ATTACHED_REGEX, IMAGE_EXTENSION_REGEX, LOCAL_IMAGE_REF_REGEX} from "@/utils/constants";
 import {ContentBlock, DocumentBlock, EUserMessageType, ImageBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
+import {FILE_ATTACHED_REGEX, IMAGE_EXTENSION_REGEX, IMAGE_RESIZE_ANNOTATION_REGEX, LOCAL_IMAGE_REF_REGEX} from "@/utils/constants";
 
 // Lazy load heavy sub-components via next/dynamic — only loaded when the block type is actually rendered
 const lazyLoadingFallback = (
@@ -38,6 +38,8 @@ const ToolResultContentBlock = dynamic(
 );
 
 const markdownComponents = {code: renderCode, pre: renderPre, a: renderLink};
+
+const HEIC_MIME_TYPES: Set<string> = new Set(['image/heic', 'image/heif']);
 
 
 /** Renders a styled card for files uploaded to R2 (non-image, non-PDF attachments) */
@@ -85,6 +87,11 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                         const cleaned: string = stripSystemTags(block.text);
                         if (!cleaned) return null;
 
+                        // Claude Code's image resize annotation — useless to the user, hide it
+                        if (IMAGE_RESIZE_ANNOTATION_REGEX.test(cleaned.trim())) {
+                            return null;
+                        }
+
                         // Local image reference written by Claude Code terminal: "[Image: source: /path]"
                         const localRef: RegExpExecArray | null = LOCAL_IMAGE_REF_REGEX.exec(cleaned.trim());
                         if (localRef) {
@@ -125,21 +132,50 @@ const MessageContent = React.memo(function MessageContent({content, sessionId, m
                     }
 
                     case 'image': {
-                        const imageUrl: string | undefined = (block as ImageBlock).source?.url;
-                        const isRemote: boolean = !!imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'));
-                        if (!imageUrl || !isRemote) {
-                            return <LocalFilePlaceholder key={index} filePath={imageUrl ?? 'image'}/>;
+                        const source = (block as ImageBlock).source;
+
+                        // Path A — URL-based image (e.g. R2 public URL)
+                        if (source?.type === 'url') {
+                            const imageUrl: string = source.url;
+                            const isRemote: boolean = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+                            if (!imageUrl || !isRemote) {
+                                return <LocalFilePlaceholder key={index} filePath={imageUrl || 'image'}/>;
+                            }
+                            return (
+                                <ImageThumbnail
+                                    key={index}
+                                    src={imageUrl}
+                                    alt={'Attachment'}
+                                    width={300}
+                                    height={300}
+                                    className={'rounded-lg max-w-72 max-h-72 object-contain'}
+                                />
+                            );
                         }
-                        return (
-                            <ImageThumbnail
-                                key={index}
-                                src={imageUrl}
-                                alt={'Attachment'}
-                                width={300}
-                                height={300}
-                                className={'rounded-lg max-w-72 max-h-72 object-contain'}
-                            />
-                        );
+
+                        // Path B — base64-encoded image (Claude CLI uploads)
+                        if (source?.type === 'base64' && source.data && source.media_type) {
+                            // Browsers cannot render HEIC/HEIF natively — show a named placeholder
+                            if (HEIC_MIME_TYPES.has(source.media_type)) {
+                                const extension: string = source.media_type.split('/')[1];
+                                return (
+                                    <LocalFilePlaceholder key={index} filePath={`image.${extension}`}/>
+                                );
+                            }
+                            const dataUri: string = `data:${source.media_type};base64,${source.data}`;
+                            return (
+                                <ImageThumbnail
+                                    key={index}
+                                    src={dataUri}
+                                    alt={'Attachment'}
+                                    width={300}
+                                    height={300}
+                                    className={'rounded-lg max-w-72 max-h-72 object-contain'}
+                                />
+                            );
+                        }
+
+                        return <LocalFilePlaceholder key={index} filePath={'image'}/>;
                     }
 
                     case 'document':
@@ -198,6 +234,11 @@ function renderStringContent(text: string): React.ReactNode {
         default: {
             const cleaned: string = stripSystemTags(parsed.text);
             if (!cleaned) return null;
+
+            // Claude Code's image resize annotation — useless to the user, hide it
+            if (IMAGE_RESIZE_ANNOTATION_REGEX.test(cleaned.trim())) {
+                return null;
+            }
 
             // Local image reference written by Claude Code terminal: "[Image: source: /path]"
             const localRef: RegExpExecArray | null = LOCAL_IMAGE_REF_REGEX.exec(cleaned.trim());

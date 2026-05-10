@@ -8,6 +8,7 @@ import {parseUserMessage} from "@/utils/parseUserMessage";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
 import {ReadAloudButton} from "@/components/ReadAloudButton";
 import {formatRelativeDate} from "@/utils/formatRelativeDate";
+import {IMAGE_RESIZE_ANNOTATION_REGEX} from "@/utils/constants";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {extractMessageText, extractSpeakableText} from "@/utils/extractMessageText";
 import {ContentBlock, EMessageRole, EUserMessageType, IAttachmentMeta} from "@/types/message";
@@ -43,6 +44,17 @@ const MessageBubble = React.memo(function MessageBubble({
         if (!hasAnyBlock) {
             return null;
         }
+        // Hide messages whose every block is just a Claude Code image-resize annotation
+        const isResizeAnnotationOnly: boolean = message.content.every((block: ContentBlock): boolean =>
+            block.type === 'text' && IMAGE_RESIZE_ANNOTATION_REGEX.test(block.text.trim()),
+        );
+        if (isResizeAnnotationOnly) {
+            return null;
+        }
+    }
+
+    if (typeof message.content === 'string' && IMAGE_RESIZE_ANNOTATION_REGEX.test(message.content.trim())) {
+        return null;
     }
 
     // Compute once — used for interrupt/synthetic detection and copy button

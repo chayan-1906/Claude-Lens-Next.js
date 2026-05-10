@@ -4,6 +4,9 @@ export const ANSI_ESCAPE_REGEX: RegExp = /\x1b\[[0-9;]*m/g;
 export const LOCAL_IMAGE_REF_REGEX: RegExp = /^\[Image: source: ([^\]]+)\]$/;
 export const IMAGE_EXTENSION_REGEX: RegExp = /\.(png|jpg|jpeg|gif|webp|heic|heif|bmp|svg)$/i;
 
+/** Matches "[Image: original WxH, displayed at WxH. Multiply coordinates by N to map to original image.]" — Claude Code's resize annotation injected after a CLI image upload */
+export const IMAGE_RESIZE_ANNOTATION_REGEX: RegExp = /^\[Image: original \d+x\d+, displayed at \d+x\d+\. Multiply coordinates by [\d.]+ to map to original image\.\]$/;
+
 // Matches backend-generated attachment text: "File attached: filename — https://..."
 // Captures: [1] filename, [2] URL
 export const FILE_ATTACHED_REGEX: RegExp = /^File attached: (.+?) — (https?:\/\/.+)$/;
