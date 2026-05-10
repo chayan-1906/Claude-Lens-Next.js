@@ -13,6 +13,7 @@ import {SyncButton} from "@/components/SyncButton";
 import {SearchModal} from "@/components/SearchModal";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import type {IAppLayoutProps} from "@/types/components";
+import {useKeyboardShortcut} from "@/hooks/useKeyboardShortcut";
 
 const SIDEBAR_MIN_WIDTH: number = 180;
 const SIDEBAR_MAX_WIDTH: number = 480;
@@ -33,18 +34,18 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
     const dragStartXRef = React.useRef<number>(0);
     const dragStartWidthRef = React.useRef<number>(SIDEBAR_DEFAULT_WIDTH);
 
+    const desktopSidebarStyle: React.CSSProperties = !isMobile
+        ? {width: isCollapsed ? 0 : sidebarWidth, overflow: 'hidden', minWidth: 0}
+        : {};
+
     const toggleSidebar = React.useCallback(() => setSidebarOpen((prev: boolean) => !prev), []);
 
-    React.useEffect(() => {
-        function handleResize(): void {
-            const isMobileView: boolean = window.innerWidth < 768;
-            setIsMobile(isMobileView);
-            setSidebarOpen(!isMobileView);
-        }
-
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+    const handleToggleCollapse = React.useCallback((): void => {
+        setIsCollapsed((prev: boolean) => {
+            const next: boolean = !prev;
+            localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+            return next;
+        });
     }, []);
 
     /** Load persisted sidebar width + collapsed state */
@@ -62,25 +63,24 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
         if (savedCollapsed === 'true') setIsCollapsed(true);
     }, []);
 
-    /** option+N → new session */
-    React.useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent): void => {
-            if (e.altKey && e.code === 'KeyN') {
-                e.preventDefault();
-                router.push(routes.newSessionPath);
-            }
-        };
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [router]);
+    /** ⌥N → new session */
+    useKeyboardShortcut({code: 'KeyN', alt: true}, () => {
+        router.push(routes.newSessionPath);
+    });
 
-    const handleToggleCollapse = React.useCallback((): void => {
-        setIsCollapsed((prev: boolean) => {
-            const next: boolean = !prev;
-            localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
-            return next;
-        });
-    }, []);
+    /** ⌘K / Ctrl+K → toggle global search */
+    useKeyboardShortcut({code: 'KeyK', mod: true}, () => {
+        setIsSearchOpen((prev: boolean) => !prev);
+    });
+
+    /** ⌘\ / Ctrl+\ → toggle sidebar (drawer on mobile, collapse on desktop) */
+    useKeyboardShortcut({code: 'Backslash', mod: true}, () => {
+        if (isMobile) {
+            toggleSidebar();
+        } else {
+            handleToggleCollapse();
+        }
+    });
 
     /** Sidebar resize — write directly to DOM during drag to avoid re-render lag */
     const handleResizeMouseDown = React.useCallback((e: React.MouseEvent): void => {
@@ -94,6 +94,18 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
         if (asideRef.current) asideRef.current.style.transition = 'none';
         e.preventDefault();
     }, [isCollapsed]);
+
+    React.useEffect(() => {
+        function handleResize(): void {
+            const isMobileView: boolean = window.innerWidth < 768;
+            setIsMobile(isMobileView);
+            setSidebarOpen(!isMobileView);
+        }
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     React.useEffect(() => {
         const handleMouseMove = (e: MouseEvent): void => {
@@ -121,10 +133,6 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
             document.removeEventListener('mouseup', handleMouseUp);
         };
     }, []);
-
-    const desktopSidebarStyle: React.CSSProperties = !isMobile
-        ? {width: isCollapsed ? 0 : sidebarWidth, overflow: 'hidden', minWidth: 0}
-        : {};
 
     return (
         <div className={'flex h-dvh bg-background text-text'}>

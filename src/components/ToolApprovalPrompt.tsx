@@ -5,6 +5,7 @@ import {HiOutlineCheck, HiOutlineX, HiOutlineCheckCircle, HiOutlineExclamation} 
 import {Modal} from "@/components/ui/Modal";
 import {Button} from "@/components/ui/Button";
 import {DiffView} from "@/components/DiffView";
+import {useKeyboardShortcut} from "@/hooks/useKeyboardShortcut";
 import type {IToolApprovalPromptProps} from "@/types/components";
 
 function ToolApprovalPrompt({approval, projectDir, onRespond}: IToolApprovalPromptProps) {
@@ -88,6 +89,15 @@ function ToolApprovalPrompt({approval, projectDir, onRespond}: IToolApprovalProm
             handleCancelDeny();
         }
     }, [handleConfirmDeny, handleCancelDeny]);
+
+    /** ⌘↵ → approve. Disabled while deny textarea is open so it can't silently flip a deny into an approve. */
+    useKeyboardShortcut({code: 'Enter', mod: true}, handleApprove, {enabled: !showDenyInput});
+
+    /** ⌘⇧↵ → allow all (opens confirmation modal). Same gating as approve. */
+    useKeyboardShortcut({code: 'Enter', mod: true, shift: true}, handleAllowAllClick, {enabled: !showDenyInput});
+
+    /** ⌘⌫ → deny. Skipped when any text input is focused so native macOS delete-line is preserved. */
+    useKeyboardShortcut({code: 'Backspace', mod: true}, handleDenyClick, {skipWhenTextInput: true});
 
     return (
         <div className={'flex flex-col items-start w-full'}>
