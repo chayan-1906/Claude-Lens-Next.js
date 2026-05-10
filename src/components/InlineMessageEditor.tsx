@@ -13,8 +13,8 @@ function InlineMessageEditor({initialText, disabled, onSave, onCancel}: IInlineM
     const [text, setText] = React.useState<string>(initialText);
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
-    const handleChange = React.useCallback((e: React.ChangeEvent<HTMLTextAreaElement>): void => {
-        setText(e.target.value);
+    const handleChange = React.useCallback((changeEvent: React.ChangeEvent<HTMLTextAreaElement>): void => {
+        setText(changeEvent.target.value);
         const textarea: HTMLTextAreaElement | null = textareaRef.current;
         if (textarea) {
             textarea.style.height = 'auto';
@@ -24,8 +24,8 @@ function InlineMessageEditor({initialText, disabled, onSave, onCancel}: IInlineM
 
     const handleMarkdownKeyDown = useMarkdownShortcuts(textareaRef, text, setText);
 
-    const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
-        if (handleMarkdownKeyDown(e)) {
+    const handleKeyDown = React.useCallback((keyboardEvent: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+        if (handleMarkdownKeyDown(keyboardEvent)) {
             requestAnimationFrame((): void => {
                 const textarea: HTMLTextAreaElement | null = textareaRef.current;
                 if (textarea) {
@@ -35,12 +35,12 @@ function InlineMessageEditor({initialText, disabled, onSave, onCancel}: IInlineM
             });
             return;
         }
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
+        if (keyboardEvent.key === 'Enter' && !keyboardEvent.shiftKey) {
+            keyboardEvent.preventDefault();
             const trimmed: string = text.trim();
             if (trimmed && !disabled) onSave(trimmed);
         }
-        if (e.key === 'Escape') {
+        if (keyboardEvent.key === 'Escape') {
             onCancel();
         }
     }, [handleMarkdownKeyDown, text, disabled, onSave, onCancel]);

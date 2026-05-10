@@ -8,6 +8,7 @@ import {IMessageContentProps} from "@/types/components";
 import {stripSystemTags} from "@/utils/stripSystemTags";
 import {parseUserMessage} from "@/utils/parseUserMessage";
 import {ImageThumbnail} from "@/components/ImageThumbnail";
+import {preserveSingleNewlines} from "@/utils/preserveSingleNewlines";
 import {renderCode, renderLink, renderPre} from "@/components/CodeBlock";
 import {FILE_ATTACHED_REGEX, IMAGE_EXTENSION_REGEX, LOCAL_IMAGE_REF_REGEX} from "@/utils/constants";
 import {ContentBlock, DocumentBlock, EUserMessageType, ImageBlock, ParsedUserMessage, ToolResultBlock} from "@/types/message";
@@ -175,7 +176,7 @@ function renderStringContent(text: string): React.ReactNode {
                     {parsed.remainingText && (
                         <div className={'markdown-content'}>
                             <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                                {parsed.remainingText}
+                                {preserveSingleNewlines(parsed.remainingText)}
                             </Markdown>
                         </div>
                     )}
@@ -207,7 +208,7 @@ function renderStringContent(text: string): React.ReactNode {
             return (
                 <div className={'markdown-content'}>
                     <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                        {cleaned}
+                        {preserveSingleNewlines(cleaned)}
                     </Markdown>
                 </div>
             );

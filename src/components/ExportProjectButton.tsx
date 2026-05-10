@@ -9,8 +9,8 @@ import type {IExportProjectButtonProps} from "@/types/components";
 function ExportProjectButton({projectDir}: IExportProjectButtonProps) {
     const [isExporting, setIsExporting] = React.useState<boolean>(false);
 
-    const handleExport = React.useCallback(async (e: React.MouseEvent): Promise<void> => {
-        e.stopPropagation();
+    const handleExport = React.useCallback(async (mouseEvent: React.MouseEvent): Promise<void> => {
+        mouseEvent.stopPropagation();
         setIsExporting(true);
 
         try {

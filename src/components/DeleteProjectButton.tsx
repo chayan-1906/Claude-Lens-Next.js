@@ -35,8 +35,8 @@ function DeleteProjectButton({projectDir, projectName, r2Configured}: IDeletePro
         router.push(routes.homePath);
     }, [projectDir, reclaimR2, router]);
 
-    const handleOpenModal = React.useCallback((e: React.MouseEvent): void => {
-        e.stopPropagation();
+    const handleOpenModal = React.useCallback((mouseEvent: React.MouseEvent): void => {
+        mouseEvent.stopPropagation();
         setReclaimR2(false);
         setError(null);
         setIsModalOpen(true);

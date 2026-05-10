@@ -9,8 +9,8 @@ import type {IExportSessionButtonProps} from "@/types/components";
 function ExportSessionButton({projectDir, sessionId}: IExportSessionButtonProps) {
     const [isExporting, setIsExporting] = React.useState<boolean>(false);
 
-    const handleExport = React.useCallback(async (e: React.MouseEvent): Promise<void> => {
-        e.stopPropagation();
+    const handleExport = React.useCallback(async (mouseEvent: React.MouseEvent): Promise<void> => {
+        mouseEvent.stopPropagation();
         setIsExporting(true);
 
         try {

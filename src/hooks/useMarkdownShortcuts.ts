@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import {MARKDOWN_LINK_SUFFIX_REGEX} from "@/utils/constants";
 import type {IApplyFormatResult, IMarkdownFormat} from "@/types/markdown";
 
 /** Supported markdown formatting shortcuts */
@@ -15,18 +16,32 @@ const MARKDOWN_FORMATS: Record<string, IMarkdownFormat> = {
 };
 
 /** Resolve a keyboard event to its markdown format (null if no match) */
-function getFormatForKeyEvent(e: React.KeyboardEvent<HTMLTextAreaElement>): IMarkdownFormat | null {
-    if (!e.metaKey) return null;
-    const key: string = e.key.toLowerCase();
-    if (e.shiftKey) {
-        if (key === 'x') return MARKDOWN_FORMATS.strikethrough;
-        if (key === 'k') return MARKDOWN_FORMATS.link;
-        if (key === 'e') return MARKDOWN_FORMATS.codeBlock;
+function getFormatForKeyEvent(keyboardEvent: React.KeyboardEvent<HTMLTextAreaElement>): IMarkdownFormat | null {
+    if (!keyboardEvent.metaKey) return null;
+    const key: string = keyboardEvent.key.toLowerCase();
+    if (keyboardEvent.shiftKey) {
+        if (key === 'x') {
+            return MARKDOWN_FORMATS.strikethrough;
+        }
+        if (key === 'k') {
+            return MARKDOWN_FORMATS.link;
+        }
+        if (key === 'e') {
+            return MARKDOWN_FORMATS.codeBlock;
+        }
     } else {
-        if (key === 'b') return MARKDOWN_FORMATS.bold;
-        if (key === 'i') return MARKDOWN_FORMATS.italic;
-        if (key === 'u') return MARKDOWN_FORMATS.underline;
-        if (key === 'e') return MARKDOWN_FORMATS.inlineCode;
+        if (key === 'b') {
+            return MARKDOWN_FORMATS.bold;
+        }
+        if (key === 'i') {
+            return MARKDOWN_FORMATS.italic;
+        }
+        if (key === 'u') {
+            return MARKDOWN_FORMATS.underline;
+        }
+        if (key === 'e') {
+            return MARKDOWN_FORMATS.inlineCode;
+        }
     }
     return null;
 }
@@ -44,7 +59,7 @@ function applyMarkdownFormat(text: string, selStart: number, selEnd: number, for
             const charBefore: string = text[selStart - 1];
             if (charBefore === '[') {
                 const afterSelection: string = text.slice(selEnd);
-                const linkSuffixMatch: RegExpMatchArray | null = afterSelection.match(/^\]\([^)]*\)/);
+                const linkSuffixMatch: RegExpMatchArray | null = afterSelection.match(MARKDOWN_LINK_SUFFIX_REGEX);
                 if (linkSuffixMatch) {
                     const suffixLen: number = linkSuffixMatch[0].length;
                     const newText: string = text.slice(0, selStart - 1) + selected + text.slice(selEnd + suffixLen);
@@ -91,13 +106,9 @@ function applyMarkdownFormat(text: string, selStart: number, selEnd: number, for
  * Intercepts Markdown keyboard shortcuts (Cmd+B, Cmd+I, etc.) in a textarea.
  * Returns a keydown handler — returns true when a shortcut was processed, false otherwise.
  */
-function useMarkdownShortcuts(
-    textareaRef: React.RefObject<HTMLTextAreaElement | null>,
-    text: string,
-    setText: React.Dispatch<React.SetStateAction<string>>,
-): (e: React.KeyboardEvent<HTMLTextAreaElement>) => boolean {
-    const handleMarkdownKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>): boolean => {
-        const format: IMarkdownFormat | null = getFormatForKeyEvent(e);
+function useMarkdownShortcuts(textareaRef: React.RefObject<HTMLTextAreaElement | null>, text: string, setText: React.Dispatch<React.SetStateAction<string>>): (e: React.KeyboardEvent<HTMLTextAreaElement>) => boolean {
+    const handleMarkdownKeyDown = React.useCallback((keyboardEvent: React.KeyboardEvent<HTMLTextAreaElement>): boolean => {
+        const format: IMarkdownFormat | null = getFormatForKeyEvent(keyboardEvent);
         if (!format) {
             return false;
         }
@@ -107,7 +118,7 @@ function useMarkdownShortcuts(
             return false;
         }
 
-        e.preventDefault();
+        keyboardEvent.preventDefault();
 
         const result: IApplyFormatResult = applyMarkdownFormat(text, textarea.selectionStart, textarea.selectionEnd, format);
 

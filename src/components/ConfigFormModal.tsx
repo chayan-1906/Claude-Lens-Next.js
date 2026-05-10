@@ -37,8 +37,8 @@ function ConfigFormModal({isOpen, onOpenChange, editingConfig, onSaved}: IConfig
         }
     }, [editingConfig]);
 
-    const handleSubmit = React.useCallback(async (e: React.FormEvent): Promise<void> => {
-        e.preventDefault();
+    const handleSubmit = React.useCallback(async (formEvent: React.FormEvent): Promise<void> => {
+        formEvent.preventDefault();
         setIsSubmitting(true);
         setError(null);
 
@@ -111,7 +111,7 @@ function ConfigFormModal({isOpen, onOpenChange, editingConfig, onSaved}: IConfig
                             id={'config-name'}
                             type={'text'}
                             value={name}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                            onChange={(changeEvent: React.ChangeEvent<HTMLInputElement>) => setName(changeEvent.target.value)}
                             placeholder={'e.g. Production, Staging, Local'}
                             className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isSubmitting}
@@ -128,7 +128,7 @@ function ConfigFormModal({isOpen, onOpenChange, editingConfig, onSaved}: IConfig
                             id={'config-uri'}
                             type={'text'}
                             value={uri}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUri(e.target.value)}
+                            onChange={(changeEvent: React.ChangeEvent<HTMLInputElement>) => setUri(changeEvent.target.value)}
                             placeholder={'mongodb+srv://user:password@cluster.mongodb.net/dbname'}
                             className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm font-mono placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isSubmitting}
@@ -143,7 +143,7 @@ function ConfigFormModal({isOpen, onOpenChange, editingConfig, onSaved}: IConfig
                         <textarea
                             id={'config-description'}
                             value={description}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
+                            onChange={(changeEvent: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(changeEvent.target.value)}
                             placeholder={'e.g. Main production cluster'}
                             className={'w-full px-3 py-2 rounded-md border border-border bg-surface text-text text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'}
                             disabled={isSubmitting}
@@ -160,7 +160,7 @@ function ConfigFormModal({isOpen, onOpenChange, editingConfig, onSaved}: IConfig
                                 id={'config-color'}
                                 type={'color'}
                                 value={color}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)}
+                                onChange={(changeEvent: React.ChangeEvent<HTMLInputElement>) => setColor(changeEvent.target.value)}
                                 className={'size-9 rounded-md border border-border cursor-pointer bg-transparent'}
                                 disabled={isSubmitting}
                             />

@@ -16,3 +16,12 @@ export const TOOL_USE_ERROR_TAG_REGEX: RegExp = /<tool_use_error>([\s\S]*?)<\/to
 
 /** Matches the MCP tool name prefix: "mcp__<serverKey>__" */
 export const MCP_TOOL_PREFIX = 'mcp__';
+
+/** Splits text on fenced code blocks (``` and ~~~) so non-code parts can be transformed independently */
+export const FENCED_CODE_BLOCK_REGEX: RegExp = /(```[\s\S]*?```|~~~[\s\S]*?~~~)/g;
+
+/** Matches a single newline — used to convert plain `\n` into GFM hard line breaks (`  \n`) */
+export const SINGLE_NEWLINE_REGEX: RegExp = /\n/g;
+
+/** Matches a markdown link suffix `](url)` immediately after a selection — used to detect link-toggle */
+export const MARKDOWN_LINK_SUFFIX_REGEX: RegExp = /^\]\([^)]*\)/;

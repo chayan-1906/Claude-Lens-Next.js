@@ -41,7 +41,7 @@ import {computeProjectDisplayNames} from "@/utils/projectDisplayName";
 import {getAllSessions, refreshSidebar} from "@/actions/session.actions";
 
 /** Task status indicator */
-const TASK_STATUS_ICON: Record<string, { label: string; className: string }> = {
+const TASK_STATUS_ICON: Record<string, { label: string; className: string; }> = {
     completed: {label: '\u2713', className: 'text-success'},
     in_progress: {label: '\u25C9', className: 'text-warning'},
     pending: {label: '\u25CB', className: 'text-text-muted'},

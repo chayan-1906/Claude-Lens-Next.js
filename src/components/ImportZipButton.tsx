@@ -58,14 +58,16 @@ function ImportZipButton({onImported}: IImportZipButtonProps) {
         }
     }, []);
 
-    const handleButtonClick = React.useCallback((e: React.MouseEvent): void => {
-        e.stopPropagation();
+    const handleButtonClick = React.useCallback((mouseEvent: React.MouseEvent): void => {
+        mouseEvent.stopPropagation();
         fileInputRef.current?.click();
     }, []);
 
-    const handleFileSelected = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-        const file: File | undefined = e.target.files?.[0];
-        if (!file) return;
+    const handleFileSelected = React.useCallback(async (changeEvent: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+        const file: File | undefined = changeEvent.target.files?.[0];
+        if (!file) {
+            return;
+        }
 
         setError(null);
 
@@ -158,8 +160,8 @@ function ImportZipButton({onImported}: IImportZipButtonProps) {
             </Button>
 
             <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen} onClose={handleModalClose}>
-                <form onSubmit={(e: React.FormEvent) => {
-                    e.preventDefault();
+                <form onSubmit={(formEvent: React.FormEvent) => {
+                    formEvent.preventDefault();
                     void handleConfirmImport();
                 }} className={'p-6'}>
                     <h2 className={'font-semibold text-center text-primary'}>Import .zip</h2>
@@ -193,7 +195,7 @@ function ImportZipButton({onImported}: IImportZipButtonProps) {
                                     type={'text'}
                                     autoFocus={true}
                                     value={remappedProjectDir}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRemappedProjectDir(e.target.value)}
+                                    onChange={(changeEvent: React.ChangeEvent<HTMLInputElement>) => setRemappedProjectDir(changeEvent.target.value)}
                                     disabled={isImporting}
                                     className={'w-full px-3 py-2 text-sm font-mono rounded-md border border-border bg-background text-text focus:outline-none focus:ring-1 focus:ring-primary'}
                                 />

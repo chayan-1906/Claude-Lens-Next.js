@@ -238,13 +238,73 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     }, [session]);
 
     React.useEffect(() => {
-        if (!isLive) return;
-        const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
-            e.preventDefault();
+        if (!isLive) {
+            return;
         }
+
+        const confirmMessage: string = 'Claude is still responding. Leave this session?';
+
+        const handleBeforeUnload = (beforeUnloadEvent: BeforeUnloadEvent): void => {
+            beforeUnloadEvent.preventDefault();
+        }
+
+        // Intercept Next.js <Link> clicks (and any in-app <a> click). Capture phase runs
+        // before Next.js routing, so preventDefault here cancels client-side navigation.
+        const handleAnchorClickCapture = (mouseEvent: MouseEvent): void => {
+            if (mouseEvent.defaultPrevented || mouseEvent.button !== 0) {
+                return;
+            }
+            if (mouseEvent.metaKey || mouseEvent.ctrlKey || mouseEvent.shiftKey || mouseEvent.altKey) {
+                return;
+            }
+            const anchor: HTMLAnchorElement | null = (mouseEvent.target as HTMLElement | null)?.closest('a') ?? null;
+            if (!anchor) {
+                return;
+            }
+            const href: string | null = anchor.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+                return;
+            }
+            if (anchor.target && anchor.target !== '' && anchor.target !== '_self') {
+                return;
+            }
+            if (anchor.hasAttribute('download')) {
+                return;
+            }
+            // External link → let beforeunload handle it
+            try {
+                const url: URL = new URL(href, window.location.href);
+                if (url.origin !== window.location.origin) {
+                    return;
+                }
+                if (url.pathname === window.location.pathname && url.search === window.location.search) {
+                    return;
+                }
+            } catch {
+                return;
+            }
+            if (!window.confirm(confirmMessage)) {
+                mouseEvent.preventDefault();
+                mouseEvent.stopPropagation();
+            }
+        }
+
+        // Intercept browser back/forward. popstate fires AFTER the navigation, so on cancel
+        // we push the original URL back to undo it.
+        const guardedHref: string = window.location.href;
+        const handlePopState = (): void => {
+            if (!window.confirm(confirmMessage)) {
+                window.history.pushState(null, '', guardedHref);
+            }
+        }
+
         window.addEventListener('beforeunload', handleBeforeUnload);
+        document.addEventListener('click', handleAnchorClickCapture, true);
+        window.addEventListener('popstate', handlePopState);
         return (): void => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('click', handleAnchorClickCapture, true);
+            window.removeEventListener('popstate', handlePopState);
         };
     }, [isLive]);
 

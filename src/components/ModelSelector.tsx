@@ -12,7 +12,7 @@ const MODEL_CONFIG: IModelConfig[] = [
     {value: 'haiku', label: 'Haiku'},
 ];
 
-const EFFORT_OPTIONS: { value: string; label: string }[] = [
+const EFFORT_OPTIONS: { value: string; label: string; }[] = [
     {value: 'low', label: 'Low'},
     {value: 'medium', label: 'Medium'},
     {value: 'high', label: 'High'},
@@ -28,16 +28,18 @@ const SELECT_STYLE: React.CSSProperties = {
 };
 
 function ModelSelector({selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, disabled}: IModelSelectorProps) {
-    const handleModelChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>): void => {
-        onModelChange(e.target.value);
+    const handleModelChange = React.useCallback((changeEvent: React.ChangeEvent<HTMLSelectElement>): void => {
+        onModelChange(changeEvent.target.value);
     }, [onModelChange]);
 
-    const handleEffortChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>): void => {
-        onEffortChange(e.target.value);
+    const handleEffortChange = React.useCallback((changeEvent: React.ChangeEvent<HTMLSelectElement>): void => {
+        onEffortChange(changeEvent.target.value);
     }, [onEffortChange]);
 
     const handleThinkingToggle = React.useCallback((): void => {
-        if (disabled) return;
+        if (disabled) {
+            return;
+        }
         onThinkingChange(!thinking);
     }, [disabled, thinking, onThinkingChange]);
 
@@ -63,7 +65,7 @@ function ModelSelector({selectedModel, selectedEffort, thinking, onModelChange, 
                 className={'appearance-none bg-transparent border-0 text-xs font-medium text-text-muted hover:text-text cursor-pointer focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors'}
                 style={SELECT_STYLE}
             >
-                {EFFORT_OPTIONS.map((option: { value: string; label: string }) => (
+                {EFFORT_OPTIONS.map((option: { value: string; label: string; }) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
             </select>

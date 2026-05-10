@@ -16,8 +16,8 @@ function VoiceSettingsPopover({tts, triggerClassName}: IVoiceSettingsPopoverProp
     React.useEffect(() => {
         if (!isOpen) return;
 
-        const handleClickOutside = (e: MouseEvent): void => {
-            if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        const handleClickOutside = (mouseEvent: MouseEvent): void => {
+            if (popoverRef.current && !popoverRef.current.contains(mouseEvent.target as Node)) {
                 setIsOpen(false);
             }
         };

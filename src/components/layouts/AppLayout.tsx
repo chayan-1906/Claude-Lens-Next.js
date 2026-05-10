@@ -83,16 +83,20 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
     });
 
     /** Sidebar resize — write directly to DOM during drag to avoid re-render lag */
-    const handleResizeMouseDown = React.useCallback((e: React.MouseEvent): void => {
-        if (isCollapsed) return;
+    const handleResizeMouseDown = React.useCallback((mouseEvent: React.MouseEvent): void => {
+        if (isCollapsed) {
+            return;
+        }
         isResizingRef.current = true;
-        dragStartXRef.current = e.clientX;
+        dragStartXRef.current = mouseEvent.clientX;
         dragStartWidthRef.current = sidebarWidthRef.current;
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
         // Disable CSS transition while dragging so it doesn't fight direct DOM updates
-        if (asideRef.current) asideRef.current.style.transition = 'none';
-        e.preventDefault();
+        if (asideRef.current) {
+            asideRef.current.style.transition = 'none';
+        }
+        mouseEvent.preventDefault();
     }, [isCollapsed]);
 
     React.useEffect(() => {
@@ -108,11 +112,11 @@ function AppLayout({children, sidebar}: IAppLayoutProps) {
     }, []);
 
     React.useEffect(() => {
-        const handleMouseMove = (e: MouseEvent): void => {
+        const handleMouseMove = (mouseEvent: MouseEvent): void => {
             if (!isResizingRef.current || !asideRef.current) return;
             const newWidth: number = Math.min(
                 SIDEBAR_MAX_WIDTH,
-                Math.max(SIDEBAR_MIN_WIDTH, dragStartWidthRef.current + (e.clientX - dragStartXRef.current)),
+                Math.max(SIDEBAR_MIN_WIDTH, dragStartWidthRef.current + (mouseEvent.clientX - dragStartXRef.current)),
             );
             sidebarWidthRef.current = newWidth;
             asideRef.current.style.width = `${newWidth}px`;

@@ -350,7 +350,7 @@ function useClaudeChat(): IUseClaudeChatReturn {
             }
 
             case 'process_exit': {
-                const exitEvent = data as { type: 'process_exit'; code: number | null };
+                const exitEvent = data as { type: 'process_exit'; code: number | null; };
                 console.log(`[useClaudeChat] process_exit → code: ${exitEvent.code}`);
 
                 // Skip IDLE transition when edit_session killed the old process — the new
