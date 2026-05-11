@@ -141,6 +141,10 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
     const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
     const isAtBottomRef = React.useRef<boolean>(true);
 
+    // Pinned tool-approval card — measured to pad the scroll area so all chat history stays scrollable behind it
+    const approvalRef = React.useRef<HTMLDivElement | null>(null);
+    const [approvalHeight, setApprovalHeight] = React.useState<number>(0);
+
     // Local copy of historical messages — enables optimistic stub updates without a full page refresh
     const [localHistoricalMessages, setLocalHistoricalMessages] = React.useState<IMessage[]>(historicalMessages ?? []);
     const [messagePagination, setMessagePagination] = React.useState<IGetSessionPagination | undefined>(initialPagination);
@@ -641,6 +645,26 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         pendingApprovalRef.current = pendingApproval;
     }, [pendingApproval]);
 
+    /** Measure the pinned approval card so the scroll area can reserve equivalent bottom-padding — keeps the most recent message reachable via manual scroll while the card floats above. */
+    React.useEffect((): (() => void) | void => {
+        if (!pendingApproval) {
+            setApprovalHeight(0);
+            return;
+        }
+        const el: HTMLDivElement | null = approvalRef.current;
+        if (!el) return;
+        setApprovalHeight(el.getBoundingClientRect().height);
+        const observer: ResizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
+            for (const entry of entries) {
+                setApprovalHeight(entry.contentRect.height);
+            }
+        });
+        observer.observe(el);
+        return (): void => {
+            observer.disconnect();
+        };
+    }, [pendingApproval]);
+
     /** True iff a chat turn is actively in flight — refreshing now would race unsynced live state. */
     const isConversationActive = React.useCallback((): boolean => {
         const s: EChatStatus = statusRef.current;
@@ -1038,7 +1062,8 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
             {/* Messages area + MCP panel */}
             <div className={'flex flex-row flex-1 min-h-0'}>
                 <div className={'relative flex-1 min-h-0 min-w-0'}>
-                    <div ref={scrollContainerRef} onScroll={handleScroll} className={'h-full overflow-y-auto'}>
+                    <div ref={scrollContainerRef} onScroll={handleScroll} className={'h-full overflow-y-auto'}
+                         style={approvalHeight > 0 ? {paddingBottom: approvalHeight + 12} : undefined}>
                         <div className={'max-w-4xl lg:max-w-6xl mx-auto px-6 py-4 min-h-full flex flex-col'}>
                             {showEmptyState ? (
                                 <div className={'flex-1 flex items-center justify-center'}>
@@ -1429,11 +1454,6 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                                         );
                                     })()}
 
-                                    {/* Tool approval prompt — shown inline when hook is waiting for user decision */}
-                                    {pendingApproval && (
-                                        <ToolApprovalPrompt approval={pendingApproval} projectDir={projectDir} onRespond={handleApprovalResponse}/>
-                                    )}
-
                                     {/* Thinking dots — waiting for first token */}
                                     {showThinking && (
                                         <div className={'flex items-start'}>
@@ -1449,10 +1469,11 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                         </div>
                     </div>
 
-                    {/* Scroll to bottom button */}
+                    {/* Scroll to bottom button — lifted above the pinned approval card when one is active */}
                     {showScrollButton && (
                         <Button variant={'ghost'} size={'icon'} onClick={handleScrollToBottomClick}
-                                className={'absolute bottom-4 right-6 size-8 rounded-full bg-surface border border-border shadow-md text-text-muted hover:text-text'} title={'Scroll to bottom'}>
+                                style={{bottom: 16 + approvalHeight}}
+                                className={'absolute right-6 size-8 rounded-full bg-surface border border-border shadow-md text-text-muted hover:text-text'} title={'Scroll to bottom'}>
                             <FaArrowDown className={'size-4'}/>
                         </Button>
                     )}
@@ -1461,6 +1482,13 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                 {/* MCP servers side panel */}
                 <MCPServersPanel contextInfo={contextInfo}/>
             </div>
+
+            {/* Pinned tool-approval card — sits above the input, overlaying the bottom of the chat scroll area */}
+            {pendingApproval && (
+                <div ref={approvalRef} className={'w-full max-w-4xl lg:max-w-6xl mx-auto px-6 mb-3'}>
+                    <ToolApprovalPrompt approval={pendingApproval} projectDir={projectDir} onRespond={handleApprovalResponse}/>
+                </div>
+            )}
 
             {/* Chat input */}
             <div className={'w-full max-w-4xl lg:max-w-6xl mx-auto px-6'}>

@@ -100,8 +100,8 @@ function ToolApprovalPrompt({approval, projectDir, onRespond}: IToolApprovalProm
     useKeyboardShortcut({code: 'Backspace', mod: true}, handleDenyClick, {skipWhenTextInput: true});
 
     return (
-        <div className={'flex flex-col items-start w-full'}>
-            <div className={'max-w-[85%] w-full rounded-2xl border border-warning/30 bg-warning/5 overflow-hidden'}>
+        <>
+            <div className={'w-full rounded-2xl border border-warning/30 bg-warning/5 overflow-hidden'}>
                 {/* Header */}
                 <div className={'flex items-center gap-2 px-4 py-2.5 border-b border-warning/20 bg-warning/10'}>
                     <span className={'text-sm font-medium text-warning'}>
@@ -226,7 +226,7 @@ function ToolApprovalPrompt({approval, projectDir, onRespond}: IToolApprovalProm
                     </div>
                 </div>
             </Modal>
-        </div>
+        </>
     );
 }
 
