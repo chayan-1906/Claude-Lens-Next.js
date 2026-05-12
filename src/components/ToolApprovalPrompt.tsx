@@ -1,233 +1,1 @@
-"use client";
-
-import React from "react";
-import {HiOutlineCheck, HiOutlineX, HiOutlineCheckCircle, HiOutlineExclamation} from "react-icons/hi";
-import {Modal} from "@/components/ui/Modal";
-import {Button} from "@/components/ui/Button";
-import {DiffView} from "@/components/DiffView";
-import {useKeyboardShortcut} from "@/hooks/useKeyboardShortcut";
-import type {IToolApprovalPromptProps} from "@/types/components";
-
-function ToolApprovalPrompt({approval, projectDir, onRespond}: IToolApprovalPromptProps) {
-    const {requestId, toolName, toolInput} = approval;
-    const projectName: string = (projectDir?.split('/').filter(Boolean).pop()) || '';
-    const isRead: boolean = toolName === 'Read';
-    const isBash: boolean = toolName === 'Bash';
-    const isMcp: boolean = toolName.startsWith('mcp__');
-    const isFileOp: boolean = !isBash && !isMcp && !isRead && ('file_path' in toolInput || 'notebook_path' in toolInput);
-    const isGenericTool: boolean = !isBash && !isMcp && !isRead && !isFileOp;
-    const filePath: string = (isFileOp || isRead) ? ((toolInput.file_path as string) ?? (toolInput.notebook_path as string) ?? '') : '';
-    const bashCommand: string = isBash ? ((toolInput.command as string) ?? '') : '';
-    const mcpParts: string[] = isMcp ? toolName.split('__') : [];
-    const mcpServerName: string = mcpParts[1] ?? '';
-    const mcpToolName: string = mcpParts.slice(2).join('__');
-
-    const [showDenyInput, setShowDenyInput] = React.useState<boolean>(false);
-    const [customReason, setCustomReason] = React.useState<string>('');
-    const [showAllowAllAlert, setShowAllowAllAlert] = React.useState<boolean>(false);
-
-    const headerLabel: string = isBash
-        ? 'Run command?'
-        : isRead
-            ? 'Read file?'
-            : isMcp || isGenericTool
-                ? 'Use tool?'
-                : toolName === 'Write'
-                    ? 'Create file?'
-                    : 'Edit file?';
-
-    const defaultReason: string = isBash
-        ? 'User denied the command'
-        : isRead
-            ? 'User denied the read'
-            : (isMcp || isGenericTool)
-                ? 'User denied the tool call'
-                : 'User denied the edit';
-
-    const handleApprove = React.useCallback((): void => {
-        onRespond(requestId, 'allow');
-    }, [requestId, onRespond]);
-
-    const handleAllowAll = React.useCallback((): void => {
-        onRespond(requestId, 'allow', undefined, true);
-    }, [requestId, onRespond]);
-
-    const handleAllowAllClick = React.useCallback((): void => {
-        setShowAllowAllAlert(true);
-    }, []);
-
-    const handleConfirmAllowAll = React.useCallback((): void => {
-        handleAllowAll();
-        setShowAllowAllAlert(false);
-    }, [handleAllowAll]);
-
-    const handleCancelAllowAll = React.useCallback((): void => {
-        setShowAllowAllAlert(false);
-    }, []);
-
-    const handleDenyClick = React.useCallback((): void => {
-        setShowDenyInput(true);
-    }, []);
-
-    const handleConfirmDeny = React.useCallback((): void => {
-        const finalReason: string = customReason.trim() || defaultReason;
-        onRespond(requestId, 'deny', finalReason);
-        setShowDenyInput(false);
-        setCustomReason('');
-    }, [requestId, onRespond, customReason, defaultReason]);
-
-    const handleCancelDeny = React.useCallback((): void => {
-        setShowDenyInput(false);
-        setCustomReason('');
-    }, []);
-
-    const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleConfirmDeny();
-        } else if (e.key === 'Escape') {
-            handleCancelDeny();
-        }
-    }, [handleConfirmDeny, handleCancelDeny]);
-
-    /** ⌘↵ → approve. Disabled while deny textarea is open so it can't silently flip a deny into an approve. */
-    useKeyboardShortcut({code: 'Enter', mod: true}, handleApprove, {enabled: !showDenyInput});
-
-    /** ⌘⇧↵ → allow all (opens confirmation modal). Same gating as approve. */
-    useKeyboardShortcut({code: 'Enter', mod: true, shift: true}, handleAllowAllClick, {enabled: !showDenyInput});
-
-    /** ⌘⌫ → deny. Skipped when any text input is focused so native macOS delete-line is preserved. */
-    useKeyboardShortcut({code: 'Backspace', mod: true}, handleDenyClick, {skipWhenTextInput: true});
-
-    return (
-        <>
-            <div className={'w-full rounded-2xl border border-warning/30 bg-warning/5 overflow-hidden'}>
-                {/* Header */}
-                <div className={'flex items-center gap-2 px-4 py-2.5 border-b border-warning/20 bg-warning/10'}>
-                    <span className={'text-sm font-medium text-warning'}>
-                        {headerLabel}
-                    </span>
-                    {isMcp ? (
-                        <>
-                            <span className={'text-xs font-mono text-text-muted truncate flex-1'} title={mcpToolName}>{mcpToolName}</span>
-                            <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase'} title={mcpServerName}>{mcpServerName}</span>
-                        </>
-                    ) : isGenericTool ? (
-                        <span className={'text-xs font-mono text-text-muted truncate flex-1'} title={toolName}>{toolName}</span>
-                    ) : (isFileOp || isRead) ? (
-                        <span className={'text-xs text-text-muted font-mono truncate flex-1'} title={filePath}>{filePath}</span>
-                    ) : null}
-                </div>
-
-                {/* Content */}
-                <div className={'p-3'}>
-                    {isRead ? (
-                        <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>
-                            <div className={'flex items-center gap-2 px-4 py-3'}>
-                                <span className={'text-xs font-mono text-text'} title={filePath}>{filePath}</span>
-                                <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase shrink-0'}>READ</span>
-                            </div>
-                        </div>
-                    ) : isBash ? (
-                        <div className={'rounded-lg border border-primary/30 overflow-hidden'}>
-                            <pre className={'px-4 py-3 text-xs font-mono text-text whitespace-pre-wrap'}>{bashCommand}</pre>
-                        </div>
-                    ) : (isMcp || isGenericTool) ? (
-                        <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>
-                            <pre className={'px-4 py-3 text-xs font-mono text-text overflow-x-auto max-h-80 overflow-y-auto'}>
-                                {JSON.stringify(toolInput, null, 2)}
-                            </pre>
-                        </div>
-                    ) : (
-                        <DiffView
-                            toolName={toolName}
-                            filePath={filePath}
-                            oldString={toolInput.old_string as string | undefined}
-                            newString={toolInput.new_string as string | undefined}
-                            content={toolInput.content as string | undefined}
-                            replaceAll={toolInput.replace_all as boolean | undefined}
-                        />
-                    )}
-                </div>
-
-                {/* Deny reason input */}
-                {showDenyInput && (
-                    <div className={'px-3 pb-3'}>
-                        <textarea
-                            autoFocus
-                            value={customReason}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>): void => setCustomReason(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder={'Why? e.g. use Edit instead, wrong file path...'}
-                            rows={2}
-                            className={'w-full rounded-lg border border-error/40 bg-surface px-3 py-2 text-xs text-text placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-error/50'}
-                        />
-                    </div>
-                )}
-
-                {/* Action buttons */}
-                <div className={'flex items-center gap-2 px-4 py-3 border-t border-warning/20'}>
-                    <Button variant={'primary'} size={'sm'} onClick={handleApprove} className={'gap-1.5'}>
-                        <HiOutlineCheck className={'size-3.5'}/>
-                        Approve
-                    </Button>
-                    <Button variant={'outline'} size={'sm'} onClick={handleAllowAllClick} className={'gap-1.5'}>
-                        <HiOutlineCheckCircle className={'size-3.5'}/>
-                        Allow All
-                    </Button>
-                    {showDenyInput ? (
-                        <>
-                            <Button variant={'danger'} size={'sm'} onClick={handleConfirmDeny} className={'gap-1.5'}>
-                                <HiOutlineX className={'size-3.5'}/>
-                                Confirm Deny
-                            </Button>
-                            <Button variant={'ghost'} size={'sm'} onClick={handleCancelDeny}>
-                                Cancel
-                            </Button>
-                        </>
-                    ) : (
-                        <Button variant={'danger'} size={'sm'} onClick={handleDenyClick} className={'gap-1.5'}>
-                            <HiOutlineX className={'size-3.5'}/>
-                            Deny
-                        </Button>
-                    )}
-                </div>
-            </div>
-
-            <Modal isOpen={showAllowAllAlert} onOpenChange={setShowAllowAllAlert}>
-                <div className={'p-6'}>
-                    <div className={'flex flex-col items-center text-center gap-4'}>
-                        <div className={'flex items-center justify-center size-12 rounded-full bg-warning/15'}>
-                            <HiOutlineExclamation className={'size-6 text-warning'}/>
-                        </div>
-                        <div className={'flex flex-col gap-1.5'}>
-                            <h3 className={'text-base font-semibold text-text'}>
-                                Always allow <code className={'px-1.5 py-0.5 rounded bg-surface text-primary font-mono text-sm'}>{isMcp ? mcpToolName : toolName}</code>
-                                {projectName ? <> in <code className={'px-1.5 py-0.5 rounded bg-surface text-primary font-mono text-sm'}>{projectName}</code>?</> : '?'}
-                            </h3>
-                            <p className={'text-sm text-text-muted'}>
-                                {approval.projectActive
-                                    ? <>Future Claude sessions in this project will run <span className={'font-mono text-text'}>{isMcp ? mcpToolName : toolName}</span> without prompting!</>
-                                    : <>This session will run <span className={'font-mono text-text'}>{isMcp ? mcpToolName : toolName}</span> without prompting. No project is active, so it will not persist across sessions!</>}
-                            </p>
-                            {approval.projectActive && (
-                                <p className={'text-xs text-text-muted'}>Revoke anytime by editing <span className={'font-mono'}>.claude/settings.local.json</span> in the project!</p>
-                            )}
-                        </div>
-                        <div className={'flex items-center gap-2 w-full'}>
-                            <Button variant={'ghost'} size={'sm'} onClick={handleCancelAllowAll} className={'flex-1'}>
-                                Cancel
-                            </Button>
-                            <Button variant={'danger'} size={'sm'} onClick={handleConfirmAllowAll} className={'flex-1 gap-1.5'}>
-                                <HiOutlineCheckCircle className={'size-3.5'}/>
-                                Allow All
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </Modal>
-        </>
-    );
-}
-
-export {ToolApprovalPrompt};
+"use client";import React from "react";import {HiOutlineCheck, HiOutlineX, HiOutlineCheckCircle, HiOutlineExclamation} from "react-icons/hi";import {Modal} from "@/components/ui/Modal";import {Button} from "@/components/ui/Button";import {DiffView} from "@/components/DiffView";import {useKeyboardShortcut} from "@/hooks/useKeyboardShortcut";import type {IToolApprovalPromptProps} from "@/types/components";function ToolApprovalPrompt({approval, projectDir, onRespond}: IToolApprovalPromptProps) {    const {requestId, toolName, toolInput} = approval;    const projectName: string = (projectDir?.split('/').filter(Boolean).pop()) || '';    const isRead: boolean = toolName === 'Read';    const isBash: boolean = toolName === 'Bash';    const isMcp: boolean = toolName.startsWith('mcp__');    const isFileOp: boolean = !isBash && !isMcp && !isRead && ('file_path' in toolInput || 'notebook_path' in toolInput);    const isGenericTool: boolean = !isBash && !isMcp && !isRead && !isFileOp;    const filePath: string = (isFileOp || isRead) ? ((toolInput.file_path as string) ?? (toolInput.notebook_path as string) ?? '') : '';    const bashCommand: string = isBash ? ((toolInput.command as string) ?? '') : '';    const mcpParts: string[] = isMcp ? toolName.split('__') : [];    const mcpServerName: string = mcpParts[1] ?? '';    const mcpToolName: string = mcpParts.slice(2).join('__');    const [showDenyInput, setShowDenyInput] = React.useState<boolean>(false);    const [customReason, setCustomReason] = React.useState<string>('');    const [showAllowAllAlert, setShowAllowAllAlert] = React.useState<boolean>(false);    const headerLabel: string = isBash        ? 'Run command?'        : isRead            ? 'Read file?'            : isMcp || isGenericTool                ? 'Use tool?'                : toolName === 'Write'                    ? 'Create file?'                    : 'Edit file?';    const defaultReason: string = isBash        ? 'User denied the command'        : isRead            ? 'User denied the read'            : (isMcp || isGenericTool)                ? 'User denied the tool call'                : 'User denied the edit';    const handleApprove = React.useCallback((): void => {        onRespond(requestId, 'allow');    }, [requestId, onRespond]);    const handleAllowAll = React.useCallback((): void => {        onRespond(requestId, 'allow', undefined, true);    }, [requestId, onRespond]);    const handleAllowAllClick = React.useCallback((): void => {        setShowAllowAllAlert(true);    }, []);    const handleConfirmAllowAll = React.useCallback((): void => {        handleAllowAll();        setShowAllowAllAlert(false);    }, [handleAllowAll]);    const handleCancelAllowAll = React.useCallback((): void => {        setShowAllowAllAlert(false);    }, []);    const handleDenyClick = React.useCallback((): void => {        setShowDenyInput(true);    }, []);    const handleConfirmDeny = React.useCallback((): void => {        const finalReason: string = customReason.trim() || defaultReason;        onRespond(requestId, 'deny', finalReason);        setShowDenyInput(false);        setCustomReason('');    }, [requestId, onRespond, customReason, defaultReason]);    const handleCancelDeny = React.useCallback((): void => {        setShowDenyInput(false);        setCustomReason('');    }, []);    const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>): void => {        if (e.key === 'Enter' && !e.shiftKey) {            e.preventDefault();            handleConfirmDeny();        } else if (e.key === 'Escape') {            handleCancelDeny();        }    }, [handleConfirmDeny, handleCancelDeny]);    /** ⌘↵ → approve. Disabled while deny textarea is open so it can't silently flip a deny into an approve. */    useKeyboardShortcut({code: 'Enter', mod: true}, handleApprove, {enabled: !showDenyInput});    /** ⌘⇧↵ → allow all (opens confirmation modal). Same gating as approve. */    useKeyboardShortcut({code: 'Enter', mod: true, shift: true}, handleAllowAllClick, {enabled: !showDenyInput});    /** ⌘⌫ → deny. Skipped when any text input is focused so native macOS delete-line is preserved. */    useKeyboardShortcut({code: 'Backspace', mod: true}, handleDenyClick, {skipWhenTextInput: true});    return (        <>            <div className={'w-full rounded-2xl border border-warning/30 bg-warning/5 overflow-hidden'}>                {/* Header */}                <div className={'flex items-center gap-2 px-4 py-2.5 border-b border-warning/20 bg-warning/10'}>                    <span className={'text-sm font-medium text-warning'}>                        {headerLabel}                    </span>                    {isMcp ? (                        <>                            <span className={'text-xs font-mono text-text-muted truncate flex-1'} title={mcpToolName}>{mcpToolName}</span>                            <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase'} title={mcpServerName}>{mcpServerName}</span>                        </>                    ) : isGenericTool ? (                        <span className={'text-xs font-mono text-text-muted truncate flex-1'} title={toolName}>{toolName}</span>                    ) : (isFileOp || isRead) ? (                        <span className={'text-xs text-text-muted font-mono truncate flex-1'} title={filePath}>{filePath}</span>                    ) : null}                </div>                {/* Content */}                <div className={'p-3'}>                    {isRead ? (                        <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>                            <div className={'flex items-center gap-2 px-4 py-3'}>                                <span className={'text-xs font-mono text-text'} title={filePath}>{filePath}</span>                                <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary uppercase shrink-0'}>READ</span>                            </div>                        </div>                    ) : isBash ? (                        <div className={'rounded-lg border border-primary/30 overflow-hidden'}>                            <pre className={'px-4 py-3 text-xs font-mono text-text whitespace-pre-wrap'}>{bashCommand}</pre>                        </div>                    ) : (isMcp || isGenericTool) ? (                        <div className={'rounded-lg border border-border overflow-hidden bg-surface'}>                            <pre className={'px-4 py-3 text-xs font-mono text-text overflow-x-auto max-h-80 overflow-y-auto'}>                                {JSON.stringify(toolInput, null, 2)}                            </pre>                        </div>                    ) : (                        <DiffView                            toolName={toolName}                            filePath={filePath}                            oldString={toolInput.old_string as string | undefined}                            newString={toolInput.new_string as string | undefined}                            content={toolInput.content as string | undefined}                            replaceAll={toolInput.replace_all as boolean | undefined}                        />                    )}                </div>                {/* Deny reason input */}                {showDenyInput && (                    <div className={'px-3 pb-3'}>                        <textarea                            autoFocus                            value={customReason}                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>): void => setCustomReason(e.target.value)}                            onKeyDown={handleKeyDown}                            placeholder={'Why? e.g. use Edit instead, wrong file path...'}                            rows={2}                            className={'w-full rounded-lg border border-error/40 bg-surface px-3 py-2 text-xs text-text placeholder:text-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-error/50'}                        />                    </div>                )}                {/* Action buttons */}                <div className={'flex items-center gap-2 px-4 py-3 border-t border-warning/20'}>                    <Button variant={'primary'} size={'sm'} onClick={handleApprove} className={'gap-1.5'}>                        <HiOutlineCheck className={'size-3.5'}/>                        Approve                    </Button>                    <Button variant={'outline'} size={'sm'} onClick={handleAllowAllClick} className={'gap-1.5'}>                        <HiOutlineCheckCircle className={'size-3.5'}/>                        Allow All                    </Button>                    {showDenyInput ? (                        <>                            <Button variant={'danger'} size={'sm'} onClick={handleConfirmDeny} className={'gap-1.5'}>                                <HiOutlineX className={'size-3.5'}/>                                Confirm Deny                            </Button>                            <Button variant={'ghost'} size={'sm'} onClick={handleCancelDeny}>                                Cancel                            </Button>                        </>                    ) : (                        <Button variant={'danger'} size={'sm'} onClick={handleDenyClick} className={'gap-1.5'}>                            <HiOutlineX className={'size-3.5'}/>                            Deny                        </Button>                    )}                </div>            </div>            <Modal isOpen={showAllowAllAlert} onOpenChange={setShowAllowAllAlert}>                <div className={'p-6'}>                    <div className={'flex flex-col items-center text-center gap-4'}>                        <div className={'flex items-center justify-center size-12 rounded-full bg-warning/15'}>                            <HiOutlineExclamation className={'size-6 text-warning'}/>                        </div>                        <div className={'flex flex-col gap-1.5'}>                            <h3 className={'text-base font-semibold text-text'}>                                Always allow <code className={'px-1.5 py-0.5 rounded bg-surface text-primary font-mono text-sm'}>{isMcp ? mcpToolName : toolName}</code>                                {projectName ? <> in <code className={'px-1.5 py-0.5 rounded bg-surface text-primary font-mono text-sm'}>{projectName}</code>?</> : '?'}                            </h3>                            <p className={'text-sm text-text-muted'}>                                {approval.projectActive                                    ? <>Future Claude sessions in this project will run <span className={'font-mono text-text'}>{isMcp ? mcpToolName : toolName}</span> without prompting!</>                                    : <>This session will run <span className={'font-mono text-text'}>{isMcp ? mcpToolName : toolName}</span> without prompting. No project is active, so it will not persist across sessions!</>}                            </p>                            {approval.projectActive && (                                <p className={'text-xs text-text-muted'}>Revoke anytime by editing <span className={'font-mono'}>.claude/settings.local.json</span> in the project!</p>                            )}                        </div>                        <div className={'flex items-center gap-2 w-full'}>                            <Button variant={'ghost'} size={'sm'} onClick={handleCancelAllowAll} className={'flex-1'}>                                Cancel                            </Button>                            <Button variant={'danger'} size={'sm'} onClick={handleConfirmAllowAll} className={'flex-1 gap-1.5'}>                                <HiOutlineCheckCircle className={'size-3.5'}/>                                Allow All                            </Button>                        </div>                    </div>                </div>            </Modal>        </>    );}export {ToolApprovalPrompt};

@@ -654,10 +654,8 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
         const el: HTMLDivElement | null = approvalRef.current;
         if (!el) return;
         setApprovalHeight(el.getBoundingClientRect().height);
-        const observer: ResizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
-            for (const entry of entries) {
-                setApprovalHeight(entry.contentRect.height);
-            }
+        const observer: ResizeObserver = new ResizeObserver((): void => {
+            setApprovalHeight(el.getBoundingClientRect().height);
         });
         observer.observe(el);
         return (): void => {
@@ -1469,6 +1467,15 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                         </div>
                     </div>
 
+                    {/* Pinned tool-approval card — floats over the bottom of the chat scroll area. The outer layer spans full width with a backdrop-blur scrim; the inner is centered to match ChatInput. */}
+                    {pendingApproval && (
+                        <div className={'absolute bottom-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm pt-2'}>
+                            <div ref={approvalRef} className={'w-full max-w-4xl lg:max-w-6xl mx-auto px-6 pb-3'}>
+                                <ToolApprovalPrompt approval={pendingApproval} projectDir={projectDir} onRespond={handleApprovalResponse}/>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Scroll to bottom button — lifted above the pinned approval card when one is active */}
                     {showScrollButton && (
                         <Button variant={'ghost'} size={'icon'} onClick={handleScrollToBottomClick}
@@ -1482,13 +1489,6 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                 {/* MCP servers side panel */}
                 <MCPServersPanel contextInfo={contextInfo}/>
             </div>
-
-            {/* Pinned tool-approval card — sits above the input, overlaying the bottom of the chat scroll area */}
-            {pendingApproval && (
-                <div ref={approvalRef} className={'w-full max-w-4xl lg:max-w-6xl mx-auto px-6 mb-3'}>
-                    <ToolApprovalPrompt approval={pendingApproval} projectDir={projectDir} onRespond={handleApprovalResponse}/>
-                </div>
-            )}
 
             {/* Chat input */}
             <div className={'w-full max-w-4xl lg:max-w-6xl mx-auto px-6'}>
