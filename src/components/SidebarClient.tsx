@@ -35,11 +35,9 @@ import {getAllMemories} from "@/actions/memory.actions";
 import type {ISidebarClientProps} from "@/types/components";
 import {ImportZipButton} from "@/components/ImportZipButton";
 import {RenameProjectModal} from "@/components/RenameProjectModal";
-import {DeleteSessionButton} from "@/components/DeleteSessionButton";
-import {ExportSessionButton} from "@/components/ExportSessionButton";
+import {SessionActionsMenu} from "@/components/SessionActionsMenu";
 import {computeProjectDisplayNames} from "@/utils/projectDisplayName";
 import {getAllSessions, refreshSidebar} from "@/actions/session.actions";
-import {DownloadSessionPdfButton} from "@/components/DownloadSessionPdfButton";
 
 /** Task status indicator */
 const TASK_STATUS_ICON: Record<string, { label: string; className: string; }> = {
@@ -580,9 +578,7 @@ function SidebarClient({projects, r2Configured}: ISidebarClientProps) {
                                                         <span className={'truncate'}>{session.title}</span>
                                                     </Button>
                                                     <div className={'shrink-0 flex items-center'}>
-                                                        <DownloadSessionPdfButton sessionId={session.sessionId}/>
-                                                        <ExportSessionButton projectDir={projectDir} sessionId={session.sessionId}/>
-                                                        <DeleteSessionButton sessionId={session.sessionId} sessionTitle={session.title} r2Configured={r2Configured}/>
+                                                        <SessionActionsMenu sessionId={session.sessionId} sessionTitle={session.title} projectDir={projectDir} r2Configured={r2Configured}/>
                                                     </div>
                                                 </div>
 

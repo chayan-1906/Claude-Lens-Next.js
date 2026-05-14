@@ -209,6 +209,21 @@ export interface IDeleteSessionButtonProps {
     r2Configured: boolean;
 }
 
+export interface IDeleteSessionModalProps {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    sessionId: string;
+    sessionTitle: string;
+    r2Configured: boolean;
+}
+
+export interface ISessionActionsMenuProps {
+    sessionId: string;
+    sessionTitle: string;
+    projectDir: string;
+    r2Configured: boolean;
+}
+
 export interface IDeleteTasksButtonProps {
     sessionId: string;
 }
