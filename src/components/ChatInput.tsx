@@ -82,20 +82,8 @@ async function resizeAndCompressImage(base64: string, mimeType: string): Promise
 let draftText: string = '';
 
 function ChatInput({
-                       onSend,
-                       onStop,
-                       disabled,
-                       isLoading,
-                       selectedModel,
-                       selectedEffort,
-                       thinking,
-                       onModelChange,
-                       onEffortChange,
-                       onThinkingChange,
-                       ideStatus,
-                       r2Configured,
-                       groqConfigured,
-                       userMessageHistory
+                       onSend, onStop, disabled, isLoading, selectedModel, selectedEffort, thinking, onModelChange, onEffortChange, onThinkingChange, ideStatus, r2Configured, groqConfigured,
+                       userMessageHistory,
                    }: IChatInputProps) {
     const [text, setText] = React.useState<string>(draftText);
     const [isStopping, setIsStopping] = React.useState<boolean>(false);

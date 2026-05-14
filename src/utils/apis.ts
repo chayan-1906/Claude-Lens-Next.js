@@ -96,6 +96,18 @@ const apis = {
     updateSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     deleteSessionApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}`,
     stubToolResultsApi: (sessionId: string) => `${baseSessionApiUrl}/${sessionId}/messages/stub`,
+    sessionPdfApi: (sessionId: string, options?: { includeThinking?: boolean; includeTools?: boolean; }) => {
+        const searchParams: URLSearchParams = new URLSearchParams();
+        if (options?.includeThinking) {
+            searchParams.set('includeThinking', 'true');
+        }
+        if (options?.includeTools) {
+            searchParams.set('includeTools', 'true');
+        }
+
+        const queryString: string = searchParams.toString();
+        return `${baseSessionApiUrl}/${sessionId}/pdf${queryString ? `?${queryString}` : ''}`;
+    },
 
     getAllTasksApi: baseTaskApiUrl,
     getTaskApi: (sessionId: string, taskId: string) => `${baseTaskApiUrl}/${sessionId}/${taskId}`,

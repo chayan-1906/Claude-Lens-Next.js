@@ -47,6 +47,7 @@ import {getSession, refreshSidebar} from "@/actions/session.actions";
 import {InlineMessageEditor} from "@/components/InlineMessageEditor";
 import {computeProjectDisplayNames} from "@/utils/projectDisplayName";
 import {VoiceSettingsPopover} from "@/components/VoiceSettingsPopover";
+import {DownloadSessionPdfButton} from "@/components/DownloadSessionPdfButton";
 import {IGetSessionPagination, IGetSessionResponse, ISession} from "@/types/session";
 import {EChatStatus, IAttachment, IChatMessage, IPendingToolApproval} from "@/types/chat";
 import {ICapabilityRow, IChatSessionViewProps, IProjectChipColor} from "@/types/components";
@@ -1039,6 +1040,7 @@ function ChatSessionView({isNewChat, session, historicalMessages, initialPaginat
                         <Button variant={'ghost'} size={'icon'} onClick={() => setIsSearchOpen(true)} className={'size-7 text-text-muted'} title={'Search in session'}>
                             <HiOutlineSearch className={'size-3.5'}/>
                         </Button>
+                        <DownloadSessionPdfButton sessionId={localSession.sessionId}/>
                         <DeleteSessionButton sessionId={localSession.sessionId} sessionTitle={localSession.title} r2Configured={r2Configured}/>
                         <span
                             className={cn('size-2.5 rounded-full animate-pulse', status === EChatStatus.CONNECTING ? 'bg-warning' : status === EChatStatus.ERROR || status === EChatStatus.OFFLINE ? 'bg-error' : 'bg-success')}

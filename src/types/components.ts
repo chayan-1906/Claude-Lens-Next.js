@@ -222,6 +222,16 @@ export interface IExportSessionButtonProps {
     sessionId: string;
 }
 
+export interface IDownloadSessionPdfButtonProps {
+    sessionId: string;
+}
+
+export interface IDownloadSessionPdfModalProps {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    sessionId: string;
+}
+
 export interface IImportZipButtonProps {
     onImported: () => void;
 }
