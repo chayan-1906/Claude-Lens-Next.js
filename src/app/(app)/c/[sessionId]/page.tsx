@@ -1,14 +1,46 @@
+import type {Metadata} from "next";
 import {notFound} from "next/navigation";
-import {SessionView} from "@/components/SessionView";
+import type {IProject} from "@/types/project";
 import {getSession} from "@/actions/session.actions";
+import {getSetupStatus} from "@/actions/setup.actions";
+import {getAllProjects} from "@/actions/project.actions";
 import type {IGetSessionResponse} from "@/types/session";
 import type {ISessionPageProps} from "@/types/components";
+import type {IGetSetupStatusResponse} from "@/types/setup";
+import type {IGetAllProjectsResponse} from "@/types/project";
+import {ChatSessionView} from "@/components/ChatSessionView";
+import {SESSION_MESSAGES_PAGE_SIZE} from "@/utils/pagination";
+
+export async function generateMetadata({params}: ISessionPageProps): Promise<Metadata> {
+    const {sessionId} = await params;
+    if (sessionId === 'new') {
+        return {title: 'New Chat | Claude Lens'};
+    }
+    const {session}: IGetSessionResponse = await getSession({sessionId, limit: SESSION_MESSAGES_PAGE_SIZE});
+    return {title: `${session?.title ?? 'Session'} | Claude Lens`};
+}
 
 async function SessionPage({params}: ISessionPageProps) {
     const {sessionId} = await params;
-    const {success, session, messages, error}: IGetSessionResponse = await getSession({sessionId});
+    const isNewChat: boolean = sessionId === 'new';
 
-    if (!success || !session || !messages) {
+    const {r2Configured, groqConfigured}: IGetSetupStatusResponse = await getSetupStatus();
+
+    if (isNewChat) {
+        const instanceKey: string = crypto.randomUUID();
+        const {projects}: IGetAllProjectsResponse = await getAllProjects();
+        const validProjects: IProject[] = (projects ?? []).filter((project: IProject) => project.rawProjectDir.trim() !== '');
+        return (
+            <ChatSessionView key={instanceKey} isNewChat={true} r2Configured={r2Configured ?? false} groqConfigured={groqConfigured ?? false} projects={validProjects}/>
+        );
+    }
+
+    const {success, session, messages, pagination, localJsonlAvailable, error}: IGetSessionResponse = await getSession({
+        sessionId,
+        limit: SESSION_MESSAGES_PAGE_SIZE,
+    });
+
+    if (!success || !session || !messages || !pagination) {
         if (error?.includes('Invalid sessionId') || error?.includes('No session found')) {
             notFound();
         }
@@ -21,7 +53,15 @@ async function SessionPage({params}: ISessionPageProps) {
     }
 
     return (
-        <SessionView session={session} messages={messages}/>
+        <ChatSessionView
+            isNewChat={false}
+            session={session}
+            historicalMessages={messages}
+            initialPagination={pagination}
+            r2Configured={r2Configured ?? false}
+            groqConfigured={groqConfigured ?? false}
+            localJsonlAvailable={localJsonlAvailable ?? false}
+        />
     );
 }
 

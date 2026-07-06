@@ -3,6 +3,8 @@
 export type ThinkingBlock = {
     type: 'thinking';
     thinking: string;
+    _stubbed?: boolean;
+    _originalTokenCount?: number;
 }
 
 export type TextBlock = {
@@ -17,18 +19,47 @@ export type ToolUseBlock = {
     input: Record<string, unknown>;
 }
 
+export type ImageBlock = {
+    type: 'image';
+    source: | { type: 'url'; url: string; } | { type: 'base64'; media_type: string; data: string; };
+}
+
+export type DocumentBlock = {
+    type: 'document';
+    source: {
+        type: 'url';
+        url: string;
+    };
+}
+
+export type ToolResultContentItem = {
+    type: string;
+    text?: string;
+    tool_name?: string;
+}
+
 export type ToolResultBlock = {
     type: 'tool_result';
     tool_use_id: string;
-    content: string;
+    content: string | ToolResultContentItem[];
     is_error: boolean;
+    _stubbed?: boolean;
+    _originalTokenCount?: number;
 }
 
-export type ContentBlock = ThinkingBlock | TextBlock | ToolUseBlock | ToolResultBlock;
+export type ContentBlock = ThinkingBlock | TextBlock | ToolUseBlock | ToolResultBlock | ImageBlock | DocumentBlock;
+
+export type IAttachmentMeta = {
+    name: string;
+    mimeType: string;
+    size: number;
+    r2Url: string;
+}
 
 export enum EMessageRole {
     USER = 'user',
     ASSISTANT = 'assistant',
+    SYSTEM = 'system',
 }
 
 export enum EUserMessageType {
@@ -50,17 +81,28 @@ export type ParsedUserMessage =
 export interface IMessage {
     messageId: string;
     uuid: string;
+    parentUuid?: string;
     sessionInternalId: string;
     role: EMessageRole;
     content: string | ContentBlock[];
     aiModel?: string;
+    effortLevel?: string;
+    thinking?: boolean;
     timestamp: string;
+    attachments?: IAttachmentMeta[];
     tokenUsage?: {
         input: number;
         output: number;
     };
     createdAt: string;
     updatedAt: string;
+}
+
+export interface IStubToolResultsResponse {
+    success: boolean;
+    error?: string;
+    stubbedCount?: number;
+    diskUpdated?: boolean;
 }
 
 

@@ -8,8 +8,8 @@ import {IDeleteMemoryParams, IDeleteMemoryResponse, IGetAllMemoriesParams, IGetA
 
 async function getAllMemories(params: IGetAllMemoriesParams = {}): Promise<IGetAllMemoriesResponse> {
     "use cache";
-    cacheTag("memories");
-    
+    cacheTag('memories');
+
     try {
         const searchParams: URLSearchParams = new URLSearchParams();
 
@@ -49,23 +49,23 @@ async function getAllMemories(params: IGetAllMemoriesParams = {}): Promise<IGetA
     }
 }
 
-async function getMemory({projectDir}: IGetMemoryParams): Promise<IGetMemoryResponse> {
+async function getMemories({projectDir}: IGetMemoryParams): Promise<IGetMemoryResponse> {
     "use cache";
-    cacheTag("memories");
-    
+    cacheTag('memories');
+
     try {
         const response: Response = await fetch(apis.getMemory(projectDir));
         const data: ApiResponseClass = await parseApiResponse(response);
 
         if (!response.ok || !data.success) {
             const errorCode: string | number = data.error?.code || '';
-            let errorMessage: string = 'Failed to fetch memory!';
-            console.error('Getting memory failed:', {code: errorCode, message: data.error?.message});
+            let errorMessage: string = 'Failed to fetch memories!';
+            console.error('Getting memories failed:', {code: errorCode, message: data.error?.message});
 
             if (errorCode === 'INVALID_PROJECTDIR') {
                 errorMessage = `Invalid projectDir: ${projectDir}!`;
-            } else if (errorCode === 'MEMORY_NOT_FOUND') {
-                errorMessage = `No memory found for project: ${projectDir}!`;
+            } else if (errorCode === 'MEMORIES_NOT_FOUND') {
+                errorMessage = `No memories found for project: ${projectDir}!`;
             }
 
             return {
@@ -77,10 +77,10 @@ async function getMemory({projectDir}: IGetMemoryParams): Promise<IGetMemoryResp
         return {
             success: true,
             message: data.message,
-            memory: data.memory as IMemory,
+            memories: data.memories as IMemory[],
         };
     } catch (error: unknown) {
-        console.error('Get memory error:', error);
+        console.error('Get memories error:', error);
         return {
             success: false,
             error: 'Something went wrong. Please try again!',
@@ -102,8 +102,8 @@ async function deleteMemory({projectDir}: IDeleteMemoryParams): Promise<IDeleteM
 
             if (errorCode === 'PROJECTDIR_MISSING') {
                 errorMessage = `projectDir is required!`;
-            } else if (errorCode === 'MEMORY_NOT_FOUND') {
-                errorMessage = `No memory found for project: ${projectDir}!`;
+            } else if (errorCode === 'MEMORIES_NOT_FOUND') {
+                errorMessage = `No memories found for project: ${projectDir}!`;
             }
 
             return {
@@ -112,7 +112,7 @@ async function deleteMemory({projectDir}: IDeleteMemoryParams): Promise<IDeleteM
             };
         }
 
-        updateTag("projects");
+        updateTag('projects');
         return {
             success: true,
             message: data.message,
@@ -127,4 +127,4 @@ async function deleteMemory({projectDir}: IDeleteMemoryParams): Promise<IDeleteM
     }
 }
 
-export {getAllMemories, getMemory, deleteMemory};
+export {getAllMemories, getMemories, deleteMemory};

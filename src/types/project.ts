@@ -2,11 +2,28 @@ import {IApiResponse} from "@/types/session";
 
 /** ------------- Constants and Type Aliases ------------- */
 
+export interface IProject {
+    rawProjectDir: string;
+    projectDir: string;
+    customName?: string;
+    description?: string;
+}
+
+export interface IRenameProjectParams {
+    projectDir: string;
+    customName: string;
+    description?: string;
+}
+
+export interface IRenameProjectResponse extends IApiResponse {
+    project?: IProject;
+}
+
 
 /** ------------- API response types ------------- */
 
 export interface IGetAllProjectsResponse extends IApiResponse {
-    projects?: string[];
+    projects?: IProject[];
 }
 
 export interface IDeleteProjectResponse extends IApiResponse {
@@ -14,6 +31,7 @@ export interface IDeleteProjectResponse extends IApiResponse {
     deletedMessages?: number;
     deletedTasks?: number;
     deletedMemories?: number;
+    deletedAttachments?: number;
 }
 
 
@@ -21,4 +39,5 @@ export interface IDeleteProjectResponse extends IApiResponse {
 
 export interface IDeleteProjectParams {
     projectDir: string;
+    reclaimR2?: boolean;
 }

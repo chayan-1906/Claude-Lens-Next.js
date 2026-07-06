@@ -1,11 +1,14 @@
 import React from "react";
 import Link from "next/link";
+import remarkGfm from "remark-gfm";
+import Markdown from "react-markdown";
 import {cn} from "@/utils/cn";
 import {routes} from "@/utils/routes";
 import {ETaskStatus} from "@/types/task";
 import type {ITaskViewProps} from "@/types/components";
 import {CopyMessageButton} from "@/components/CopyMessageButton";
 import {DeleteTasksButton} from "@/components/DeleteTasksButton";
+import {renderCode, renderPre, renderLink} from "@/components/CodeBlock";
 
 const STATUS_CONFIG: Record<ETaskStatus, { label: string; className: string }> = {
     [ETaskStatus.PENDING]: {label: 'Pending', className: 'bg-surface text-text-muted border border-border'},
@@ -62,11 +65,14 @@ function TaskView({task}: ITaskViewProps) {
             {/* Body */}
             <div className={'flex-1 overflow-y-auto px-6 py-4'}>
                 <div className={'max-w-2xl mx-auto flex flex-col gap-5'}>
-
                     {/* Description */}
                     <section>
                         <p className={'text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5'}>{'Description'}</p>
-                        <p className={'text-sm text-text leading-relaxed whitespace-pre-wrap'}>{task.description}</p>
+                        <div className={'markdown-content text-sm'}>
+                            <Markdown remarkPlugins={[remarkGfm]} components={{code: renderCode, pre: renderPre, a: renderLink}}>
+                                {task.description}
+                            </Markdown>
+                        </div>
                     </section>
 
                     {/* Active form — only when in progress */}

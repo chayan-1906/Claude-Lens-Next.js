@@ -13,9 +13,14 @@ export interface ISession {
     title: string;
     aiModel?: string;
     projectDir: string;
+    rawProjectDir: string;
     gitBranch?: string;
     slug?: string;
+    description?: string;
     source: ESessionSource;
+    contextTokensUsed?: number;
+    contextWindowSize?: number;
+    parentSessionId?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -33,6 +38,13 @@ export interface IApiResponse {
     error?: string;
 }
 
+export interface IGetSessionPagination {
+    limit: number;
+    totalCount: number;
+    hasMore: boolean;
+    nextCursor: string | null;
+}
+
 
 /** ------------- API response types ------------- */
 
@@ -44,12 +56,19 @@ export interface IGetAllSessionsResponse extends IApiResponse {
 export interface IGetSessionResponse extends IApiResponse {
     session?: ISession;
     messages?: IMessage[];
+    pagination?: IGetSessionPagination;
+    localJsonlAvailable?: boolean;
+}
+
+export interface IUpdateSessionResponse extends IApiResponse {
+    session?: ISession;
 }
 
 export interface IDeleteSessionResponse extends IApiResponse {
     deletedSessions?: number;
     deletedMessages?: number;
     deletedTasks?: number;
+    deletedAttachments?: number;
 }
 
 
@@ -65,8 +84,17 @@ export interface IGetAllSessionsParams {
 
 export interface IGetSessionParams {
     sessionId: string;
+    limit?: number;
+    cursor?: string;
+}
+
+export interface IUpdateSessionParams {
+    sessionId: string;
+    title?: string;
+    description?: string;
 }
 
 export interface IDeleteSessionParams {
     sessionId: string;
+    reclaimR2?: boolean;
 }

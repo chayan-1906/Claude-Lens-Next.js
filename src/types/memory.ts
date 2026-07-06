@@ -20,11 +20,26 @@ export interface IGetAllMemoriesResponse extends IApiResponse {
 }
 
 export interface IGetMemoryResponse extends IApiResponse {
-    memory?: IMemory;
+    memories?: IMemory[];
 }
 
 export interface IDeleteMemoryResponse extends IApiResponse {
     deletedMemories?: number;
+}
+
+
+/** ------------- Memory file parsing ------------- */
+
+export interface IFrontmatter {
+    name?: string;
+    description?: string;
+    type?: string;
+    originSessionId?: string;
+}
+
+export interface IParsedMemory {
+    frontmatter: IFrontmatter;
+    body: string;
 }
 
 

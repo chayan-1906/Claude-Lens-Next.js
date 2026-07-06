@@ -1,24 +1,25 @@
 {
   "name": "claude-lens",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "rm -rf .next && next dev -H 0.0.0.0",
+    "build": "rm -rf .next && next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "next": "16.1.6",
+    "jszip": "^3.10.1",
+    "next": "16.2.6",
     "next-devtools-mcp": "^0.3.10",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-icons": "^5.5.0",
+    "react-icons": "^5.6.0",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.2.1",

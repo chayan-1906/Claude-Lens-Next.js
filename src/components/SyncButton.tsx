@@ -1,12 +1,11 @@
 "use client";
 
 import React from "react";
-import {HiOutlineRefresh} from "react-icons/hi";
+import {HiOutlineCloudUpload} from "react-icons/hi";
 import {Modal} from "@/components/ui/Modal";
-import type {SyncTarget} from "@/types/sync";
-import {ALL_SYNC_TARGETS, type ISyncResponse} from "@/types/sync";
 import {Button} from "@/components/ui/Button";
 import {getLocalProjects, syncData} from "@/actions/sync.actions";
+import {ALL_SYNC_TARGETS, ISyncResponse, SyncTarget} from "@/types/sync";
 
 function SyncButton() {
     const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
@@ -117,7 +116,7 @@ function SyncButton() {
     return (
         <>
             <Button variant={'ghost'} size={'icon'} onClick={handleOpen} className={'size-8'} title={'Sync data'}>
-                <HiOutlineRefresh className={'size-4'}/>
+                <HiOutlineCloudUpload className={'size-4'}/>
             </Button>
 
             <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen} onClose={handleClose}>
@@ -128,12 +127,12 @@ function SyncButton() {
                     {/* Targets section */}
                     <div className={'mt-4'}>
                         <h3 className={'text-sm font-medium text-text mb-2'}>{'Data Types'}</h3>
-                        <label className={'flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-surface-hover cursor-pointer'}>
+                        <label className={'flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-border cursor-pointer'}>
                             <input type={'checkbox'} checked={allTargetsSelected} onChange={handleToggleAllTargets} className={'accent-primary size-4'}/>
                             <span className={'text-sm text-text font-medium'}>Select All</span>
                         </label>
                         {ALL_SYNC_TARGETS.map((target: SyncTarget) => (
-                            <label key={target} className={'flex items-center gap-4 px-2 py-1.5 pl-6 rounded-md hover:bg-surface-hover cursor-pointer'}>
+                            <label key={target} className={'flex items-center gap-4 px-2 py-1.5 pl-6 rounded-md hover:bg-border cursor-pointer'}>
                                 <input type={'checkbox'} checked={selectedTargets.has(target)} onChange={() => handleToggleTarget(target)} className={'accent-primary size-4'}/>
                                 <span className={'text-sm text-text capitalize'}>{target}</span>
                             </label>
@@ -151,13 +150,13 @@ function SyncButton() {
                         )}
                         {(!isLoadingProjects && projects.length > 0) && (
                             <div className={'max-h-48 overflow-y-auto'}>
-                                <label className={'flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-surface-hover cursor-pointer'}>
+                                <label className={'flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-border cursor-pointer'}>
                                     <input type={'checkbox'} checked={allProjectsSelected} onChange={handleToggleAllProjects} className={'accent-primary size-4'}/>
                                     <span className={'text-sm text-text font-medium'}>Select All</span>
                                 </label>
                                 {projects.map((projectDir: string) => {
                                     return (
-                                        <label key={projectDir} className={'flex items-center gap-4 px-2 py-1.5 pl-6 rounded-md hover:bg-surface-hover cursor-pointer'}>
+                                        <label key={projectDir} className={'flex items-center gap-4 px-2 py-1.5 pl-6 rounded-md hover:bg-border cursor-pointer'}>
                                             <input type={'checkbox'} checked={selectedProjects.has(projectDir)} onChange={() => handleToggleProject(projectDir)} className={'accent-primary size-4'}/>
                                             <span className={'text-sm text-text'} title={projectDir}>{projectDir}</span>
                                         </label>

@@ -5,10 +5,11 @@ const routes = {
 
     // session routes
     sessionPath: (sessionId: string) => `/c/${sessionId}`,
+    newSessionPath: '/c/new',
 
     // task routes
     taskPath: (sessionId: string, taskId: string) => `/t/${sessionId}/${taskId}`,
-    
+
     // memory routes
     memoryPath: (projectDir: string) => `/m/${projectDir}`,
 };
