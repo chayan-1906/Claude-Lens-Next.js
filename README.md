@@ -56,15 +56,31 @@ The best part: **no Anthropic API key required.** Claude Lens drives *your own* 
 
 ## 📸 Screenshots
 
-> 📸 *Screenshots coming soon. The shots below show Claude Lens with **no private conversation data** — the onboarding screen, the theme system, and the approval/search UI.*
+<div align="center">
 
-<!-- Paste your image URLs into the empty src="" slots below -->
+**Start a new chat — pick a project, then talk to Claude about your code**
 
-|                                 New-chat screen                                 |                                Theme gallery                                 |
-|:-------------------------------------------------------------------------------:|:----------------------------------------------------------------------------:|
-| <img width="480" alt="New chat — project picker and capability rows" src="" /> |    <img width="480" alt="14 color schemes × light and dark" src="" />       |
-|                              **Tool approval prompt**                            |                              **Global search**                               |
-| <img width="480" alt="Approve, Allow All, or Deny a tool call" src="" />        | <img width="480" alt="Search across messages, sessions, tasks, memories" src="" /> |
+<img width="2548" alt="Claude Lens new-chat screen — project picker, capability rows, and message box" src="https://github.com/user-attachments/assets/5a3be9cc-3391-4127-8e25-34be440ec60f" />
+
+<br/>
+
+**Approve tool calls with a live diff — Approve · Allow All · Deny**
+
+<img width="1142" alt="Tool approval prompt — editing a file with a red/green diff and Approve, Allow All, Deny buttons" src="https://github.com/user-attachments/assets/eac4b2e1-3f69-40cf-9385-2ee0eb7c5a6e" />
+
+</div>
+
+|                                                       Live chat & tool results                                                        |                                                  Full-text search                                                  |
+|:-------------------------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------:|
+| <img width="527" alt="Streamed file edit — diff block, File edited pill, and Claude's reply" src="https://github.com/user-attachments/assets/987719c9-f5aa-4aaa-9cb0-604ce826d2c1" /> | <img width="953" alt="Global search across messages, sessions, tasks, and memories with live preview" src="https://github.com/user-attachments/assets/f2664a6b-1fb7-4a79-ba58-bba1e270400b" /> |
+
+<div align="center">
+
+**🎨 14 color schemes × light / dark**
+
+<img width="271" alt="Theme switcher popover showing 14 color schemes and Light / Dark / System modes" src="https://github.com/user-attachments/assets/c6da0d09-3a64-4fa5-aa19-a85beceeab2a" />
+
+</div>
 
 ---
 
