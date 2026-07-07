@@ -13,7 +13,7 @@
 
 **Browse • Chat • Search — a polished macOS app for your Claude Code sessions**
 
-[⬇ Download](https://github.com/chayan-1906/Claude-Lens-Next.js/releases/tag/v1.1.0) · [🐛 Report Bug](https://github.com/chayan-1906/Claude-Lens-Next.js/issues) · [✨ Request Feature](https://github.com/chayan-1906/Claude-Lens-Next.js/issues)
+[⬇ Download](https://github.com/chayan-1906/Claude-Lens-Next.js/releases/tag/v1.1.0) · [📖 User Guide](https://versed-blinker-33e.notion.site/3950c02717228005892bfacc0f629650) · [🐛 Report Bug](https://github.com/chayan-1906/Claude-Lens-Next.js/issues) · [✨ Request Feature](https://github.com/chayan-1906/Claude-Lens-Next.js/issues)
 
 ---
 
@@ -27,7 +27,7 @@
 
 **Claude Lens** wraps your local **Claude Code** CLI in a polished web UI that runs on your Mac. It is two things at once:
 
-- 🗂️ **A searchable archive** of every past Claude Code session — projects, messages, tasks, and memories — rendered as clean markdown with syntax highlighting.
+- 🗂️ **A browsable, searchable record** of every past Claude Code session — projects, messages, tasks, and memories — rendered as clean markdown with syntax highlighting.
 - 💬 **A live chat client** — start and resume real Claude Code sessions from a browser window, with streaming responses, tool approvals, image uploads, and voice input.
 
 The best part: **no Anthropic API key required.** Claude Lens drives *your own* Claude Pro/Max subscription by spawning the `claude` CLI locally — you already pay for Claude, and Claude Lens is just the interface. Everything runs on your own machine and your own MongoDB; nothing is exposed to the public internet.
